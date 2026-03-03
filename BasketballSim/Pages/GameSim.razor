@@ -1,0 +1,166 @@
+@page "/game"
+@rendermode InteractiveServer
+@using BasketballSim.Models
+@using BasketballSim.Simulation
+@using Microsoft.AspNetCore.Components.Web
+@using static Microsoft.AspNetCore.Components.Web.RenderMode
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+
+<PageTitle>Game Sim</PageTitle>
+
+<div class="text-center mt-4">
+
+    <div class="d-flex justify-content-center align-items-center gap-5 mb-2">
+        <div>
+            <div style="color: #006BB6; font-size: 1.4rem; font-weight: 700;">Golden State Warriors</div>
+            <div style="font-size: 5rem; font-weight: 800; line-height: 1;">@_homeScore</div>
+            <div style="font-size: 0.75rem; font-weight: 700; letter-spacing: 2px; color: #006BB6;
+                         background: #e8f2fb; border-radius: 4px; padding: 2px 8px; display: inline-block;">HOME</div>
+        </div>
+        <div>
+            <div style="font-size: 1rem; color: #888; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Q@_quarter</div>
+            <div style="font-size: 2rem; font-weight: 700; font-variant-numeric: tabular-nums;">@ClockDisplay</div>
+        </div>
+        <div>
+            <div style="color: #007A33; font-size: 1.4rem; font-weight: 700;">Boston Celtics</div>
+            <div style="font-size: 5rem; font-weight: 800; line-height: 1;">@_awayScore</div>
+            <div style="font-size: 0.75rem; font-weight: 700; letter-spacing: 2px; color: #666;
+                         background: #f0f0f0; border-radius: 4px; padding: 2px 8px; display: inline-block;">AWAY</div>
+        </div>
+    </div>
+
+    <div @ref="_logRef"
+         style="height: 280px; overflow-y: auto; border: 1px solid #ddd; border-radius: 6px;
+                margin: 1rem auto; max-width: 600px; text-align: left; padding: 0.5rem 0.75rem;
+                background: #fafafa; font-family: monospace; font-size: 0.82rem;">
+        @foreach (var e in _log)
+        {
+            <div style="padding: 2px 0; border-bottom: 1px solid #f0f0f0; white-space: nowrap;">@LogLine(e)</div>
+        }
+    </div>
+
+    <div class="mb-3">
+        <label style="display: flex; align-items: center; gap: 0.5rem; justify-content: center;">
+            <span>Slow</span>
+            <input type="range" min="0" max="100" value="@_speed" @oninput="OnSpeedChanged" style="width: 200px;" />
+            <span>Fast</span>
+        </label>
+    </div>
+
+    <div class="d-flex gap-2 justify-content-center">
+        @if (!_started)
+        {
+            <button class="btn btn-primary px-4" @onclick="StartGame">Start</button>
+        }
+        else if (_finished)
+        {
+            <button class="btn btn-secondary px-4" @onclick="Replay">Replay</button>
+        }
+        else
+        {
+            <button class="btn btn-warning px-4" @onclick="TogglePause">@(_paused ? "Resume" : "Pause")</button>
+        }
+    </div>
+
+</div>
+
+@code {
+    private const string HomeTeamShort = "Warriors";
+    private const string AwayTeamShort = "Celtics";
+
+    private readonly GameEngine _engine = new();
+    private List<PossessionResult> _possessions = [];
+    private List<PossessionResult> _log = [];
+
+    private int _homeScore;
+    private int _awayScore;
+    private int _quarter = 1;
+    private int _clockSeconds = 720;
+    private int _speed = 50;
+    private bool _started;
+    private bool _finished;
+    private bool _paused;
+
+    private ElementReference _logRef;
+    private CancellationTokenSource? _cts;
+
+    private string ClockDisplay => $"{_clockSeconds / 60}:{_clockSeconds % 60:D2}";
+
+    private static string LogLine(PossessionResult e)
+    {
+        string clock = $"{e.ClockSeconds / 60}:{e.ClockSeconds % 60:D2}";
+        string score = e.PointsScored > 0
+            ? $"  (Warriors {e.HomeScore} - Celtics {e.AwayScore})"
+            : "";
+        return $"Q{e.Quarter} {clock}  {e.Team,-10} — {e.Narrative}{score}";
+    }
+
+    private async Task StartGame()
+    {
+        _possessions = _engine.SimulateGame(HomeTeamShort, AwayTeamShort);
+        _started = true;
+        await RunReplay();
+    }
+
+    private async Task Replay()
+    {
+        _cts?.Cancel();
+        _log = [];
+        _homeScore = 0;
+        _awayScore = 0;
+        _quarter = 1;
+        _clockSeconds = 720;
+        _finished = false;
+        _paused = false;
+        _possessions = _engine.SimulateGame(HomeTeamShort, AwayTeamShort);
+        await RunReplay();
+    }
+
+    private void TogglePause() => _paused = !_paused;
+
+    private async Task RunReplay()
+    {
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+
+        foreach (var possession in _possessions)
+        {
+            while (_paused && !token.IsCancellationRequested)
+                await Task.Delay(100, token);
+
+            if (token.IsCancellationRequested) return;
+
+            _homeScore = possession.HomeScore;
+            _awayScore = possession.AwayScore;
+            _quarter = possession.Quarter;
+            _clockSeconds = possession.ClockSeconds;
+            _log.Add(possession);
+
+            StateHasChanged();
+
+            try { await JS.InvokeVoidAsync("scrollToBottom", token, _logRef); }
+            catch { }
+
+            int delay = (100 - _speed) * 20;
+            try
+            {
+                if (delay > 0)
+                    await Task.Delay(delay, token);
+                else
+                    await Task.Yield();
+            }
+            catch (OperationCanceledException) { return; }
+        }
+
+        _clockSeconds = 0;
+        _finished = true;
+        StateHasChanged();
+    }
+
+    private void OnSpeedChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int val))
+            _speed = val;
+    }
+}
