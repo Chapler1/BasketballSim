@@ -7,29 +7,29 @@ public class PlayerConfig
     public required Position Position { get; init; }
 
     // Physical
-    public int Height    { get; set; } = 78;
-    public int Strength  { get; set; } = 72;
-    public int Speed     { get; set; } = 72;
-    public int Jumping   { get; set; } = 66;
-    public int Endurance { get; set; } = 83;
+    public int Height    { get; set; } = 50;
+    public int Strength  { get; set; } = 50;
+    public int Speed     { get; set; } = 50;
+    public int Jumping   { get; set; } = 50;
+    public int Endurance { get; set; } = 50;
 
     // Shooting
-    public int Inside     { get; set; } = 64;
-    public int Dunks      { get; set; } = 46;
-    public int FreeThrow  { get; set; } = 74;
-    public int MidRange   { get; set; } = 63;
-    public int ThreePoint { get; set; } = 61;
+    public int Inside     { get; set; } = 50;
+    public int Dunks      { get; set; } = 50;
+    public int FreeThrow  { get; set; } = 50;
+    public int MidRange   { get; set; } = 50;
+    public int ThreePoint { get; set; } = 50;
 
     // Skill
-    public int BasketballIQ  { get; set; } = 75;
-    public int Dribbling     { get; set; } = 63;
-    public int Passing       { get; set; } = 61;
-    public int ReboundingOff { get; set; } = 41;
-    public int ReboundingDef { get; set; } = 51;
+    public int BasketballIQ  { get; set; } = 50;
+    public int Dribbling     { get; set; } = 50;
+    public int Passing       { get; set; } = 50;
+    public int ReboundingOff { get; set; } = 50;
+    public int ReboundingDef { get; set; } = 50;
 
     // Defense
-    public int PerimeterDefense { get; set; } = 63;
-    public int InteriorDefense  { get; set; } = 51;
+    public int PerimeterDefense { get; set; } = 50;
+    public int InteriorDefense  { get; set; } = 50;
 
     public Player ToPlayer() => new()
     {

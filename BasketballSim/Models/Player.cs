@@ -62,16 +62,22 @@ public class Player
 
     // ── Make% Converters ──────────────────────────────────────────
     internal double InsideMakePct =>
-        0.45 + (Attr_Inside / 100.0) * 0.27;
+        0.42 + (Attr_Inside / 100.0) * 0.38;
 
     internal double MidRangeMakePct =>
-        0.30 + (Attr_MidRange / 100.0) * 0.22;
+        0.28 + (Attr_MidRange / 100.0) * 0.26;
 
     internal double ThreeMakePct =>
-        0.28 + (Attr_ThreePoint / 100.0) * 0.17;
+        0.27 + (Attr_ThreePoint / 100.0) * 0.24;
 
-    internal double FTMakePct =>
-        0.55 + (Attr_FreeThrow / 100.0) * 0.40;
+    internal double FTMakePct
+    {
+        get
+        {
+            double x = Attr_FreeThrow / 100.0;
+            return Math.Clamp(0.37 + 1.04 * x - 0.47 * x * x, 0.20, 0.98);
+        }
+    }
 
     internal double BlockMod =>
         (Attr_InteriorDefense / 100.0) * 0.08;
@@ -80,7 +86,7 @@ public class Player
         ((Attr_PerimeterDefense + Speed) / 200.0) * 0.03;
 
     internal double TurnoverRate =>
-        0.18 - ((Attr_BasketballIQ + Attr_Dribbling) / 200.0) * 0.12;
+        0.21 - ((Attr_BasketballIQ + Attr_Dribbling) / 200.0) * 0.16;
 
     internal double ORebWeight =>
         (Attr_Rebounding_Off + Jumping) / 200.0;

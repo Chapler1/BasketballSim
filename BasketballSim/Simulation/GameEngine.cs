@@ -275,10 +275,20 @@ public class GameEngine
             bool isOffReb = orbCount > 0;
             int spacingLevel = offTeam.SpacingLevel(lineup);
 
+            // Per-player perimeter pressure: each player independently frees or occupies their defender.
+            // Positive → defender is pinned (shooter), negative → defender can sag and help in the paint.
+            // The lineup average is the net team-level paint congestion signal.
+            double netPerimPressure = lineup.Average(p =>
+                (p.Attr_ThreePoint * 0.6 + p.Attr_MidRange * 0.4 - 50.0) / 50.0);
+            // -1 = all non-shooters (max sag), +1 = all elite shooters (max gravity)
+
+            double teamSag     = Math.Max(0.0, -netPerimPressure);
+            double teamGravity = Math.Max(0.0,  netPerimPressure);
+
             double wInside = Math.Max(actionPlayer.DriveGravity * 100, 0.01);
-            double wDunk   = Math.Max(actionPlayer.Attr_Dunks * (actionPlayer.Jumping / 100.0), 0.01);
-            double wMid    = Math.Max(actionPlayer.Attr_MidRange * 0.6, 0.01);
-            double wThree  = Math.Max(actionPlayer.Attr_ThreePoint * 0.8, 0.01);
+            double wDunk   = Math.Max(actionPlayer.Attr_Dunks * (actionPlayer.Jumping / 100.0) * 0.65, 0.01);
+            double wMid    = Math.Max(actionPlayer.Attr_MidRange * 0.96, 0.01);
+            double wThree  = Math.Max(actionPlayer.Attr_ThreePoint * 1.75, 0.01);
 
             if (isOffReb)    { wInside *= 2.5; wDunk *= 2.0; wThree *= 0.1; }
             if (phase == ShotClockPhase.Early) { wInside *= 1.4; wDunk *= 1.3; wMid *= 0.7; }
@@ -287,6 +297,35 @@ public class GameEngine
             {
                 wMid *= 1.2;
                 if (actionPlayer.Attr_ThreePoint < 60) wThree *= 0.7;
+            }
+
+            // Defensive team influence on shot selection
+            double defPerimAvg = defLineup.Average(d => (double)d.Attr_PerimeterDefense);
+            double defIntAvg   = defLineup.Average(d => (double)d.Attr_InteriorDefense);
+            double perimStrength = (defPerimAvg - 50.0) / 50.0;  // -1 to +1
+            double intStrength   = (defIntAvg   - 50.0) / 50.0;
+            // Good perimeter D → fewer threes, more drives inside
+            wThree  *= Math.Max(0.3, 1.0 - perimStrength * 0.25);
+            wInside *= Math.Max(0.3, 1.0 + perimStrength * 0.15);
+            // Good interior D → fewer inside shots/dunks, more threes
+            wInside *= Math.Max(0.3, 1.0 - intStrength * 0.25);
+            wDunk   *= Math.Max(0.3, 1.0 - intStrength * 0.30);
+            wThree  *= Math.Max(0.3, 1.0 + intStrength * 0.15);
+
+            // Shooter spacing bonus — more shooters on floor → more corner/wing threes
+            wThree *= (0.7 + spacingLevel * 0.12);
+
+            // Sag: sagging defenders help in the paint → fewer clean lanes inside
+            if (teamSag > 0)
+            {
+                wInside *= Math.Max(0.35, 1.0 - teamSag * 0.55);
+                wDunk   *= Math.Max(0.35, 1.0 - teamSag * 0.45);
+            }
+            // Gravity: defenders pinned on shooters → more open lanes inside
+            if (teamGravity > 0)
+            {
+                wInside *= (1.0 + teamGravity * 0.35);
+                wDunk   *= (1.0 + teamGravity * 0.25);
             }
 
             var shotType = WeightedRandom(
@@ -371,6 +410,14 @@ public class GameEngine
             if (shotContext == ShotContext.PostMoveMidRange) baseMake = actionPlayer.MidRangeMakePct;
 
             baseMake *= ShotContextMakeModifier(shotContext, phase);
+
+            // Sag/gravity: perimeter shooting affects how open inside shots are
+            if (shotType is ShotType.Inside or ShotType.Dunk)
+            {
+                if (teamSag     > 0) baseMake -= teamSag     * 0.30; // crowded paint
+                if (teamGravity > 0) baseMake += teamGravity * 0.12; // open lanes
+            }
+
             double adjMake = baseMake * (1 - actionPlayer.Fatigue * 0.12) - contestPenalty;
 
             if (state.IsClutch)
@@ -643,7 +690,8 @@ public class GameEngine
     {
         var weights = new Dictionary<ShotContext, double>
         {
-            [ShotContext.CatchAndShootCorner]= Math.Max(p.PerimeterGravity * spacingLevel * 0.5, 0.01),
+            // Corner has a base weight independent of spacingLevel so average teams still hit corners (~17-20% of 3PA)
+            [ShotContext.CatchAndShootCorner]= Math.Max(p.PerimeterGravity * (0.8 + spacingLevel * 0.15), 0.01),
             [ShotContext.CatchAndShootWing]  = Math.Max(p.PerimeterGravity * 1.2, 0.01),
             [ShotContext.PullUpThree]        = Math.Max(p.DriveGravity * p.Attr_ThreePoint / 100.0, 0.01),
             [ShotContext.StepBackThree]      = Math.Max(p.Attr_Dribbling / 100.0 * p.Attr_ThreePoint / 100.0, 0.01),

@@ -156,6 +156,71 @@
                     @ResultRow("3PT", ShootStr(_results.Home3M,  _results.Home3A),  ShootStr(_results.Away3M,  _results.Away3A),  _results.Home3Pct  > _results.Away3Pct,  _results.Away3Pct  > _results.Home3Pct)
                     @ResultRow("FT",  ShootStr(_results.HomeFTM, _results.HomeFTA), ShootStr(_results.AwayFTM, _results.AwayFTA), _results.HomeFTPct > _results.AwayFTPct, _results.AwayFTPct > _results.HomeFTPct)
 
+                    @SectionHeader("Shot Detail")
+                    @foreach (var row in new[] {
+                        (Type: ShotType.Inside,       Label: "Inside"),
+                        (Type: ShotType.Dunk,         Label: "Dunks"),
+                        (Type: ShotType.MidRange,     Label: "Mid-Range"),
+                        (Type: ShotType.ThreePointer, Label: "Three-Point"),
+                    })
+                    {
+                        var st      = row.Type;
+                        var stLabel = row.Label;
+                        var hKey    = $"h-{st}";
+                        var aKey    = $"a-{st}";
+                        var hMade   = _results.HomeShotMade.GetValueOrDefault(st, 0L);
+                        var hAtt    = _results.HomeShotAtt.GetValueOrDefault(st,  0L);
+                        var aMade   = _results.AwayShotMade.GetValueOrDefault(st, 0L);
+                        var aAtt    = _results.AwayShotAtt.GetValueOrDefault(st,  0L);
+                        <tr @key="st" style="border-bottom:1px solid #252525;">
+                            <td style="padding:4px 0;color:#666;font-size:0.74rem;">@stLabel</td>
+                            <td style="text-align:center;padding:4px 12px;font-size:0.82rem;position:relative;"
+                                @onmouseenter="() => _hoverKey = hKey"
+                                @onmouseleave="() => _hoverKey = null">
+                                <span style="color:#d4d4d4;border-bottom:1px dotted #555;cursor:default;">@ShootStr(hMade, hAtt)</span>
+                                @if (_hoverKey == hKey)
+                                {
+                                    <div style="position:absolute;bottom:calc(100% + 2px);left:50%;transform:translateX(-50%);z-index:200;background:#141414;border:1px solid #3a3a3a;border-radius:4px;padding:6px 10px;pointer-events:none;min-width:210px;box-shadow:0 4px 12px rgba(0,0,0,0.7);">
+                                        @foreach (var ctx in _shotTypeContexts[st])
+                                        {
+                                            var cMade = _results.HomeCtxMade.GetValueOrDefault(ctx, 0L);
+                                            var cAtt  = _results.HomeCtxAtt.GetValueOrDefault(ctx,  0L);
+                                            if (cAtt > 0)
+                                            {
+                                                <div style="display:flex;justify-content:space-between;gap:16px;font-size:0.68rem;font-family:monospace;margin:1px 0;">
+                                                    <span style="color:#666;">@ContextLabel(ctx)</span>
+                                                    <span style="color:#ccc;">@ShootStr(cMade, cAtt)</span>
+                                                </div>
+                                            }
+                                        }
+                                    </div>
+                                }
+                            </td>
+                            <td style="text-align:center;padding:4px 12px;font-size:0.82rem;position:relative;"
+                                @onmouseenter="() => _hoverKey = aKey"
+                                @onmouseleave="() => _hoverKey = null">
+                                <span style="color:#d4d4d4;border-bottom:1px dotted #555;cursor:default;">@ShootStr(aMade, aAtt)</span>
+                                @if (_hoverKey == aKey)
+                                {
+                                    <div style="position:absolute;bottom:calc(100% + 2px);left:50%;transform:translateX(-50%);z-index:200;background:#141414;border:1px solid #3a3a3a;border-radius:4px;padding:6px 10px;pointer-events:none;min-width:210px;box-shadow:0 4px 12px rgba(0,0,0,0.7);">
+                                        @foreach (var ctx in _shotTypeContexts[st])
+                                        {
+                                            var cMade = _results.AwayCtxMade.GetValueOrDefault(ctx, 0L);
+                                            var cAtt  = _results.AwayCtxAtt.GetValueOrDefault(ctx,  0L);
+                                            if (cAtt > 0)
+                                            {
+                                                <div style="display:flex;justify-content:space-between;gap:16px;font-size:0.68rem;font-family:monospace;margin:1px 0;">
+                                                    <span style="color:#666;">@ContextLabel(ctx)</span>
+                                                    <span style="color:#ccc;">@ShootStr(cMade, cAtt)</span>
+                                                </div>
+                                            }
+                                        }
+                                    </div>
+                                }
+                            </td>
+                        </tr>
+                    }
+
                     @SectionHeader("Rebounding")
                     @ResultRow("Total Reb", $"{_results.AvgHomeReb:F1}",  $"{_results.AvgAwayReb:F1}",  _results.AvgHomeReb  > _results.AvgAwayReb,  _results.AvgAwayReb  > _results.AvgHomeReb)
                     @ResultRow("Off Reb",   $"{_results.AvgHomeOReb:F1}", $"{_results.AvgAwayOReb:F1}", _results.AvgHomeOReb > _results.AvgAwayOReb, _results.AvgAwayOReb > _results.AvgHomeOReb)
@@ -173,6 +238,57 @@
                 </tbody>
             </table>
         </div>
+
+        @foreach (var teamName in new[] { "Home", "Away" })
+        {
+            var teamColor  = teamName == "Home" ? "#4a9eff" : "#ef5b40";
+            var teamPlayers = _results.PlayerStats.Values
+                .Where(p => p.Team == teamName)
+                .OrderBy(p => p.Position)
+                .ToList();
+            var g = (double)_results.Games;
+
+            <div style="background:#1e1e1e;border:1px solid #2a2a2a;border-radius:6px;padding:0.85rem 1rem;margin-top:0.75rem;overflow-x:auto;">
+                <div style="font-size:0.62rem;letter-spacing:2px;color:@teamColor;text-transform:uppercase;margin-bottom:0.6rem;border-bottom:1px solid #2a2a2a;padding-bottom:0.4rem;">
+                    @teamName — avg box score
+                </div>
+                <table style="border-collapse:collapse;font-size:0.72rem;font-family:monospace;width:100%;min-width:640px;">
+                    <thead>
+                        <tr style="color:#444;font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid #2a2a2a;">
+                            <th style="text-align:left;padding:3px 8px 3px 0;white-space:nowrap;">Player</th>
+                            <th style="padding:3px 6px;text-align:center;">Pos</th>
+                            <th style="padding:3px 6px;text-align:center;">Pts</th>
+                            <th style="padding:3px 6px;text-align:center;">Reb</th>
+                            <th style="padding:3px 6px;text-align:center;">Ast</th>
+                            <th style="padding:3px 6px;text-align:center;">Stl</th>
+                            <th style="padding:3px 6px;text-align:center;">Blk</th>
+                            <th style="padding:3px 6px;text-align:center;">TO</th>
+                            <th style="padding:3px 10px;text-align:center;">FG</th>
+                            <th style="padding:3px 10px;text-align:center;">3PT</th>
+                            <th style="padding:3px 10px;text-align:center;">FT</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var p in teamPlayers)
+                        {
+                            <tr style="border-bottom:1px solid #252525;">
+                                <td style="padding:3px 8px 3px 0;color:#aaa;white-space:nowrap;">@p.Name</td>
+                                <td style="padding:3px 6px;color:#555;text-align:center;">@p.Position</td>
+                                <td style="padding:3px 6px;color:#e8e8e8;text-align:center;font-weight:700;">@((p.Pts   / g).ToString("F1"))</td>
+                                <td style="padding:3px 6px;color:#d4d4d4;text-align:center;">@((p.Reb   / g).ToString("F1"))</td>
+                                <td style="padding:3px 6px;color:#d4d4d4;text-align:center;">@((p.Ast   / g).ToString("F1"))</td>
+                                <td style="padding:3px 6px;color:#d4d4d4;text-align:center;">@((p.Stl   / g).ToString("F1"))</td>
+                                <td style="padding:3px 6px;color:#d4d4d4;text-align:center;">@((p.Blk   / g).ToString("F1"))</td>
+                                <td style="padding:3px 6px;color:#d4d4d4;text-align:center;">@((p.To    / g).ToString("F1"))</td>
+                                <td style="padding:3px 10px;color:#d4d4d4;text-align:center;white-space:nowrap;">@BxShoot(p.FGM,    p.FGA,    g)</td>
+                                <td style="padding:3px 10px;color:#d4d4d4;text-align:center;white-space:nowrap;">@BxShoot(p.ThreeM, p.ThreeA, g)</td>
+                                <td style="padding:3px 10px;color:#d4d4d4;text-align:center;white-space:nowrap;">@BxShoot(p.FTM,    p.FTA,    g)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
     }
 
 </div>
@@ -187,23 +303,23 @@
 
     private static readonly AttrSpec[] _attrs =
     [
-        new("Height",         "Physical", 78, p => p.Height,          (p,v) => p.Height = v),
-        new("Strength",       "Physical", 72, p => p.Strength,        (p,v) => p.Strength = v),
-        new("Speed",          "Physical", 72, p => p.Speed,           (p,v) => p.Speed = v),
-        new("Jumping",        "Physical", 66, p => p.Jumping,         (p,v) => p.Jumping = v),
-        new("Endurance",      "Physical", 83, p => p.Endurance,       (p,v) => p.Endurance = v),
-        new("Inside",         "Shooting", 64, p => p.Inside,          (p,v) => p.Inside = v),
-        new("Dunks",          "Shooting", 46, p => p.Dunks,           (p,v) => p.Dunks = v),
-        new("Free Throw",     "Shooting", 74, p => p.FreeThrow,       (p,v) => p.FreeThrow = v),
-        new("Mid Range",      "Shooting", 63, p => p.MidRange,        (p,v) => p.MidRange = v),
-        new("Three Point",    "Shooting", 61, p => p.ThreePoint,      (p,v) => p.ThreePoint = v),
-        new("Basketball IQ",  "Skill",    75, p => p.BasketballIQ,    (p,v) => p.BasketballIQ = v),
-        new("Dribbling",      "Skill",    63, p => p.Dribbling,       (p,v) => p.Dribbling = v),
-        new("Passing",        "Skill",    61, p => p.Passing,         (p,v) => p.Passing = v),
-        new("Off Rebounding", "Skill",    41, p => p.ReboundingOff,   (p,v) => p.ReboundingOff = v),
-        new("Def Rebounding", "Skill",    51, p => p.ReboundingDef,   (p,v) => p.ReboundingDef = v),
-        new("Perim Defense",  "Defense",  63, p => p.PerimeterDefense,(p,v) => p.PerimeterDefense = v),
-        new("Interior Def",   "Defense",  51, p => p.InteriorDefense, (p,v) => p.InteriorDefense = v),
+        new("Height",         "Physical", 50, p => p.Height,          (p,v) => p.Height = v),
+        new("Strength",       "Physical", 50, p => p.Strength,        (p,v) => p.Strength = v),
+        new("Speed",          "Physical", 50, p => p.Speed,           (p,v) => p.Speed = v),
+        new("Jumping",        "Physical", 50, p => p.Jumping,         (p,v) => p.Jumping = v),
+        new("Endurance",      "Physical", 50, p => p.Endurance,       (p,v) => p.Endurance = v),
+        new("Inside",         "Shooting", 50, p => p.Inside,          (p,v) => p.Inside = v),
+        new("Dunks",          "Shooting", 50, p => p.Dunks,           (p,v) => p.Dunks = v),
+        new("Free Throw",     "Shooting", 50, p => p.FreeThrow,       (p,v) => p.FreeThrow = v),
+        new("Mid Range",      "Shooting", 50, p => p.MidRange,        (p,v) => p.MidRange = v),
+        new("Three Point",    "Shooting", 50, p => p.ThreePoint,      (p,v) => p.ThreePoint = v),
+        new("Basketball IQ",  "Skill",    50, p => p.BasketballIQ,    (p,v) => p.BasketballIQ = v),
+        new("Dribbling",      "Skill",    50, p => p.Dribbling,       (p,v) => p.Dribbling = v),
+        new("Passing",        "Skill",    50, p => p.Passing,         (p,v) => p.Passing = v),
+        new("Off Rebounding", "Skill",    50, p => p.ReboundingOff,   (p,v) => p.ReboundingOff = v),
+        new("Def Rebounding", "Skill",    50, p => p.ReboundingDef,   (p,v) => p.ReboundingDef = v),
+        new("Perim Defense",  "Defense",  50, p => p.PerimeterDefense,(p,v) => p.PerimeterDefense = v),
+        new("Interior Def",   "Defense",  50, p => p.InteriorDefense, (p,v) => p.InteriorDefense = v),
     ];
 
     // Pre-computed once; static so it can be initialized from the static _attrs field
@@ -226,6 +342,52 @@
 
     private List<PlayerConfig> ActiveTeam =>
         _activeTab == "home" ? _homeConfigs : _awayConfigs;
+
+    private string? _hoverKey = null;
+
+    private static readonly Dictionary<ShotType, ShotContext[]> _shotTypeContexts = new()
+    {
+        [ShotType.Inside]       = [ShotContext.DrivingLayup, ShotContext.PickAndRollRoll, ShotContext.CutLayup,
+                                   ShotContext.FastBreakLayup, ShotContext.PostMove, ShotContext.FloaterLayup,
+                                   ShotContext.Putback, ShotContext.TipIn],
+        [ShotType.Dunk]         = [ShotContext.AlleyOop, ShotContext.CutDunk, ShotContext.TransitionDunk,
+                                   ShotContext.PickAndRollDunk],
+        [ShotType.MidRange]     = [ShotContext.PullUpMidRange, ShotContext.IsolationMidRange,
+                                   ShotContext.PickAndRollMidRange, ShotContext.FadeawayMidRange,
+                                   ShotContext.PostMoveMidRange, ShotContext.LateClockMidRange],
+        [ShotType.ThreePointer] = [ShotContext.CatchAndShootCorner, ShotContext.CatchAndShootWing,
+                                   ShotContext.PullUpThree, ShotContext.StepBackThree,
+                                   ShotContext.PickAndRollThree, ShotContext.TransitionThree],
+    };
+
+    private static string ContextLabel(ShotContext ctx) => ctx switch
+    {
+        ShotContext.DrivingLayup        => "Driving Layup",
+        ShotContext.PickAndRollRoll     => "PnR Roll",
+        ShotContext.CutLayup            => "Cut Layup",
+        ShotContext.FastBreakLayup      => "Fast Break",
+        ShotContext.PostMove            => "Post Move",
+        ShotContext.FloaterLayup        => "Floater",
+        ShotContext.AlleyOop            => "Alley-Oop",
+        ShotContext.CutDunk             => "Cut Dunk",
+        ShotContext.TransitionDunk      => "Transition Dunk",
+        ShotContext.PickAndRollDunk     => "PnR Dunk",
+        ShotContext.PullUpMidRange      => "Pull-Up Mid",
+        ShotContext.IsolationMidRange   => "Iso Mid",
+        ShotContext.PickAndRollMidRange => "PnR Mid",
+        ShotContext.FadeawayMidRange    => "Fadeaway",
+        ShotContext.PostMoveMidRange    => "Post Mid",
+        ShotContext.LateClockMidRange   => "Late Clock",
+        ShotContext.CatchAndShootCorner => "Corner 3",
+        ShotContext.CatchAndShootWing   => "Wing 3",
+        ShotContext.PullUpThree         => "Pull-Up 3",
+        ShotContext.StepBackThree       => "Step-Back 3",
+        ShotContext.PickAndRollThree    => "PnR 3",
+        ShotContext.TransitionThree     => "Transition 3",
+        ShotContext.Putback             => "Putback",
+        ShotContext.TipIn               => "Tip-In",
+        _                              => ctx.ToString()
+    };
 
     // ── Factory ─────────────────────────────────────────────────────────────
     private static List<PlayerConfig> MakeDefaultTeam(string teamName)
@@ -333,6 +495,11 @@
         _     => "#e66"
     };
 
+    // Compact shooting display for box score: "5.1/12.0 (42%)"
+    private static string BxShoot(long made, long att, double games) =>
+        att == 0 ? "-"
+        : $"{made / games:F1}/{att / games:F1} ({(double)made / att * 100:F0}%)";
+
     private string ShootStr(long made, long att) =>
         att == 0 ? "-"
         : $"{(double)made / _results!.Games:F1}/{(double)att / _results.Games:F1} ({(double)made / att * 100:F1}%)";
@@ -373,6 +540,28 @@
         public long HomeBlk,  AwayBlk;
         public long HomeTo,   AwayTo;
 
+        // ── Per-player accumulator ───────────────────────────────────────────
+        public class PlayerAccum
+        {
+            public required string   Name;
+            public required string   Team;
+            public required Position Position;
+            public long Pts, Reb, Ast, Stl, Blk, To;
+            public long FGM, FGA, ThreeM, ThreeA, FTM, FTA;
+        }
+
+        public Dictionary<string, PlayerAccum> PlayerStats = new();
+
+        // Per-shot-type and per-context breakdowns (tracked from possession log)
+        public Dictionary<ShotType,    long> HomeShotMade = new();
+        public Dictionary<ShotType,    long> HomeShotAtt  = new();
+        public Dictionary<ShotType,    long> AwayShotMade = new();
+        public Dictionary<ShotType,    long> AwayShotAtt  = new();
+        public Dictionary<ShotContext, long> HomeCtxMade  = new();
+        public Dictionary<ShotContext, long> HomeCtxAtt   = new();
+        public Dictionary<ShotContext, long> AwayCtxMade  = new();
+        public Dictionary<ShotContext, long> AwayCtxAtt   = new();
+
         public void Add(GameResult r, string homeTeamName)
         {
             Games++;
@@ -382,6 +571,18 @@
 
             foreach (var s in r.Stats.Values)
             {
+                if (!PlayerStats.TryGetValue(s.Name, out var pa))
+                {
+                    pa = new PlayerAccum { Name = s.Name, Team = s.Team, Position = s.Position };
+                    PlayerStats[s.Name] = pa;
+                }
+                pa.Pts    += s.Points;      pa.Reb  += s.Rebounds;
+                pa.Ast    += s.Assists;     pa.Stl  += s.Steals;
+                pa.Blk    += s.Blocks;      pa.To   += s.Turnovers;
+                pa.FGM    += s.FGMade;      pa.FGA  += s.FGAttempts;
+                pa.ThreeM += s.ThreeMade;   pa.ThreeA += s.ThreeAttempts;
+                pa.FTM    += s.FTMade;      pa.FTA  += s.FTAttempts;
+
                 if (s.Team == homeTeamName)
                 {
                     HomeFGM  += s.FGMade;    HomeFGA  += s.FGAttempts;
@@ -400,6 +601,27 @@
                     AwayAst  += s.Assists;   AwayStl  += s.Steals;
                     AwayBlk  += s.Blocks;    AwayTo   += s.Turnovers;
                 }
+            }
+
+            // Per-shot-type and per-context tracking from possession log
+            foreach (var pos in r.Possessions)
+            {
+                if (pos.Shot is not { } st || pos.Context is not { } ctx) continue;
+                if (pos.Event is not (PossessionEvent.ShotMade or PossessionEvent.ShotMissed
+                                   or PossessionEvent.Blocked  or PossessionEvent.GameWinnerMade)) continue;
+
+                bool isMade = pos.Event is PossessionEvent.ShotMade or PossessionEvent.GameWinnerMade;
+                bool isHome = pos.Team == homeTeamName;
+
+                var shotMade = isHome ? HomeShotMade : AwayShotMade;
+                var shotAtt  = isHome ? HomeShotAtt  : AwayShotAtt;
+                var ctxMade  = isHome ? HomeCtxMade  : AwayCtxMade;
+                var ctxAtt   = isHome ? HomeCtxAtt   : AwayCtxAtt;
+
+                shotMade[st]  = shotMade.GetValueOrDefault(st,  0L) + (isMade ? 1L : 0L);
+                shotAtt[st]   = shotAtt.GetValueOrDefault(st,   0L) + 1L;
+                ctxMade[ctx]  = ctxMade.GetValueOrDefault(ctx,  0L) + (isMade ? 1L : 0L);
+                ctxAtt[ctx]   = ctxAtt.GetValueOrDefault(ctx,   0L) + 1L;
             }
         }
 
