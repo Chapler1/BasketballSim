@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @using BasketballSim.Models
 @using BasketballSim.Simulation
+@using BasketballSim.Data
 @using Microsoft.AspNetCore.Components.Web
 @using static Microsoft.AspNetCore.Components.Web.RenderMode
 @using Microsoft.JSInterop
@@ -13,34 +14,147 @@
 
     <div class="d-flex justify-content-center align-items-center gap-5 mb-2">
         <div>
-            <div style="color: #006BB6; font-size: 1.4rem; font-weight: 700;">Golden State Warriors</div>
+            <div style="color: @_homeTeam.PrimaryColor; font-size: 1.4rem; font-weight: 700;">@_homeTeam.Name</div>
             <div style="font-size: 5rem; font-weight: 800; line-height: 1;">@_homeScore</div>
-            <div style="font-size: 0.75rem; font-weight: 700; letter-spacing: 2px; color: #006BB6;
-                         background: #e8f2fb; border-radius: 4px; padding: 2px 8px; display: inline-block;">HOME</div>
+            <div style="font-size: 0.75rem; font-weight: 700; letter-spacing: 2px; color: @_homeTeam.PrimaryColor;
+                         background: #1e2a38; border-radius: 4px; padding: 2px 8px; display: inline-block;">HOME</div>
         </div>
         <div>
-            <div style="font-size: 1rem; color: #888; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Q@_quarter</div>
-            <div style="font-size: 2rem; font-weight: 700; font-variant-numeric: tabular-nums;">@ClockDisplay</div>
+            <div style="font-size: 1rem; color: #666; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Q@_quarter</div>
+            <div style="font-size: 2rem; font-weight: 700; font-variant-numeric: tabular-nums; color: #e8e8e8;">@ClockDisplay</div>
         </div>
         <div>
-            <div style="color: #007A33; font-size: 1.4rem; font-weight: 700;">Boston Celtics</div>
+            <div style="color: @_awayTeam.PrimaryColor; font-size: 1.4rem; font-weight: 700;">@_awayTeam.Name</div>
             <div style="font-size: 5rem; font-weight: 800; line-height: 1;">@_awayScore</div>
-            <div style="font-size: 0.75rem; font-weight: 700; letter-spacing: 2px; color: #666;
-                         background: #f0f0f0; border-radius: 4px; padding: 2px 8px; display: inline-block;">AWAY</div>
+            <div style="font-size: 0.75rem; font-weight: 700; letter-spacing: 2px; color: #aaa;
+                         background: #2a2a2a; border-radius: 4px; padding: 2px 8px; display: inline-block;">AWAY</div>
         </div>
     </div>
 
     <div @ref="_logRef"
-         style="height: 280px; overflow-y: auto; border: 1px solid #ddd; border-radius: 6px;
-                margin: 1rem auto; max-width: 600px; text-align: left; padding: 0.5rem 0.75rem;
-                background: #fafafa; font-family: monospace; font-size: 0.82rem;">
+         style="height: 280px; overflow-y: auto; border: 1px solid #333; border-radius: 6px;
+                margin: 1rem auto; max-width: 700px; text-align: left; padding: 0.5rem 0.75rem;
+                background: #1e1e1e; color: #d4d4d4; font-family: monospace; font-size: 0.82rem;">
         @foreach (var e in _log)
         {
-            <div style="padding: 2px 0; border-bottom: 1px solid #f0f0f0; white-space: nowrap;">@LogLine(e)</div>
+            <div style="padding: 2px 0; border-bottom: 1px solid #2a2a2a; white-space: nowrap;">@LogLine(e)</div>
         }
     </div>
 
-    <div class="mb-3">
+    <!-- Live Box Score -->
+    <div class="mt-3" style="max-width: 800px; margin: 0 auto;">
+        <div style="display: flex; gap: 4px; margin-bottom: 4px;">
+            <button style="background: @(_activeBoxScoreTab=="home" ? _homeTeam.PrimaryColor : "#2a2a2a");
+                           color: @(_activeBoxScoreTab=="home" ? "white" : "#aaa");
+                           border: none; padding: 4px 16px; border-radius: 4px 4px 0 0; cursor: pointer;"
+                    @onclick='() => _activeBoxScoreTab = "home"'>
+                @_homeTeam.Abbreviation
+            </button>
+            <button style="background: @(_activeBoxScoreTab=="away" ? _awayTeam.PrimaryColor : "#2a2a2a");
+                           color: @(_activeBoxScoreTab=="away" ? "white" : "#aaa");
+                           border: none; padding: 4px 16px; border-radius: 4px 4px 0 0; cursor: pointer;"
+                    @onclick='() => _activeBoxScoreTab = "away"'>
+                @_awayTeam.Abbreviation
+            </button>
+            <button style="background: @(_activeBoxScoreTab=="compare" ? "#4a4a6a" : "#2a2a2a");
+                           color: @(_activeBoxScoreTab=="compare" ? "white" : "#aaa");
+                           border: none; padding: 4px 16px; border-radius: 4px 4px 0 0; cursor: pointer;"
+                    @onclick='() => _activeBoxScoreTab = "compare"'>
+                COMPARE
+            </button>
+        </div>
+
+        @if (_activeBoxScoreTab == "compare")
+        {
+            var homeT = GetTeamTotals(_homeTeam.Name);
+            var awayT = GetTeamTotals(_awayTeam.Name);
+            <div style="border: 1px solid #333; border-radius: 0 4px 4px 4px; background: #1e1e1e;">
+                <table style="width: 100%; font-size: 0.82rem; border-collapse: collapse; font-family: monospace; color: #d4d4d4;">
+                    <thead style="background: #252525; color: #888;">
+                        <tr>
+                            <th style="text-align:center; padding: 5px 8px; width:40%;">
+                                <span style="color:@_homeTeam.PrimaryColor; font-weight:700;">@_homeTeam.Abbreviation</span>
+                            </th>
+                            <th style="text-align:center; padding: 5px 8px; width:20%; color:#666;">STAT</th>
+                            <th style="text-align:center; padding: 5px 8px; width:40%;">
+                                <span style="color:@_awayTeam.PrimaryColor; font-weight:700;">@_awayTeam.Abbreviation</span>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @CompareRow("PTS", homeT.Points, awayT.Points)
+                        @CompareRowShooting("FG",  homeT.FGMade,     homeT.FGAttempts,     awayT.FGMade,     awayT.FGAttempts)
+                        @CompareRowShooting("3PT", homeT.ThreeMade,  homeT.ThreeAttempts,  awayT.ThreeMade,  awayT.ThreeAttempts)
+                        @CompareRowShooting("FT",  homeT.FTMade,     homeT.FTAttempts,     awayT.FTMade,     awayT.FTAttempts)
+                        @CompareRow("REB", homeT.Rebounds, awayT.Rebounds)
+                        @CompareRow("OREB", homeT.OffRebounds, awayT.OffRebounds)
+                        @CompareRow("DREB", homeT.DefRebounds, awayT.DefRebounds)
+                        @CompareRow("AST", homeT.Assists, awayT.Assists)
+                        @CompareRow("STL", homeT.Steals, awayT.Steals)
+                        @CompareRow("BLK", homeT.Blocks, awayT.Blocks)
+                        @CompareRow("TO", homeT.Turnovers, awayT.Turnovers, lowerIsBetter: true)
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div style="max-height: 220px; overflow-y: auto; border: 1px solid #333; border-radius: 0 4px 4px 4px;">
+                <table style="width: 100%; font-size: 0.75rem; border-collapse: collapse; font-family: monospace; color: #d4d4d4;">
+                    <thead style="position: sticky; top: 0; background: #252525; color: #888;">
+                        <tr>
+                            <th style="text-align:left; padding: 4px 8px;">Player</th>
+                            <th>PTS</th><th>REB</th><th>ORB</th><th>DRB</th><th>AST</th>
+                            <th>STL</th><th>BLK</th><th>TO</th>
+                            <th>FG</th><th>3PT</th><th>FT</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var stat in GetActiveBoxScore())
+                        {
+                            bool isScorer = stat.Name == _lastScorer;
+                            <tr style="background: @(isScorer ? "#2a2a18" : "#1e1e1e");
+                                       border-bottom: 1px solid #2a2a2a;
+                                       color: @(isScorer ? "#f5e642" : "#d4d4d4");
+                                       font-weight: @(isScorer ? "700" : "400");">
+                                <td style="padding: 3px 8px; text-align:left;">@ShortName(stat.Name)</td>
+                                <td style="text-align:center;">@stat.Points</td>
+                                <td style="text-align:center;">@stat.Rebounds</td>
+                                <td style="text-align:center;">@stat.OffRebounds</td>
+                                <td style="text-align:center;">@stat.DefRebounds</td>
+                                <td style="text-align:center;">@stat.Assists</td>
+                                <td style="text-align:center;">@stat.Steals</td>
+                                <td style="text-align:center;">@stat.Blocks</td>
+                                <td style="text-align:center;">@stat.Turnovers</td>
+                                <td style="text-align:center;">@stat.FGDisplay</td>
+                                <td style="text-align:center;">@stat.ThreeDisplay</td>
+                                <td style="text-align:center;">@stat.FTDisplay</td>
+                            </tr>
+                        }
+                        @{
+                            var totals = GetActiveBoxScoreTotals();
+                        }
+                        <tr style="background: #252525; color: #e8e8e8; font-weight: 700; border-top: 1px solid #444;">
+                            <td style="padding: 3px 8px; text-align:left;">TEAM</td>
+                            <td style="text-align:center;">@totals.Points</td>
+                            <td style="text-align:center;">@totals.Rebounds</td>
+                            <td style="text-align:center;">@totals.OffRebounds</td>
+                            <td style="text-align:center;">@totals.DefRebounds</td>
+                            <td style="text-align:center;">@totals.Assists</td>
+                            <td style="text-align:center;">@totals.Steals</td>
+                            <td style="text-align:center;">@totals.Blocks</td>
+                            <td style="text-align:center;">@totals.Turnovers</td>
+                            <td style="text-align:center;">@totals.FGDisplay</td>
+                            <td style="text-align:center;">@totals.ThreeDisplay</td>
+                            <td style="text-align:center;">@totals.FTDisplay</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+
+    <div class="mb-3 mt-3">
         <label style="display: flex; align-items: center; gap: 0.5rem; justify-content: center;">
             <span>Slow</span>
             <input type="range" min="0" max="100" value="@_speed" @oninput="OnSpeedChanged" style="width: 200px;" />
@@ -66,12 +180,13 @@
 </div>
 
 @code {
-    private const string HomeTeamShort = "Warriors";
-    private const string AwayTeamShort = "Celtics";
+    private readonly Team _homeTeam = RosterData.Knicks;
+    private readonly Team _awayTeam = RosterData.Thunder;
 
     private readonly GameEngine _engine = new();
-    private List<PossessionResult> _possessions = [];
+    private GameResult? _gameResult;
     private List<PossessionResult> _log = [];
+    private Dictionary<string, PlayerGameStats> _liveStats = new();
 
     private int _homeScore;
     private int _awayScore;
@@ -81,24 +196,27 @@
     private bool _started;
     private bool _finished;
     private bool _paused;
+    private string _activeBoxScoreTab = "home";
+    private string? _lastScorer;
 
     private ElementReference _logRef;
     private CancellationTokenSource? _cts;
 
     private string ClockDisplay => $"{_clockSeconds / 60}:{_clockSeconds % 60:D2}";
 
-    private static string LogLine(PossessionResult e)
+    private string LogLine(PossessionResult e)
     {
         string clock = $"{e.ClockSeconds / 60}:{e.ClockSeconds % 60:D2}";
+        string teamAbbr = e.Team == _homeTeam.Name ? _homeTeam.Abbreviation : _awayTeam.Abbreviation;
         string score = e.PointsScored > 0
-            ? $"  (Warriors {e.HomeScore} - Celtics {e.AwayScore})"
+            ? $"  ({_homeTeam.Abbreviation} {e.HomeScore} - {_awayTeam.Abbreviation} {e.AwayScore})"
             : "";
-        return $"Q{e.Quarter} {clock}  {e.Team,-10} — {e.Narrative}{score}";
+        return $"Q{e.Quarter} {clock}  {teamAbbr,-5} — {e.Narrative}{score}";
     }
 
     private async Task StartGame()
     {
-        _possessions = _engine.SimulateGame(HomeTeamShort, AwayTeamShort);
+        _gameResult = _engine.SimulateGame(_homeTeam, _awayTeam);
         _started = true;
         await RunReplay();
     }
@@ -107,13 +225,15 @@
     {
         _cts?.Cancel();
         _log = [];
+        _liveStats = new();
         _homeScore = 0;
         _awayScore = 0;
         _quarter = 1;
         _clockSeconds = 720;
         _finished = false;
         _paused = false;
-        _possessions = _engine.SimulateGame(HomeTeamShort, AwayTeamShort);
+        _lastScorer = null;
+        _gameResult = _engine.SimulateGame(_homeTeam, _awayTeam);
         await RunReplay();
     }
 
@@ -124,7 +244,12 @@
         _cts = new CancellationTokenSource();
         var token = _cts.Token;
 
-        foreach (var possession in _possessions)
+        // Initialize all players with zeroed live stats
+        _liveStats = _gameResult!.Stats.ToDictionary(
+            kvp => kvp.Key,
+            kvp => new PlayerGameStats { Name = kvp.Value.Name, Team = kvp.Value.Team, Position = kvp.Value.Position });
+
+        foreach (var possession in _gameResult!.Possessions)
         {
             while (_paused && !token.IsCancellationRequested)
                 await Task.Delay(100, token);
@@ -136,6 +261,21 @@
             _quarter = possession.Quarter;
             _clockSeconds = possession.ClockSeconds;
             _log.Add(possession);
+
+            // Incrementally apply this possession's stats
+            ApplyPossessionStats(possession);
+
+            // Highlight last scorer
+            if (possession.PointsScored > 0 && possession.Scorer != null &&
+                possession.Event is PossessionEvent.ShotMade or PossessionEvent.GameWinnerMade or PossessionEvent.FreeThrows)
+            {
+                _lastScorer = possession.Scorer;
+                _ = Task.Delay(2000).ContinueWith(_ =>
+                {
+                    _lastScorer = null;
+                    InvokeAsync(StateHasChanged);
+                });
+            }
 
             StateHasChanged();
 
@@ -153,14 +293,177 @@
             catch (OperationCanceledException) { return; }
         }
 
+        // Show final stats
+        _liveStats = new Dictionary<string, PlayerGameStats>(_gameResult.Stats);
         _clockSeconds = 0;
         _finished = true;
         StateHasChanged();
+    }
+
+    private void ApplyPossessionStats(PossessionResult p)
+    {
+        PlayerGameStats? Get(string? name) =>
+            name != null && _liveStats.TryGetValue(name, out var s) ? s : null;
+
+        switch (p.Event)
+        {
+            case PossessionEvent.ShotMade:
+            case PossessionEvent.GameWinnerMade:
+            {
+                var s = Get(p.Scorer);
+                if (s != null)
+                {
+                    s.FGMade++;
+                    s.FGAttempts++;
+                    s.Points += p.PointsScored;
+                    if (p.IsThree) { s.ThreeMade++; s.ThreeAttempts++; }
+                }
+                var a = Get(p.Assister);
+                if (a != null) a.Assists++;
+                break;
+            }
+            case PossessionEvent.ShotMissed:
+            {
+                var s = Get(p.Scorer);
+                if (s != null)
+                {
+                    s.FGAttempts++;
+                    if (p.IsThree) s.ThreeAttempts++;
+                }
+                break;
+            }
+            case PossessionEvent.Blocked:
+            {
+                var s = Get(p.Scorer);
+                if (s != null)
+                {
+                    s.FGAttempts++;
+                    if (p.IsThree) s.ThreeAttempts++;
+                }
+                var bl = Get(p.Blocker); if (bl != null) bl.Blocks++;
+                break;
+            }
+            case PossessionEvent.FreeThrows:
+            {
+                var s = Get(p.Scorer);
+                if (s != null)
+                {
+                    s.FTAttempts += p.FTAttempts;
+                    s.FTMade += p.PointsScored;
+                    s.Points += p.PointsScored;
+                }
+                break;
+            }
+            case PossessionEvent.TurnoverStolen:
+            {
+                var to = Get(p.Scorer); if (to != null) to.Turnovers++;
+                var st = Get(p.Stealer); if (st != null) st.Steals++;
+                break;
+            }
+            case PossessionEvent.TurnoverDeadBall:
+            {
+                var to2 = Get(p.Scorer); if (to2 != null) to2.Turnovers++;
+                break;
+            }
+            case PossessionEvent.OffensiveRebound:
+            {
+                var r = Get(p.Rebounder);
+                if (r != null) { r.Rebounds++; r.OffRebounds++; }
+                break;
+            }
+            case PossessionEvent.DefensiveRebound:
+            {
+                var r = Get(p.Rebounder);
+                if (r != null) { r.Rebounds++; r.DefRebounds++; }
+                break;
+            }
+        }
     }
 
     private void OnSpeedChanged(ChangeEventArgs e)
     {
         if (int.TryParse(e.Value?.ToString(), out int val))
             _speed = val;
+    }
+
+    private IEnumerable<PlayerGameStats> GetActiveBoxScore()
+    {
+        string teamName = _activeBoxScoreTab == "home" ? _homeTeam.Name : _awayTeam.Name;
+        return _liveStats.Values
+            .Where(s => s.Team == teamName)
+            .OrderByDescending(s => s.Points);
+    }
+
+    private PlayerGameStats GetActiveBoxScoreTotals()
+    {
+        string teamName = _activeBoxScoreTab == "home" ? _homeTeam.Name : _awayTeam.Name;
+        return GetTeamTotals(teamName);
+    }
+
+    private PlayerGameStats GetTeamTotals(string teamName)
+    {
+        var rows = _liveStats.Values.Where(s => s.Team == teamName).ToList();
+        return new PlayerGameStats
+        {
+            Name = "TEAM", Team = teamName, Position = Position.PG,
+            Points        = rows.Sum(r => r.Points),
+            Rebounds      = rows.Sum(r => r.Rebounds),
+            OffRebounds   = rows.Sum(r => r.OffRebounds),
+            DefRebounds   = rows.Sum(r => r.DefRebounds),
+            Assists       = rows.Sum(r => r.Assists),
+            Steals        = rows.Sum(r => r.Steals),
+            Blocks        = rows.Sum(r => r.Blocks),
+            Turnovers     = rows.Sum(r => r.Turnovers),
+            FGMade        = rows.Sum(r => r.FGMade),
+            FGAttempts    = rows.Sum(r => r.FGAttempts),
+            ThreeMade     = rows.Sum(r => r.ThreeMade),
+            ThreeAttempts = rows.Sum(r => r.ThreeAttempts),
+            FTMade        = rows.Sum(r => r.FTMade),
+            FTAttempts    = rows.Sum(r => r.FTAttempts),
+        };
+    }
+
+    private RenderFragment CompareRowShooting(string label, int homeMade, int homeAtt, int awayMade, int awayAtt)
+    {
+        double homePct = homeAtt > 0 ? (double)homeMade / homeAtt : 0;
+        double awayPct = awayAtt > 0 ? (double)awayMade / awayAtt : 0;
+        bool homeWins = homePct > awayPct;
+        bool awayWins = awayPct > homePct;
+        string homeColor = homeWins ? "#6cf" : "#d4d4d4";
+        string awayColor = awayWins ? "#6cf" : "#d4d4d4";
+        string homeFw    = homeWins ? "700" : "400";
+        string awayFw    = awayWins ? "700" : "400";
+        string homeText  = homeAtt > 0 ? $"{homeMade}/{homeAtt} ({homePct * 100:F1}%)" : "0/0";
+        string awayText  = awayAtt > 0 ? $"{awayMade}/{awayAtt} ({awayPct * 100:F1}%)" : "0/0";
+        return @<tr style="border-bottom: 1px solid #2a2a2a;">
+            <td style="text-align:center; padding: 4px 8px; color:@homeColor; font-weight:@homeFw;">@homeText</td>
+            <td style="text-align:center; padding: 4px 8px; color:#555; font-size:0.7rem; letter-spacing:1px;">@label</td>
+            <td style="text-align:center; padding: 4px 8px; color:@awayColor; font-weight:@awayFw;">@awayText</td>
+        </tr>;
+    }
+
+    private RenderFragment CompareRow(string label, object home, object away, bool lowerIsBetter = false)
+    {
+        bool homeWins = false, awayWins = false;
+        if (home is int hi && away is int ai && hi != ai)
+        {
+            homeWins = lowerIsBetter ? hi < ai : hi > ai;
+            awayWins = lowerIsBetter ? ai < hi : ai > hi;
+        }
+        string homeColor  = homeWins ? "#6cf" : "#d4d4d4";
+        string awayColor  = awayWins ? "#6cf" : "#d4d4d4";
+        string homeFw     = homeWins ? "700" : "400";
+        string awayFw     = awayWins ? "700" : "400";
+        return @<tr style="border-bottom: 1px solid #2a2a2a;">
+            <td style="text-align:center; padding: 4px 8px; color:@homeColor; font-weight:@homeFw;">@home</td>
+            <td style="text-align:center; padding: 4px 8px; color:#555; font-size:0.7rem; letter-spacing:1px;">@label</td>
+            <td style="text-align:center; padding: 4px 8px; color:@awayColor; font-weight:@awayFw;">@away</td>
+        </tr>;
+    }
+
+    private static string ShortName(string fullName)
+    {
+        var parts = fullName.Split(' ');
+        return parts.Length >= 2 ? $"{parts[0][0]}. {parts[^1]}" : fullName;
     }
 }

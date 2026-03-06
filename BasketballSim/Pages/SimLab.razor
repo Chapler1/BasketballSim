@@ -1,0 +1,432 @@
+@page "/lab"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@using BasketballSim.Models
+@using BasketballSim.Simulation
+@using Microsoft.AspNetCore.Components.Web
+@using static Microsoft.AspNetCore.Components.Web.RenderMode
+
+<PageTitle>Sim Lab</PageTitle>
+
+<div style="max-width:880px;margin:0 auto;padding:1.25rem 1rem;color:#d4d4d4;font-family:monospace;">
+
+    <div style="margin-bottom:1.25rem;">
+        <div style="font-size:1.4rem;font-weight:800;color:#e8e8e8;letter-spacing:1px;">SIM LAB</div>
+        <div style="color:#555;font-size:0.75rem;margin-top:2px;letter-spacing:1px;">CONFIGURE ROSTERS &middot; SIMULATE 10,000 GAMES &middot; ANALYZE TRENDS</div>
+    </div>
+
+    <!-- Pace sliders -->
+    <div style="display:flex;gap:2rem;margin-bottom:1rem;background:#1e1e1e;border:1px solid #2a2a2a;border-radius:6px;padding:0.65rem 1rem;">
+        <div style="display:flex;align-items:center;gap:0.6rem;">
+            <span style="color:#4a9eff;font-weight:700;font-size:0.72rem;letter-spacing:1px;width:90px;">HOME PACE</span>
+            <input type="range" min="85" max="115" step="1" @bind="_homePace" style="width:110px;" />
+            <span style="color:#e8e8e8;font-size:0.82rem;width:28px;">@_homePace</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:0.6rem;">
+            <span style="color:#ef5b40;font-weight:700;font-size:0.72rem;letter-spacing:1px;width:90px;">AWAY PACE</span>
+            <input type="range" min="85" max="115" step="1" @bind="_awayPace" style="width:110px;" />
+            <span style="color:#e8e8e8;font-size:0.82rem;width:28px;">@_awayPace</span>
+        </div>
+    </div>
+
+    <!-- Team tabs -->
+    <div style="display:flex;gap:4px;margin-bottom:0;">
+        <button style="background:@(_activeTab=="home"?"#4a9eff":"#2a2a2a");color:@(_activeTab=="home"?"white":"#888");border:none;padding:5px 20px;border-radius:4px 4px 0 0;cursor:pointer;font-weight:700;font-size:0.75rem;letter-spacing:1px;"
+                @onclick='() => _activeTab = "home"'>HOME TEAM</button>
+        <button style="background:@(_activeTab=="away"?"#ef5b40":"#2a2a2a");color:@(_activeTab=="away"?"white":"#888");border:none;padding:5px 20px;border-radius:4px 4px 0 0;cursor:pointer;font-weight:700;font-size:0.75rem;letter-spacing:1px;"
+                @onclick='() => _activeTab = "away"'>AWAY TEAM</button>
+    </div>
+
+    <!-- Config grid -->
+    <div style="border:1px solid #2a2a2a;border-radius:0 4px 4px 4px;overflow-x:auto;background:#1e1e1e;margin-bottom:1rem;">
+        <table style="border-collapse:collapse;font-size:0.77rem;width:100%;">
+            <thead>
+                <tr style="background:#252525;color:#555;text-transform:uppercase;font-size:0.65rem;letter-spacing:1px;">
+                    <th style="text-align:left;padding:6px 10px;width:120px;">Attribute</th>
+                    <th style="padding:6px 6px;width:56px;color:#444;">Bulk</th>
+                    @for (int pi = 0; pi < ActiveTeam.Count; pi++)
+                    {
+                        var ph = ActiveTeam[pi];
+                        <th @key="ph.Name" style="text-align:center;padding:6px 4px;width:72px;">
+                            <div style="color:#ccc;">@ph.Name</div>
+                            <div style="color:#444;font-size:0.6rem;">@ph.Position</div>
+                        </th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var group in _attrGroups)
+                {
+                    <tr style="background:#222;">
+                        <td colspan="7" style="padding:3px 10px;font-size:0.63rem;letter-spacing:2px;color:#444;text-transform:uppercase;border-top:1px solid #2a2a2a;">@group.Group</td>
+                    </tr>
+                    @foreach (var attr in group.Attrs)
+                    {
+                        <tr style="border-bottom:1px solid #252525;">
+                            <td style="padding:3px 10px;color:#999;">@attr.Label</td>
+                            <td style="padding:2px 4px;text-align:center;white-space:nowrap;">
+                                <button @onclick="() => BulkAdjust(ActiveTeam, attr, 1)"
+                                        style="background:#2a3a2a;color:#8f8;border:none;padding:1px 6px;border-radius:3px;cursor:pointer;font-size:0.7rem;margin-right:2px;">+1</button>
+                                <button @onclick="() => BulkAdjust(ActiveTeam, attr, -1)"
+                                        style="background:#3a2a2a;color:#f88;border:none;padding:1px 6px;border-radius:3px;cursor:pointer;font-size:0.7rem;">-1</button>
+                            </td>
+                            @for (int pi = 0; pi < ActiveTeam.Count; pi++)
+                            {
+                                var player = ActiveTeam[pi];
+                                var curVal = attr.Get(player);
+                                <td style="padding:2px 4px;text-align:center;">
+                                    <input type="number" min="1" max="100"
+                                           value="@curVal"
+                                           @onchange="e => OnAttrChange(e, attr, player)"
+                                           style="width:54px;text-align:center;background:#252525;border:1px solid #333;color:@ValColor(curVal);padding:2px;border-radius:3px;font-size:0.77rem;font-family:monospace;" />
+                                </td>
+                            }
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Action buttons -->
+    <div style="display:flex;gap:0.6rem;align-items:center;margin-bottom:0.75rem;flex-wrap:wrap;">
+        <button @onclick="ResetDefaults"
+                style="background:#252525;color:#888;border:1px solid #333;padding:6px 16px;border-radius:4px;cursor:pointer;font-size:0.78rem;">
+            Reset Defaults
+        </button>
+        <button @onclick="SaveConfig"
+                style="background:@(_saved?"#1a3a1a":"#1e1e2e");color:@(_saved?"#8f8":"#99f");border:1px solid @(_saved?"#3a6a3a":"#334");padding:6px 16px;border-radius:4px;cursor:pointer;font-size:0.78rem;">
+            @(_saved ? "Config Saved" : "Save Config")
+        </button>
+        <div style="display:flex;align-items:center;gap:0.4rem;margin-left:auto;">
+            <label style="color:#666;font-size:0.72rem;letter-spacing:1px;text-transform:uppercase;">Games</label>
+            <input type="number" min="100" max="500000" step="100"
+                   @bind="_totalGames"
+                   disabled="@_simulating"
+                   style="width:90px;background:#252525;border:1px solid #333;color:#e8e8e8;padding:5px 6px;border-radius:4px;font-size:0.78rem;font-family:monospace;text-align:right;" />
+            <button @onclick="RunSimulation" disabled="@_simulating"
+                    style="background:@(_simulating?"#1a2a3a":"#1a3a6a");color:@(_simulating?"#667":"white");border:none;padding:6px 20px;border-radius:4px;cursor:@(_simulating?"wait":"pointer");font-weight:700;font-size:0.78rem;letter-spacing:0.5px;">
+                Simulate
+            </button>
+        </div>
+    </div>
+
+    <!-- Progress bar -->
+    @if (_simulating)
+    {
+        int pct = _totalGames > 0 ? _simProgress * 100 / _totalGames : 0;
+        <div style="background:#1e1e1e;border:1px solid #2a2a2a;border-radius:6px;padding:0.75rem 1rem;margin-bottom:1rem;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.4rem;">
+                <span style="color:#4a9eff;font-size:0.78rem;font-weight:700;">Simulating...</span>
+                <span style="color:#888;font-size:0.75rem;font-family:monospace;">@_simProgress.ToString("N0") / @_totalGames.ToString("N0") games &nbsp; @pct%</span>
+            </div>
+            <div style="background:#252525;border-radius:3px;height:8px;overflow:hidden;">
+                <div style="@($"background:#4a9eff;height:100%;width:{pct}%;transition:width 0.1s ease;")"></div>
+            </div>
+        </div>
+    }
+
+    <!-- Results -->
+    @if (_results != null)
+    {
+        <div style="background:#1e1e1e;border:1px solid #2a2a2a;border-radius:6px;padding:1rem;font-size:0.8rem;">
+            <div style="font-size:0.65rem;letter-spacing:2px;color:#444;text-transform:uppercase;margin-bottom:0.75rem;border-bottom:1px solid #2a2a2a;padding-bottom:0.5rem;">
+                @_results.Games.ToString("N0") Games Simulated
+            </div>
+            <table style="width:100%;border-collapse:collapse;">
+                <thead>
+                    <tr style="font-size:0.65rem;text-transform:uppercase;letter-spacing:1px;color:#444;">
+                        <th style="text-align:left;padding:3px 0;width:45%;"></th>
+                        <th style="text-align:center;padding:3px 12px;color:#4a9eff;">HOME</th>
+                        <th style="text-align:center;padding:3px 12px;color:#ef5b40;">AWAY</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @ResultRow("Win %",
+                        $"{_results.HomeWinPct:F1}%", $"{_results.AwayWinPct:F1}%",
+                        _results.HomeWins > _results.AwayWins, _results.AwayWins > _results.HomeWins,
+                        isSection: true)
+
+                    @SectionHeader("Scoring")
+                    @ResultRow("Avg Points",
+                        $"{_results.AvgHomePts:F1}", $"{_results.AvgAwayPts:F1}",
+                        _results.AvgHomePts > _results.AvgAwayPts, _results.AvgAwayPts > _results.AvgHomePts)
+
+                    @SectionHeader("Shooting")
+                    @ResultRow("FG",  ShootStr(_results.HomeFGM, _results.HomeFGA), ShootStr(_results.AwayFGM, _results.AwayFGA), _results.HomeFGPct > _results.AwayFGPct, _results.AwayFGPct > _results.HomeFGPct)
+                    @ResultRow("3PT", ShootStr(_results.Home3M,  _results.Home3A),  ShootStr(_results.Away3M,  _results.Away3A),  _results.Home3Pct  > _results.Away3Pct,  _results.Away3Pct  > _results.Home3Pct)
+                    @ResultRow("FT",  ShootStr(_results.HomeFTM, _results.HomeFTA), ShootStr(_results.AwayFTM, _results.AwayFTA), _results.HomeFTPct > _results.AwayFTPct, _results.AwayFTPct > _results.HomeFTPct)
+
+                    @SectionHeader("Rebounding")
+                    @ResultRow("Total Reb", $"{_results.AvgHomeReb:F1}",  $"{_results.AvgAwayReb:F1}",  _results.AvgHomeReb  > _results.AvgAwayReb,  _results.AvgAwayReb  > _results.AvgHomeReb)
+                    @ResultRow("Off Reb",   $"{_results.AvgHomeOReb:F1}", $"{_results.AvgAwayOReb:F1}", _results.AvgHomeOReb > _results.AvgAwayOReb, _results.AvgAwayOReb > _results.AvgHomeOReb)
+                    @ResultRow("Def Reb",   $"{_results.AvgHomeDReb:F1}", $"{_results.AvgAwayDReb:F1}", _results.AvgHomeDReb > _results.AvgAwayDReb, _results.AvgAwayDReb > _results.AvgHomeDReb)
+
+                    @SectionHeader("Other")
+                    @ResultRow("Assists",   $"{_results.AvgHomeAst:F1}", $"{_results.AvgAwayAst:F1}", _results.AvgHomeAst > _results.AvgAwayAst, _results.AvgAwayAst > _results.AvgHomeAst)
+                    @ResultRow("Steals",    $"{_results.AvgHomeStl:F1}", $"{_results.AvgAwayStl:F1}", _results.AvgHomeStl > _results.AvgAwayStl, _results.AvgAwayStl > _results.AvgHomeStl)
+                    @ResultRow("Blocks",    $"{_results.AvgHomeBlk:F1}", $"{_results.AvgAwayBlk:F1}", _results.AvgHomeBlk > _results.AvgAwayBlk, _results.AvgAwayBlk > _results.AvgHomeBlk)
+                    @ResultRow("Turnovers", $"{_results.AvgHomeTo:F1}",  $"{_results.AvgAwayTo:F1}",  _results.AvgHomeTo  < _results.AvgAwayTo,  _results.AvgAwayTo  < _results.AvgHomeTo)
+                    @ResultRow("Score Diff",
+                        $"{(_results.AvgHomePts - _results.AvgAwayPts):+0.0;-0.0;0.0}",
+                        $"{(_results.AvgAwayPts - _results.AvgHomePts):+0.0;-0.0;0.0}",
+                        _results.AvgHomePts > _results.AvgAwayPts, _results.AvgAwayPts > _results.AvgHomePts)
+                </tbody>
+            </table>
+        </div>
+    }
+
+</div>
+
+@code {
+    // ── Attribute descriptor ────────────────────────────────────────────────
+    private record AttrSpec(
+        string Label, string Group, int Default,
+        Func<PlayerConfig, int> Get, Action<PlayerConfig, int> Set);
+
+    private record AttrGroup(string Group, AttrSpec[] Attrs);
+
+    private static readonly AttrSpec[] _attrs =
+    [
+        new("Height",         "Physical", 78, p => p.Height,          (p,v) => p.Height = v),
+        new("Strength",       "Physical", 72, p => p.Strength,        (p,v) => p.Strength = v),
+        new("Speed",          "Physical", 72, p => p.Speed,           (p,v) => p.Speed = v),
+        new("Jumping",        "Physical", 66, p => p.Jumping,         (p,v) => p.Jumping = v),
+        new("Endurance",      "Physical", 83, p => p.Endurance,       (p,v) => p.Endurance = v),
+        new("Inside",         "Shooting", 64, p => p.Inside,          (p,v) => p.Inside = v),
+        new("Dunks",          "Shooting", 46, p => p.Dunks,           (p,v) => p.Dunks = v),
+        new("Free Throw",     "Shooting", 74, p => p.FreeThrow,       (p,v) => p.FreeThrow = v),
+        new("Mid Range",      "Shooting", 63, p => p.MidRange,        (p,v) => p.MidRange = v),
+        new("Three Point",    "Shooting", 61, p => p.ThreePoint,      (p,v) => p.ThreePoint = v),
+        new("Basketball IQ",  "Skill",    75, p => p.BasketballIQ,    (p,v) => p.BasketballIQ = v),
+        new("Dribbling",      "Skill",    63, p => p.Dribbling,       (p,v) => p.Dribbling = v),
+        new("Passing",        "Skill",    61, p => p.Passing,         (p,v) => p.Passing = v),
+        new("Off Rebounding", "Skill",    41, p => p.ReboundingOff,   (p,v) => p.ReboundingOff = v),
+        new("Def Rebounding", "Skill",    51, p => p.ReboundingDef,   (p,v) => p.ReboundingDef = v),
+        new("Perim Defense",  "Defense",  63, p => p.PerimeterDefense,(p,v) => p.PerimeterDefense = v),
+        new("Interior Def",   "Defense",  51, p => p.InteriorDefense, (p,v) => p.InteriorDefense = v),
+    ];
+
+    // Pre-computed once; static so it can be initialized from the static _attrs field
+    private static readonly AttrGroup[] _attrGroups = _attrs
+        .GroupBy(a => a.Group)
+        .Select(g => new AttrGroup(g.Key, g.ToArray()))
+        .ToArray();
+
+    // ── State ───────────────────────────────────────────────────────────────
+    private List<PlayerConfig> _homeConfigs = MakeDefaultTeam("Home");
+    private List<PlayerConfig> _awayConfigs = MakeDefaultTeam("Away");
+    private string _activeTab = "home";
+    private int _homePace = 100;
+    private int _awayPace = 100;
+    private bool _saved = false;
+    private bool _simulating = false;
+    private int _simProgress = 0;
+    private int _totalGames = 10_000;
+    private BatchAccumulator? _results = null;
+
+    private List<PlayerConfig> ActiveTeam =>
+        _activeTab == "home" ? _homeConfigs : _awayConfigs;
+
+    // ── Factory ─────────────────────────────────────────────────────────────
+    private static List<PlayerConfig> MakeDefaultTeam(string teamName)
+    {
+        var positions = new[] { Position.PG, Position.SG, Position.SF, Position.PF, Position.C };
+        string suffix = teamName == "Home" ? "H" : "A";
+        return positions.Select((pos, i) => new PlayerConfig
+        {
+            Name = $"Player {i + 1}{suffix}",
+            Team = teamName,
+            Position = pos
+        }).ToList();
+    }
+
+    // ── Event handlers ──────────────────────────────────────────────────────
+    private void OnAttrChange(ChangeEventArgs e, AttrSpec attr, PlayerConfig player)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var v))
+            attr.Set(player, Math.Clamp(v, 1, 100));
+    }
+
+    private static void BulkAdjust(List<PlayerConfig> team, AttrSpec attr, int delta)
+    {
+        foreach (var p in team)
+            attr.Set(p, Math.Clamp(attr.Get(p) + delta, 1, 100));
+    }
+
+    // ── Actions ─────────────────────────────────────────────────────────────
+    private void ResetDefaults()
+    {
+        _homeConfigs = MakeDefaultTeam("Home");
+        _awayConfigs = MakeDefaultTeam("Away");
+        _homePace = 100;
+        _awayPace = 100;
+        _saved = false;
+        _results = null;
+    }
+
+    private void SaveConfig()
+    {
+        _saved = true;
+        _ = Task.Delay(3000).ContinueWith(_ =>
+        {
+            _saved = false;
+            InvokeAsync(StateHasChanged);
+        });
+    }
+
+    private async Task RunSimulation()
+    {
+        _simulating = true;
+        _simProgress = 0;
+        _results = null;
+        StateHasChanged();
+
+        var accum  = new BatchAccumulator();
+        var engine = new GameEngine();
+        var home   = BuildTeam(_homeConfigs, "Home", "HME", "#4a9eff", _homePace);
+        var away   = BuildTeam(_awayConfigs, "Away", "AWY", "#ef5b40", _awayPace);
+
+        int totalGames = Math.Max(1, _totalGames);
+        const int batchSize = 500;
+        int gamesRun = 0;
+
+        while (gamesRun < totalGames)
+        {
+            int thisBatch = Math.Min(batchSize, totalGames - gamesRun);
+            await Task.Run(() =>
+            {
+                for (int i = 0; i < thisBatch; i++)
+                {
+                    var result = engine.SimulateGame(home, away);
+                    accum.Add(result, "Home");
+                }
+            });
+            gamesRun += thisBatch;
+            _simProgress = gamesRun;
+            StateHasChanged();
+        }
+
+        _results   = accum;
+        _simulating = false;
+        StateHasChanged();
+    }
+
+    private static Team BuildTeam(List<PlayerConfig> configs, string name, string abbr,
+                                   string color, int pace) => new()
+    {
+        Name = name, Abbreviation = abbr,
+        PrimaryColor = color, SecondaryColor = "#888888",
+        Pace = pace,
+        Roster = configs.Select(c => c.ToPlayer()).ToList()
+    };
+
+    // ── Styling helpers ─────────────────────────────────────────────────────
+    private static string InputStyle(int v) =>
+        $"width:54px;text-align:center;background:#252525;border:1px solid #333;color:{ValColor(v)};padding:2px;border-radius:3px;font-size:0.77rem;font-family:monospace;";
+
+    private static string ValColor(int v) => v switch
+    {
+        >= 80 => "#7be",
+        >= 65 => "#8e8",
+        >= 50 => "#d4d4d4",
+        >= 35 => "#eb8",
+        _     => "#e66"
+    };
+
+    private string ShootStr(long made, long att) =>
+        att == 0 ? "-"
+        : $"{(double)made / _results!.Games:F1}/{(double)att / _results.Games:F1} ({(double)made / att * 100:F1}%)";
+
+    private RenderFragment ResultRow(string label, string home, string away,
+                                     bool homeWins, bool awayWins, bool isSection = false)
+    {
+        string hc  = homeWins ? "#7be" : "#d4d4d4";
+        string ac  = awayWins ? "#7be" : "#d4d4d4";
+        string hfw = homeWins ? "700" : "400";
+        string afw = awayWins ? "700" : "400";
+        string bg  = isSection ? "#252525" : "#1e1e1e";
+        return @<tr style="border-bottom:1px solid #252525;background:@bg;">
+            <td style="padding:4px 0;color:#666;font-size:0.74rem;">@label</td>
+            <td style="text-align:center;padding:4px 12px;color:@hc;font-weight:@hfw;font-size:0.82rem;">@home</td>
+            <td style="text-align:center;padding:4px 12px;color:@ac;font-weight:@afw;font-size:0.82rem;">@away</td>
+        </tr>;
+    }
+
+    private RenderFragment SectionHeader(string label) =>
+        @<tr style="background:#222;border-top:1px solid #2a2a2a;">
+            <td colspan="3" style="padding:4px 0;font-size:0.62rem;letter-spacing:2px;color:#444;text-transform:uppercase;">@label</td>
+        </tr>;
+
+    // ── Batch accumulator ───────────────────────────────────────────────────
+    private class BatchAccumulator
+    {
+        public int  Games, HomeWins;
+        public long HomePts,  AwayPts;
+        public long HomeFGM,  HomeFGA,  AwayFGM,  AwayFGA;
+        public long Home3M,   Home3A,   Away3M,   Away3A;
+        public long HomeFTM,  HomeFTA,  AwayFTM,  AwayFTA;
+        public long HomeReb,  AwayReb;
+        public long HomeOReb, AwayOReb;
+        public long HomeDReb, AwayDReb;
+        public long HomeAst,  AwayAst;
+        public long HomeStl,  AwayStl;
+        public long HomeBlk,  AwayBlk;
+        public long HomeTo,   AwayTo;
+
+        public void Add(GameResult r, string homeTeamName)
+        {
+            Games++;
+            if (r.FinalHomeScore > r.FinalAwayScore) HomeWins++;
+            HomePts += r.FinalHomeScore;
+            AwayPts += r.FinalAwayScore;
+
+            foreach (var s in r.Stats.Values)
+            {
+                if (s.Team == homeTeamName)
+                {
+                    HomeFGM  += s.FGMade;    HomeFGA  += s.FGAttempts;
+                    Home3M   += s.ThreeMade; Home3A   += s.ThreeAttempts;
+                    HomeFTM  += s.FTMade;    HomeFTA  += s.FTAttempts;
+                    HomeReb  += s.Rebounds;  HomeOReb += s.OffRebounds; HomeDReb += s.DefRebounds;
+                    HomeAst  += s.Assists;   HomeStl  += s.Steals;
+                    HomeBlk  += s.Blocks;    HomeTo   += s.Turnovers;
+                }
+                else
+                {
+                    AwayFGM  += s.FGMade;    AwayFGA  += s.FGAttempts;
+                    Away3M   += s.ThreeMade; Away3A   += s.ThreeAttempts;
+                    AwayFTM  += s.FTMade;    AwayFTA  += s.FTAttempts;
+                    AwayReb  += s.Rebounds;  AwayOReb += s.OffRebounds; AwayDReb += s.DefRebounds;
+                    AwayAst  += s.Assists;   AwayStl  += s.Steals;
+                    AwayBlk  += s.Blocks;    AwayTo   += s.Turnovers;
+                }
+            }
+        }
+
+        public int    AwayWins    => Games - HomeWins;
+        public double HomeWinPct  => (double)HomeWins / Games * 100;
+        public double AwayWinPct  => (double)AwayWins / Games * 100;
+        public double AvgHomePts  => (double)HomePts  / Games;
+        public double AvgAwayPts  => (double)AwayPts  / Games;
+        public double HomeFGPct   => HomeFGA > 0 ? (double)HomeFGM / HomeFGA : 0;
+        public double AwayFGPct   => AwayFGA > 0 ? (double)AwayFGM / AwayFGA : 0;
+        public double Home3Pct    => Home3A  > 0 ? (double)Home3M  / Home3A  : 0;
+        public double Away3Pct    => Away3A  > 0 ? (double)Away3M  / Away3A  : 0;
+        public double HomeFTPct   => HomeFTA > 0 ? (double)HomeFTM / HomeFTA : 0;
+        public double AwayFTPct   => AwayFTA > 0 ? (double)AwayFTM / AwayFTA : 0;
+        public double AvgHomeReb  => (double)HomeReb  / Games;
+        public double AvgAwayReb  => (double)AwayReb  / Games;
+        public double AvgHomeOReb => (double)HomeOReb / Games;
+        public double AvgAwayOReb => (double)AwayOReb / Games;
+        public double AvgHomeDReb => (double)HomeDReb / Games;
+        public double AvgAwayDReb => (double)AwayDReb / Games;
+        public double AvgHomeAst  => (double)HomeAst  / Games;
+        public double AvgAwayAst  => (double)AwayAst  / Games;
+        public double AvgHomeStl  => (double)HomeStl  / Games;
+        public double AvgAwayStl  => (double)AwayStl  / Games;
+        public double AvgHomeBlk  => (double)HomeBlk  / Games;
+        public double AvgAwayBlk  => (double)AwayBlk  / Games;
+        public double AvgHomeTo   => (double)HomeTo   / Games;
+        public double AvgAwayTo   => (double)AwayTo   / Games;
+    }
+}
