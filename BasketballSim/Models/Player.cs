@@ -58,17 +58,29 @@ public class Player
     internal double AlleyOopTendency =>
         (Jumping + Attr_Dunks + Speed) / 300.0;
 
+    // Gates how often inside shots become dunks; driven by jumping, height, dunk rating
+    internal double DunkTendency =>
+        (Attr_Dunks + Jumping + Height) / 300.0;
+
     public double Fatigue { get; set; } = 0.0;
 
     // ── Make% Converters ──────────────────────────────────────────
     internal double InsideMakePct =>
-        0.42 + (Attr_Inside / 100.0) * 0.38;
+        0.36 + (Attr_Inside / 100.0) * 0.34;
+
+    // Uncontested dunk (alley-oop, cut, transition) — very high make%
+    internal double DunkMakePct =>
+        Math.Clamp(0.75 + (Attr_Dunks + Jumping) / 200.0 * 0.20, 0.75, 0.95);
+
+    // Contact dunk — strength helps power through defenders
+    internal double ContactDunkMakePct =>
+        0.65 + (Attr_Dunks + Jumping + Strength) / 300.0 * 0.20;
 
     internal double MidRangeMakePct =>
         0.28 + (Attr_MidRange / 100.0) * 0.26;
 
     internal double ThreeMakePct =>
-        0.27 + (Attr_ThreePoint / 100.0) * 0.24;
+        0.25 + (Attr_ThreePoint / 100.0) * 0.24;
 
     internal double FTMakePct
     {
@@ -80,10 +92,10 @@ public class Player
     }
 
     internal double BlockMod =>
-        (Attr_InteriorDefense / 100.0) * 0.08;
+        (Attr_InteriorDefense / 100.0) * 0.185;
 
     internal double StealMod =>
-        ((Attr_PerimeterDefense + Speed) / 200.0) * 0.03;
+        ((Attr_PerimeterDefense + Speed) / 200.0) * 0.057;
 
     internal double TurnoverRate =>
         0.21 - ((Attr_BasketballIQ + Attr_Dribbling) / 200.0) * 0.16;
@@ -99,7 +111,7 @@ public class Player
 
     internal double ContestPenalty(ShotType shot) => shot switch
     {
-        ShotType.Inside or ShotType.Dunk =>
+        ShotType.Inside =>
             (Attr_InteriorDefense / 100.0) * 0.09,
         ShotType.MidRange =>
             (Attr_InteriorDefense * 0.4 + Attr_PerimeterDefense * 0.6) / 100.0 * 0.07,

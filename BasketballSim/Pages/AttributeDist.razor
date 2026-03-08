@@ -1,0 +1,309 @@
+@page "/dist"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@using BasketballSim.Services
+@using Microsoft.AspNetCore.Components.Web
+@using static Microsoft.AspNetCore.Components.Web.RenderMode
+@inject Nba2kCacheService Cache
+
+<PageTitle>Attribute Distribution</PageTitle>
+
+<style>
+    .dist-page { background: #0f1117; min-height: 100vh; color: #e0e6f0; padding: 16px; font-family: 'Segoe UI', sans-serif; }
+    .dist-header { font-size: 1.3rem; font-weight: 700; color: #7eb8f7; margin-bottom: 12px; }
+    .group-btn { background: #1e2535; border: 1px solid #2e3a4e; color: #9ab; padding: 5px 14px; border-radius: 4px; cursor: pointer; font-size: .82rem; margin-right: 6px; margin-bottom: 6px; }
+    .group-btn.active { background: #2a3f5f; border-color: #4a8ecf; color: #7eb8f7; }
+    .attr-btn { background: #1a2030; border: 1px solid #2a3550; color: #8a9db5; padding: 4px 11px; border-radius: 4px; cursor: pointer; font-size: .78rem; margin-right: 5px; margin-bottom: 5px; }
+    .attr-btn.active { background: #1e3a5f; border-color: #5a9ede; color: #aed4f7; }
+    .charts-row { display: flex; gap: 16px; margin-top: 10px; }
+    .chart-panel { flex: 1; background: #141926; border: 1px solid #1e2c40; border-radius: 8px; padding: 12px; }
+    .panel-label { font-size: .75rem; text-transform: uppercase; letter-spacing: .08em; color: #5a7a9a; margin-bottom: 4px; font-weight: 600; }
+    .panel-title { font-size: 1rem; font-weight: 700; color: #c8d8ea; margin-bottom: 8px; }
+    .stats-bar { display: flex; gap: 18px; margin-top: 6px; font-size: .75rem; color: #7a9ab5; }
+    .stats-bar span b { color: #b0cce8; }
+    .chart-wrap { position: relative; }
+    .dot-tooltip {
+        position: absolute; background: #0d1520ee; border: 1px solid #3a5a7a;
+        border-radius: 5px; padding: 6px 10px; font-size: .75rem; color: #d0e8ff;
+        pointer-events: none; white-space: nowrap; z-index: 10;
+        transform: translate(-50%, -110%);
+    }
+</style>
+
+<div class="dist-page">
+    <div class="dist-header">Attribute Distribution</div>
+
+    <div>
+        @foreach (var g in _groups)
+        {
+            <button class="group-btn @(_activeGroup == g ? "active" : "")" @onclick="() => SelectGroup(g)">@g</button>
+        }
+    </div>
+
+    <div style="margin-top:8px;">
+        @foreach (var attr in AttrsInGroup)
+        {
+            <button class="attr-btn @(_activeAttr == attr.Key ? "active" : "")" @onclick="() => SelectAttr(attr.Key)">@attr.Label</button>
+        }
+    </div>
+
+    @if (_players.Count == 0)
+    {
+        <div style="margin-top:24px;color:#5a7a9a;">No player data found. Run the DataPull tool to populate nba2k_cache.json.</div>
+    }
+    else
+    {
+        <div class="charts-row">
+            <div class="chart-panel">
+                <div class="panel-label">Left Panel</div>
+                <div class="panel-title">2K SOURCE</div>
+                <div class="chart-wrap" style="position:relative;">
+                    @((MarkupString)BuildChartSvg(_dots, _hoveredSrc))
+                    @* Overlay invisible hit areas *@
+                    <svg viewBox="0 0 @VW @VH" style="position:absolute;top:0;left:0;width:100%;height:100%;">
+                        @foreach (var (dot, cx, cy) in _dots)
+                        {
+                            <circle cx="@cx" cy="@cy" r="8" fill="transparent"
+                                    @onmouseenter="() => _hoveredSrc = dot"
+                                    @onmouseleave="() => _hoveredSrc = null"/>
+                        }
+                    </svg>
+                    @if (_hoveredSrc != null)
+                    {
+                        var (_, hcx, hcy) = _dots.FirstOrDefault(d => d.dot == _hoveredSrc);
+                        <div class="dot-tooltip" style="left:@(hcx / VW * 100)%;top:@(hcy / VH * 100)%;">
+                            <b>@_hoveredSrc.PlayerName</b><br/>
+                            @_hoveredSrc.Team — @_hoveredSrc.Positions<br/>
+                            OVR @_hoveredSrc.Overall &nbsp;|&nbsp; <b style="color:@OverallColor(_hoveredSrc.Overall)">@_hoveredSrc.Value.ToString("F1")</b>
+                        </div>
+                    }
+                </div>
+                @DrawStatsBar(_sourceValues)
+            </div>
+            <div class="chart-panel">
+                <div class="panel-label">Right Panel</div>
+                <div class="panel-title">SIM ATTRIBUTE</div>
+                <div class="chart-wrap" style="position:relative;">
+                    @((MarkupString)BuildChartSvg(_dots, _hoveredSim))
+                    <svg viewBox="0 0 @VW @VH" style="position:absolute;top:0;left:0;width:100%;height:100%;">
+                        @foreach (var (dot, cx, cy) in _dots)
+                        {
+                            <circle cx="@cx" cy="@cy" r="8" fill="transparent"
+                                    @onmouseenter="() => _hoveredSim = dot"
+                                    @onmouseleave="() => _hoveredSim = null"/>
+                        }
+                    </svg>
+                    @if (_hoveredSim != null)
+                    {
+                        var (_, hcx, hcy) = _dots.FirstOrDefault(d => d.dot == _hoveredSim);
+                        <div class="dot-tooltip" style="left:@(hcx / VW * 100)%;top:@(hcy / VH * 100)%;">
+                            <b>@_hoveredSim.PlayerName</b><br/>
+                            @_hoveredSim.Team — @_hoveredSim.Positions<br/>
+                            OVR @_hoveredSim.Overall &nbsp;|&nbsp; <b style="color:@OverallColor(_hoveredSim.Overall)">@_hoveredSim.Value.ToString("F1")</b>
+                        </div>
+                    }
+                </div>
+                @DrawStatsBar(_sourceValues)
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    // ── Constants ─────────────────────────────────────────────────────────────
+    private const double VW = 540, VH = 230;
+    private const double ML = 32, MR = 10, MT = 15, MB = 35;
+    private const double PlotW  = VW - ML - MR;
+    private const double PlotH  = VH - MT - MB;
+    private const double CenterY = MT + PlotH * 0.62;
+    private const double R = 4.0;
+    private const double BinSize = 2.0;
+    private const double Bandwidth = 4.5;
+    private const double KdeTop = MT + 8;
+
+    // ── State ─────────────────────────────────────────────────────────────────
+    private List<PlayerData> _players = [];
+    private string _activeGroup = "Physical";
+    private string _activeAttr  = "Height";
+    private DotInfo? _hoveredSrc;
+    private DotInfo? _hoveredSim;
+
+    private static readonly string[] _groups = ["Physical", "Shooting", "Skill", "Defense"];
+
+    private IEnumerable<AttrDef> AttrsInGroup =>
+        Nba2kCacheService.Attributes.Where(a => a.Group == _activeGroup);
+
+    private record DotInfo(string PlayerName, string Team, string Positions, int Overall, double Value);
+
+    private List<DotInfo> _sourceValues = [];
+    private List<(DotInfo dot, double cx, double cy)> _dots = [];
+
+    // ── Lifecycle ─────────────────────────────────────────────────────────────
+    protected override void OnInitialized()
+    {
+        _players = [.. Cache.GetPlayers()];
+        Recompute();
+    }
+
+    private void SelectGroup(string g)
+    {
+        _activeGroup = g;
+        _activeAttr  = AttrsInGroup.FirstOrDefault()?.Key ?? _activeAttr;
+        Recompute();
+    }
+
+    private void SelectAttr(string key)
+    {
+        _activeAttr = key;
+        Recompute();
+    }
+
+    private void Recompute()
+    {
+        _sourceValues = _players
+            .Where(p => p.Source.ContainsKey(_activeAttr))
+            .Select(p => new DotInfo(
+                p.Name,
+                p.Team,
+                string.Join("/", p.Positions),
+                p.Overall,
+                p.Source[_activeAttr]))
+            .OrderBy(d => d.Value)
+            .ToList();
+
+        _dots = ComputeBeeswarm(_sourceValues);
+        _hoveredSrc = null;
+        _hoveredSim = null;
+    }
+
+    // ── SVG builder (returns string to avoid <text> Razor conflict) ───────────
+    private string BuildChartSvg(List<(DotInfo dot, double cx, double cy)> beeswarm, DotInfo? hovered)
+    {
+        var kde = ComputeKde(_sourceValues);
+        var sb  = new System.Text.StringBuilder();
+
+        sb.Append($"<svg viewBox=\"0 0 {VW} {VH}\" style=\"width:100%;display:block;\">");
+
+        // Axis
+        sb.Append($"<line x1=\"{ML}\" y1=\"{MT+PlotH}\" x2=\"{ML+PlotW}\" y2=\"{MT+PlotH}\" stroke=\"#2a3a52\" stroke-width=\"1\"/>");
+
+        // Tick labels
+        for (int t = 0; t <= 100; t += 10)
+        {
+            double tx = ML + t / 100.0 * PlotW;
+            sb.Append($"<line x1=\"{tx:F1}\" y1=\"{MT+PlotH}\" x2=\"{tx:F1}\" y2=\"{MT+PlotH+4}\" stroke=\"#2a3a52\" stroke-width=\"1\"/>");
+            sb.Append($"<text x=\"{tx:F1}\" y=\"{MT+PlotH+14}\" text-anchor=\"middle\" font-size=\"9\" fill=\"#4a6a8a\">{t}</text>");
+        }
+
+        // KDE path
+        if (kde.Count > 1)
+        {
+            sb.Append($"<path d=\"{KdePath(kde)}\" fill=\"#1e4a7a\" fill-opacity=\"0.4\" stroke=\"#4a8ecf\" stroke-width=\"1.2\"/>");
+        }
+
+        // Dots
+        foreach (var (dot, cx, cy) in beeswarm)
+        {
+            var fill     = OverallColor(dot.Overall);
+            var isHov    = hovered == dot;
+            var r        = isHov ? R + 1.5 : R;
+            var opacity  = isHov ? "1" : "0.75";
+            var stroke   = isHov ? " stroke=\"#fff\" stroke-width=\"1\"" : "";
+            sb.Append($"<circle cx=\"{cx:F1}\" cy=\"{cy:F1}\" r=\"{r}\" fill=\"{fill}\" fill-opacity=\"{opacity}\"{stroke}/>");
+        }
+
+        sb.Append("</svg>");
+        return sb.ToString();
+    }
+
+    // ── Stats bar ─────────────────────────────────────────────────────────────
+    private RenderFragment DrawStatsBar(List<DotInfo> dots) => __builder =>
+    {
+        if (dots.Count == 0) return;
+        double mean = dots.Average(d => d.Value);
+        double sd   = Math.Sqrt(dots.Average(d => (d.Value - mean) * (d.Value - mean)));
+        <div class="stats-bar">
+            <span>Min <b>@dots.Min(d => d.Value).ToString("F1")</b></span>
+            <span>Mean <b>@mean.ToString("F1")</b></span>
+            <span>Max <b>@dots.Max(d => d.Value).ToString("F1")</b></span>
+            <span>SD <b>@sd.ToString("F1")</b></span>
+            <span>N <b>@dots.Count</b></span>
+        </div>
+    };
+
+    // ── Beeswarm ──────────────────────────────────────────────────────────────
+    private static List<(DotInfo dot, double cx, double cy)> ComputeBeeswarm(List<DotInfo> dots)
+    {
+        var bins = new Dictionary<int, List<DotInfo>>();
+        foreach (var d in dots)
+        {
+            int bin = (int)(d.Value / BinSize);
+            if (!bins.ContainsKey(bin)) bins[bin] = [];
+            bins[bin].Add(d);
+        }
+
+        var result = new List<(DotInfo, double, double)>();
+        foreach (var (bin, group) in bins)
+        {
+            double cx = ML + (bin * BinSize + BinSize / 2.0) / 100.0 * PlotW;
+            for (int i = 0; i < group.Count; i++)
+            {
+                int si    = (i % 2 == 0) ? i / 2 : -(i / 2 + 1);
+                double cy = CenterY - si * (R * 2 + 1);
+                result.Add((group[i], cx, cy));
+            }
+        }
+        return result;
+    }
+
+    // ── KDE ───────────────────────────────────────────────────────────────────
+    private static List<(double x, double y)> ComputeKde(List<DotInfo> dots)
+    {
+        if (dots.Count == 0) return [];
+        double maxDensity = 0;
+        var evals = new List<(double xVal, double density)>();
+
+        for (int i = 0; i <= 200; i++)
+        {
+            double xVal   = i * 0.5;
+            double density = 0;
+            foreach (var d in dots)
+            {
+                double u = (xVal - d.Value) / Bandwidth;
+                density += Math.Exp(-0.5 * u * u);
+            }
+            density /= dots.Count * Bandwidth * Math.Sqrt(2 * Math.PI);
+            evals.Add((xVal, density));
+            if (density > maxDensity) maxDensity = density;
+        }
+
+        if (maxDensity <= 0) return [];
+
+        double baseY = MT + PlotH;
+        double scale = (baseY - KdeTop) / maxDensity;
+
+        return evals.Select(e => (ML + e.xVal / 100.0 * PlotW, baseY - e.density * scale)).ToList();
+    }
+
+    private static string KdePath(List<(double x, double y)> pts)
+    {
+        double baseY = MT + PlotH;
+        var sb = new System.Text.StringBuilder();
+        sb.Append($"M {pts[0].x:F1} {baseY:F1} L {pts[0].x:F1} {pts[0].y:F1} ");
+        for (int i = 1; i < pts.Count; i++)
+            sb.Append($"L {pts[i].x:F1} {pts[i].y:F1} ");
+        sb.Append($"L {pts[^1].x:F1} {baseY:F1} Z");
+        return sb.ToString();
+    }
+
+    // ── Color by overall ─────────────────────────────────────────────────────
+    private static string OverallColor(int ovr) => ovr switch
+    {
+        >= 95 => "#f5c518",
+        >= 90 => "#4a9eff",
+        >= 85 => "#2ac9a0",
+        >= 80 => "#4fc44f",
+        >= 75 => "#9ab850",
+        >= 70 => "#c8a030",
+        _     => "#7a6060",
+    };
+}

@@ -1,12 +1,12 @@
 namespace BasketballSim.Models;
 
-public enum ShotType    { Inside, Dunk, MidRange, ThreePointer }
+public enum ShotType    { Inside, MidRange, ThreePointer }
 
 public enum ShotContext
 {
-    // Inside / Dunk
+    // Inside (layups + dunks)
     DrivingLayup, PickAndRollRoll, CutLayup, FastBreakLayup, PostMove, FloaterLayup,
-    AlleyOop, CutDunk, TransitionDunk, PickAndRollDunk,
+    AlleyOop, CutDunk, TransitionDunk, PickAndRollDunk, ContactDunk,
     // Mid Range
     PullUpMidRange, IsolationMidRange, PickAndRollMidRange, FadeawayMidRange,
     PostMoveMidRange, LateClockMidRange,

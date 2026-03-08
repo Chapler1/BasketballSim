@@ -9,6 +9,7 @@ public class Team
     public required List<Player> Roster         { get; init; }
 
     public double Pace { get; init; } = 100.0;
+    public CoachingProfile Coach { get; set; } = CoachingProfiles.Balanced;
 
     public List<Player> Starters => Roster.Take(5).ToList();
     public List<Player> Bench    => Roster.Skip(5).ToList();

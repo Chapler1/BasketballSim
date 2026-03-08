@@ -3,7 +3,7 @@ using BasketballSim.Models;
 namespace BasketballSim.Simulation;
 
 public enum ShotClockPhase { Early, Mid, Late, BuzzerBeater }
-public enum PossessionContext { Regular, MustScore, PotentialGameWinner, IntentionalFoul }
+public enum PossessionContext { Regular, PotentialGameWinner, IntentionalFoul, Heave }
 public enum TurnoverType { Stolen, DeadBall }
 
 public record GameState(
@@ -122,48 +122,145 @@ public class GameEngine
         while (true)
         {
             // ── Stage 1: Possession Context ──────────────────────────
+
+            // Heave: possession starts with under 2 seconds on the quarter clock
+            if (clockSeconds <= 2)
+            {
+                // Under 2s: small chance they get a real shot off, otherwise it's a heave
+                bool isRealShot = clockSeconds == 2 && _rng.NextDouble() < 0.25;
+
+                var heaveShooter = WeightedRandom(lineup, p => p.USG_Weight);
+                var heaveDefender = GetMatchup(heaveShooter, defLineup);
+
+                if (isRealShot)
+                {
+                    // Contested shot attempt — use the shooter's best attribute but heavily penalized
+                    bool isThreeAttempt = heaveShooter.Attr_ThreePoint >= heaveShooter.Attr_MidRange;
+                    double makePct = (isThreeAttempt ? heaveShooter.ThreeMakePct : heaveShooter.MidRangeMakePct)
+                                     * 0.55 - heaveDefender.ContestPenalty(isThreeAttempt ? ShotType.ThreePointer : ShotType.MidRange);
+                    makePct = Math.Clamp(makePct, 0.03, 0.40);
+
+                    bool made = _rng.NextDouble() < makePct;
+                    int pts   = made ? (isThreeAttempt ? 3 : 2) : 0;
+
+                    if (made) { if (state.IsHomePossession) homeScore += pts; else awayScore += pts; }
+                    if (made) EnsureStats(heaveShooter).FGMade++;
+                    EnsureStats(heaveShooter).FGAttempts++;
+                    if (isThreeAttempt) { if (made) EnsureStats(heaveShooter).ThreeMade++; EnsureStats(heaveShooter).ThreeAttempts++; }
+                    if (made) EnsureStats(heaveShooter).Points += pts;
+
+                    var ctx = isThreeAttempt ? ShotContext.CatchAndShootWing : ShotContext.LateClockMidRange;
+                    results.Add(new PossessionResult
+                    {
+                        Team         = offTeam.Name,
+                        Narrative    = made
+                            ? $"{heaveShooter.Name} gets it off in time — BANG! ({pts} pts)"
+                            : $"{heaveShooter.Name} rushed shot at the buzzer — no good",
+                        HomeScore    = homeScore, AwayScore = awayScore,
+                        Quarter      = state.Quarter, ClockSeconds = 0,
+                        PointsScored = pts,
+                        Event        = made ? PossessionEvent.ShotMade : PossessionEvent.ShotMissed,
+                        Scorer       = heaveShooter.Name,
+                        Shot         = isThreeAttempt ? ShotType.ThreePointer : ShotType.MidRange,
+                        Context      = ctx,
+                        IsThree      = isThreeAttempt
+                    });
+                }
+                else
+                {
+                    // True heave — very low make chance, always a three attempt
+                    double heaveMakePct = Math.Clamp(heaveShooter.ThreeMakePct * 0.18, 0.01, 0.08);
+                    bool made = _rng.NextDouble() < heaveMakePct;
+                    int pts   = made ? 3 : 0;
+
+                    if (made) { if (state.IsHomePossession) homeScore += pts; else awayScore += pts; }
+                    EnsureStats(heaveShooter).FGAttempts++;
+                    EnsureStats(heaveShooter).ThreeAttempts++;
+                    if (made) { EnsureStats(heaveShooter).FGMade++; EnsureStats(heaveShooter).ThreeMade++; EnsureStats(heaveShooter).Points += pts; }
+
+                    results.Add(new PossessionResult
+                    {
+                        Team         = offTeam.Name,
+                        Narrative    = made
+                            ? $"{heaveShooter.Name} HEAVE FROM HALFCOURT — IT'S GOOD!!! ({pts} pts)"
+                            : $"{heaveShooter.Name} heave at the buzzer — not even close",
+                        HomeScore    = homeScore, AwayScore = awayScore,
+                        Quarter      = state.Quarter, ClockSeconds = 0,
+                        PointsScored = pts,
+                        Event        = made ? PossessionEvent.ShotMade : PossessionEvent.ShotMissed,
+                        Scorer       = heaveShooter.Name,
+                        Shot         = ShotType.ThreePointer,
+                        Context      = ShotContext.None,
+                        IsThree      = true
+                    });
+                }
+
+                clockSeconds = 0;
+                return;
+            }
+
+            // Determine score differential from the offensive team's perspective
             int scoreDiff = state.IsHomePossession
                 ? state.HomeScore - state.AwayScore
                 : state.AwayScore - state.HomeScore;
 
             PossessionContext posContext;
-            if (clockSeconds <= 5 && Math.Abs(state.HomeScore - state.AwayScore) <= 3)
-                posContext = PossessionContext.PotentialGameWinner;
-            else if (scoreDiff <= -8 && state.Quarter == 4 && clockSeconds <= 120)
-                posContext = PossessionContext.IntentionalFoul;
-            else if (scoreDiff < 0 && state.Quarter == 4 && clockSeconds <= 45)
-                posContext = PossessionContext.MustScore;
-            else
-                posContext = PossessionContext.Regular;
 
-            // IntentionalFoul — just log foul and return
+            // PotentialGameWinner: within 3 points, under 24 seconds left
+            if (clockSeconds <= 24 && Math.Abs(state.HomeScore - state.AwayScore) <= 3)
+            {
+                posContext = PossessionContext.PotentialGameWinner;
+            }
+            // IntentionalFoul (real NBA logic):
+            //   - Two-possession game (down 4–6) with under 48 seconds left, OR
+            //   - One-possession game (down 1–3) with under 24 seconds left where fouling makes sense defensively
+            // Here we model it as the DEFENSIVE team's decision: they foul when trailing and time is short.
+            // Note: scoreDiff is from the OFFENSIVE team's POV, so negative = offense is trailing.
+            // Intentional foul is called by the team that is AHEAD — they foul the team that is behind.
+            // So this triggers when the offensive team is LEADING and the defense might foul.
+            // Reframe: check if the DEFENSIVE team is trailing and would foul.
+            else if (
+                (Math.Abs(state.HomeScore - state.AwayScore) is >= 4 and <= 6 && clockSeconds <= 48) ||
+                (Math.Abs(state.HomeScore - state.AwayScore) is >= 1 and <= 3 && clockSeconds <= 24 && state.Quarter == 4))
+            {
+                // Only foul if the offensive team is ahead (defense is trailing and wants the ball back)
+                bool offenseIsAhead = scoreDiff > 0;
+                posContext = offenseIsAhead ? PossessionContext.IntentionalFoul : PossessionContext.Regular;
+            }
+            else
+            {
+                posContext = PossessionContext.Regular;
+            }
+
+            // ── IntentionalFoul early-return ─────────────────────────
             if (posContext == PossessionContext.IntentionalFoul)
             {
-                // Award 2 FT for the trailing team scenario; here offense gets fouled
                 var ftShooter = WeightedRandom(lineup, p => p.USG_Weight);
                 int pts = 0;
                 for (int i = 0; i < 2; i++)
                     if (_rng.NextDouble() < ftShooter.FTMakePct) pts++;
+
                 if (state.IsHomePossession) homeScore += pts;
                 else awayScore += pts;
 
                 EnsureStats(ftShooter).FTAttempts += 2;
-                EnsureStats(ftShooter).FTMade += pts;
-                EnsureStats(ftShooter).Points += pts;
+                EnsureStats(ftShooter).FTMade     += pts;
+                EnsureStats(ftShooter).Points     += pts;
 
-                int clock = Math.Max(0, clockSeconds - 3);
-                clockSeconds = clock;
+                // Intentional foul takes only ~3 seconds
+                clockSeconds = Math.Max(0, clockSeconds - 3);
+
                 results.Add(new PossessionResult
                 {
-                    Team = offTeam.Name,
-                    Narrative = $"{ftShooter.Name} at the line — {pts}/2 free throws",
-                    HomeScore = homeScore, AwayScore = awayScore,
-                    Quarter = state.Quarter, ClockSeconds = clockSeconds,
+                    Team         = offTeam.Name,
+                    Narrative    = $"{ftShooter.Name} at the line (intentional foul) — {pts}/2",
+                    HomeScore    = homeScore, AwayScore = awayScore,
+                    Quarter      = state.Quarter, ClockSeconds = clockSeconds,
                     PointsScored = pts,
-                    Event = PossessionEvent.FreeThrows,
-                    Scorer = ftShooter.Name,
-                    Context = ShotContext.None,
-                    FTAttempts = 2
+                    Event        = PossessionEvent.FreeThrows,
+                    Scorer       = ftShooter.Name,
+                    Context      = ShotContext.None,
+                    FTAttempts   = 2
                 });
                 return;
             }
@@ -228,11 +325,13 @@ public class GameEngine
             // ── Stage 4: Turnover Check ───────────────────────────────
             double baseTO = actionPlayer.TurnoverRate;
             if (phase == ShotClockPhase.Late) baseTO *= 1.3;
+            // Good coaching = better ball security; bad coaching = sloppy play
+            baseTO *= 1.0 - (offTeam.Coach.CoachingRating - 50.0) / 50.0 * 0.08;
 
             if (_rng.NextDouble() < baseTO)
             {
                 double totalStealThreat = defLineup.Sum(d => d.StealMod);
-                double stealShare = totalStealThreat / (totalStealThreat + 0.15);
+                double stealShare = totalStealThreat / (totalStealThreat + 0.12);
 
                 EnsureStats(actionPlayer).Turnovers++;
 
@@ -272,8 +371,9 @@ public class GameEngine
             }
 
             // ── Stage 5: Shot Type Selection ─────────────────────────
-            bool isOffReb = orbCount > 0;
-            int spacingLevel = offTeam.SpacingLevel(lineup);
+            bool isOffReb     = orbCount > 0;
+            int spacingLevel  = offTeam.SpacingLevel(lineup);
+            double playerIQ   = actionPlayer.Attr_BasketballIQ / 100.0;
 
             // Per-player perimeter pressure: each player independently frees or occupies their defender.
             // Positive → defender is pinned (shooter), negative → defender can sag and help in the paint.
@@ -285,14 +385,26 @@ public class GameEngine
             double teamSag     = Math.Max(0.0, -netPerimPressure);
             double teamGravity = Math.Max(0.0,  netPerimPressure);
 
-            double wInside = Math.Max(actionPlayer.DriveGravity * 100, 0.01);
-            double wDunk   = Math.Max(actionPlayer.Attr_Dunks * (actionPlayer.Jumping / 100.0) * 0.65, 0.01);
-            double wMid    = Math.Max(actionPlayer.Attr_MidRange * 0.96, 0.01);
-            double wThree  = Math.Max(actionPlayer.Attr_ThreePoint * 1.75, 0.01);
+            // Attribute-curved base weights — IQ sharpens how strongly
+            // attributes push toward each shot type.
+            // Base multipliers calibrated to NBA shot distribution: ~44% inside, ~17% mid, ~39% three.
+            double wInside = AttributeCurve(actionPlayer.DriveGravity * 100.0, playerIQ);
+            double wMid    = AttributeCurve(actionPlayer.Attr_MidRange,         playerIQ) * 0.35;
+            double wThree  = AttributeCurve(actionPlayer.Attr_ThreePoint,       playerIQ) * 1.35;
 
-            if (isOffReb)    { wInside *= 2.5; wDunk *= 2.0; wThree *= 0.1; }
-            if (phase == ShotClockPhase.Early) { wInside *= 1.4; wDunk *= 1.3; wMid *= 0.7; }
-            if (phase == ShotClockPhase.Late)  { wThree *= 1.3; wMid *= 1.4; wDunk *= 0.3; }
+            // Ensure no weight is zero
+            wInside = Math.Max(wInside, 0.01);
+            wMid    = Math.Max(wMid,    0.01);
+            wThree  = Math.Max(wThree,  0.01);
+
+            // Apply coaching macro modifiers
+            wInside *= offTeam.Coach.InsideMod;
+            wMid    *= offTeam.Coach.MidMod;
+            wThree  *= offTeam.Coach.ThreeMod;
+
+            if (isOffReb)    { wInside *= 2.5; wThree *= 0.1; }
+            if (phase == ShotClockPhase.Early) { wInside *= 1.4; wMid *= 0.7; }
+            if (phase == ShotClockPhase.Late)  { wThree *= 1.3; wMid *= 1.4; }
             if (actionPlayer.Position is Position.C or Position.PF)
             {
                 wMid *= 1.2;
@@ -307,37 +419,51 @@ public class GameEngine
             // Good perimeter D → fewer threes, more drives inside
             wThree  *= Math.Max(0.3, 1.0 - perimStrength * 0.25);
             wInside *= Math.Max(0.3, 1.0 + perimStrength * 0.15);
-            // Good interior D → fewer inside shots/dunks, more threes
+            // Good interior D → fewer inside shots, more threes
             wInside *= Math.Max(0.3, 1.0 - intStrength * 0.25);
-            wDunk   *= Math.Max(0.3, 1.0 - intStrength * 0.30);
             wThree  *= Math.Max(0.3, 1.0 + intStrength * 0.15);
 
             // Shooter spacing bonus — more shooters on floor → more corner/wing threes
-            wThree *= (0.7 + spacingLevel * 0.12);
+            wThree *= (0.9 + spacingLevel * 0.10);
 
             // Sag: sagging defenders help in the paint → fewer clean lanes inside
             if (teamSag > 0)
-            {
                 wInside *= Math.Max(0.35, 1.0 - teamSag * 0.55);
-                wDunk   *= Math.Max(0.35, 1.0 - teamSag * 0.45);
-            }
             // Gravity: defenders pinned on shooters → more open lanes inside
             if (teamGravity > 0)
-            {
                 wInside *= (1.0 + teamGravity * 0.35);
-                wDunk   *= (1.0 + teamGravity * 0.25);
-            }
 
             var shotType = WeightedRandom(
-                new[] { ShotType.Inside, ShotType.Dunk, ShotType.MidRange, ShotType.ThreePointer },
+                new[] { ShotType.Inside, ShotType.MidRange, ShotType.ThreePointer },
                 t => t switch
                 {
                     ShotType.Inside      => wInside,
-                    ShotType.Dunk        => wDunk,
                     ShotType.MidRange    => wMid,
                     ShotType.ThreePointer=> wThree,
                     _                    => 0.01
                 });
+
+            // PotentialGameWinner: force shot type based on deficit, bias toward late clock
+            if (posContext == PossessionContext.PotentialGameWinner)
+            {
+                int deficit = -scoreDiff; // positive = trailing, 0 = tied, negative = leading
+
+                if (deficit >= 3)
+                {
+                    // Must tie or win with a three — force it
+                    shotType = ShotType.ThreePointer;
+                }
+                else
+                {
+                    // Down 1 or 2, or tied: any shot wins — use weighted random but skip this override
+                    // (fall through to normal WeightedRandom below)
+                }
+
+                // Bias time used toward end-of-clock so the other team has no time to respond.
+                // Override the timeUsed computed in Stage 2.
+                timeUsed = _rng.Next(Math.Max(1, clockSeconds - 4), clockSeconds + 1);
+                clockSeconds = Math.Max(0, clockSeconds - timeUsed);
+            }
 
             // ── Stage 6: Shot Context Selection ──────────────────────
             ShotContext shotContext;
@@ -352,11 +478,10 @@ public class GameEngine
             {
                 shotContext = shotType switch
                 {
-                    ShotType.Inside      => SelectInsideContext(actionPlayer, phase, spacingLevel),
-                    ShotType.Dunk        => SelectDunkContext(actionPlayer, phase),
-                    ShotType.MidRange    => SelectMidRangeContext(actionPlayer, phase),
-                    ShotType.ThreePointer=> SelectThreeContext(actionPlayer, phase, spacingLevel),
-                    _                    => ShotContext.DrivingLayup
+                    ShotType.Inside       => SelectInsideContext(actionPlayer, phase, spacingLevel, offTeam.Coach),
+                    ShotType.MidRange     => SelectMidRangeContext(actionPlayer, phase, offTeam.Coach),
+                    ShotType.ThreePointer => SelectThreeContext(actionPlayer, phase, spacingLevel, offTeam.Coach),
+                    _                     => ShotContext.DrivingLayup
                 };
             }
 
@@ -378,20 +503,26 @@ public class GameEngine
 
             double contestMod = shotContext switch
             {
-                ShotContext.CatchAndShootCorner or ShotContext.CatchAndShootWing => 0.6,
-                ShotContext.CutLayup or ShotContext.CutDunk or ShotContext.AlleyOop => 0.3,
-                _ when phase == ShotClockPhase.BuzzerBeater => 0.5,
-                _ => 1.0
+                ShotContext.CatchAndShootCorner or ShotContext.CatchAndShootWing                           => 0.6,
+                ShotContext.CutLayup or ShotContext.CutDunk or ShotContext.AlleyOop
+                    or ShotContext.TransitionDunk                                                          => 0.3,
+                ShotContext.PickAndRollDunk                                                                => 0.5,
+                ShotContext.ContactDunk                                                                    => 0.85,
+                _ when phase == ShotClockPhase.BuzzerBeater                                               => 0.5,
+                _                                                                                         => 1.0
             };
 
             double contestPenalty = defender.ContestPenalty(shotType) * contestMod;
+            // Dunks are harder to block than layups; context-aware within Inside
+            bool isDunkContext = shotContext is ShotContext.AlleyOop or ShotContext.CutDunk
+                                           or ShotContext.TransitionDunk or ShotContext.PickAndRollDunk
+                                           or ShotContext.ContactDunk or ShotContext.Putback;
             double blockability = shotType switch
             {
-                ShotType.Inside      => 1.0,
-                ShotType.Dunk        => 0.4,
-                ShotType.MidRange    => 0.85,
-                ShotType.ThreePointer=> 0.25,
-                _                    => 0.5
+                ShotType.Inside       => isDunkContext ? 0.35 : 1.0,
+                ShotType.MidRange     => 0.85,
+                ShotType.ThreePointer => 0.25,
+                _                     => 0.5
             };
             double blockChance = defender.BlockMod * blockability * contestMod;
 
@@ -399,7 +530,6 @@ public class GameEngine
             double baseMake = shotType switch
             {
                 ShotType.Inside      => actionPlayer.InsideMakePct,
-                ShotType.Dunk        => actionPlayer.InsideMakePct * 1.08,
                 ShotType.MidRange    => actionPlayer.MidRangeMakePct,
                 ShotType.ThreePointer=> actionPlayer.ThreeMakePct,
                 _                    => 0.45
@@ -408,11 +538,16 @@ public class GameEngine
             // Context-specific overrides
             if (shotContext == ShotContext.PostMove)        baseMake = actionPlayer.InsideMakePct;
             if (shotContext == ShotContext.PostMoveMidRange) baseMake = actionPlayer.MidRangeMakePct;
+            // Dunks use dunk-specific make% (much higher than layups)
+            if (isDunkContext && shotContext != ShotContext.ContactDunk)
+                baseMake = actionPlayer.DunkMakePct;
+            if (shotContext == ShotContext.ContactDunk)
+                baseMake = actionPlayer.ContactDunkMakePct;
 
             baseMake *= ShotContextMakeModifier(shotContext, phase);
 
             // Sag/gravity: perimeter shooting affects how open inside shots are
-            if (shotType is ShotType.Inside or ShotType.Dunk)
+            if (shotType == ShotType.Inside)
             {
                 if (teamSag     > 0) baseMake -= teamSag     * 0.30; // crowded paint
                 if (teamGravity > 0) baseMake += teamGravity * 0.12; // open lanes
@@ -422,6 +557,9 @@ public class GameEngine
 
             if (state.IsClutch)
                 adjMake *= 1.0 + (actionPlayer.Attr_BasketballIQ - 70) / 100.0 * 0.15;
+
+            // Coaching quality: better systems generate higher-percentage looks
+            adjMake += (offTeam.Coach.CoachingRating - 50.0) / 50.0 * 0.013;
 
             adjMake = Math.Clamp(adjMake, 0.05, 0.95);
             double r2 = _rng.NextDouble();
@@ -489,9 +627,11 @@ public class GameEngine
 
                 // ── Stage 10: Free Throw Check (made contact shot) ────
                 if (shotContext is ShotContext.DrivingLayup or ShotContext.PickAndRollRoll
-                    or ShotContext.PostMove or ShotContext.PostMoveMidRange)
+                    or ShotContext.PostMove or ShotContext.PostMoveMidRange
+                    or ShotContext.CutLayup or ShotContext.FastBreakLayup)
                 {
-                    double foulChance = 0.20 * (actionPlayer.Attr_Inside / 100.0);
+                    // And-one rate scales with Inside attribute; calibrated to ~4-5 FTA/game from this path
+                    double foulChance = 0.18 + (actionPlayer.Attr_Inside - 50) / 50.0 * 0.08;
                     if (_rng.NextDouble() < foulChance)
                     {
                         int ftPts = _rng.NextDouble() < actionPlayer.FTMakePct ? 1 : 0;
@@ -524,13 +664,15 @@ public class GameEngine
 
                 // ── Stage 10: Free Throw Check (missed contact shot) ──
                 bool grantedFT = false;
+
+                // Inside contact fouls (2 FT) — calibrated to ~14-16 FTA/game from this path
                 if (shotContext is ShotContext.DrivingLayup or ShotContext.PickAndRollRoll
-                    or ShotContext.PostMove or ShotContext.PostMoveMidRange)
+                    or ShotContext.PostMove or ShotContext.PostMoveMidRange
+                    or ShotContext.CutLayup or ShotContext.FastBreakLayup or ShotContext.FloaterLayup)
                 {
-                    if (_rng.NextDouble() < 0.12)
+                    if (_rng.NextDouble() < 0.42)
                     {
                         grantedFT = true;
-                        // Void FG attempt
                         shooterStats.FGAttempts--;
                         if (isThree) shooterStats.ThreeAttempts--;
 
@@ -564,6 +706,80 @@ public class GameEngine
                         });
                         return;
                     }
+                }
+                // Three-point shooting fouls (3 FT) — calibrated to ~5-6 FTA/game
+                else if (isThree && _rng.NextDouble() < 0.09)
+                {
+                    grantedFT = true;
+                    shooterStats.FGAttempts--;
+                    shooterStats.ThreeAttempts--;
+
+                    int pts = 0;
+                    for (int i = 0; i < 3; i++)
+                        if (_rng.NextDouble() < actionPlayer.FTMakePct) pts++;
+
+                    if (state.IsHomePossession) homeScore += pts;
+                    else awayScore += pts;
+
+                    shooterStats.FTAttempts += 3;
+                    shooterStats.FTMade += pts;
+                    shooterStats.Points += pts;
+
+                    string ftNarr3 = pts switch
+                    {
+                        3 => $"{actionPlayer.Name} fouled on the three — makes all three!",
+                        2 => $"{actionPlayer.Name} fouled on the three — 2 of 3",
+                        1 => $"{actionPlayer.Name} fouled on the three — 1 of 3",
+                        _ => $"{actionPlayer.Name} fouled on the three — misses all three"
+                    };
+                    results.Add(new PossessionResult
+                    {
+                        Team = offTeam.Name,
+                        Narrative = ftNarr3,
+                        HomeScore = homeScore, AwayScore = awayScore,
+                        Quarter = state.Quarter, ClockSeconds = clockSeconds,
+                        PointsScored = pts,
+                        Event = PossessionEvent.FreeThrows,
+                        Scorer = actionPlayer.Name, Context = ShotContext.None,
+                        FTAttempts = 3
+                    });
+                    return;
+                }
+                // Mid-range shooting fouls (2 FT) — calibrated to ~1-2 FTA/game
+                else if (!isThree && shotType == ShotType.MidRange && _rng.NextDouble() < 0.06)
+                {
+                    grantedFT = true;
+                    shooterStats.FGAttempts--;
+
+                    int pts = 0;
+                    for (int i = 0; i < 2; i++)
+                        if (_rng.NextDouble() < actionPlayer.FTMakePct) pts++;
+
+                    if (state.IsHomePossession) homeScore += pts;
+                    else awayScore += pts;
+
+                    shooterStats.FTAttempts += 2;
+                    shooterStats.FTMade += pts;
+                    shooterStats.Points += pts;
+
+                    string ftNarrMid = pts switch
+                    {
+                        2 => $"{actionPlayer.Name} fouled on the mid-range — makes both",
+                        1 => $"{actionPlayer.Name} fouled on the mid-range — 1 of 2",
+                        _ => $"{actionPlayer.Name} fouled on the mid-range — misses both"
+                    };
+                    results.Add(new PossessionResult
+                    {
+                        Team = offTeam.Name,
+                        Narrative = ftNarrMid,
+                        HomeScore = homeScore, AwayScore = awayScore,
+                        Quarter = state.Quarter, ClockSeconds = clockSeconds,
+                        PointsScored = pts,
+                        Event = PossessionEvent.FreeThrows,
+                        Scorer = actionPlayer.Name, Context = ShotContext.None,
+                        FTAttempts = 2
+                    });
+                    return;
                 }
 
                 if (!grantedFT)
@@ -602,7 +818,8 @@ public class GameEngine
     {
         double offRebWeight = lineup.Sum(p => p.ORebWeight);
         double defRebWeight = defLineup.Sum(p => p.DRebWeight);
-        double offRebPct = Math.Clamp(offRebWeight / (offRebWeight + defRebWeight), 0.18, 0.38);
+        // Defensive rebounding naturally dominates (~77%); scale offReb down to target ~22% at equal ratings.
+        double offRebPct = Math.Clamp(offRebWeight / (offRebWeight + defRebWeight * 3.5), 0.12, 0.30);
 
         if (_rng.NextDouble() < offRebPct && orbCount < 3)
         {
@@ -644,90 +861,109 @@ public class GameEngine
         }
     }
 
-    private ShotContext SelectInsideContext(Player p, ShotClockPhase phase, int spacingLevel)
+    private ShotContext SelectInsideContext(Player p, ShotClockPhase phase, int spacingLevel, CoachingProfile coach)
     {
+        double cm        = coach.CoachingRating / 100.0;
+        double dunkTend  = p.DunkTendency;  // jumping + height + dunk rating gates all dunk contexts
+
         var weights = new Dictionary<ShotContext, double>
         {
-            [ShotContext.DrivingLayup]   = Math.Max(p.DriveGravity * 2.0, 0.01),
-            [ShotContext.PickAndRollRoll]= Math.Max(p.DriveGravity * spacingLevel * 0.25, 0.01),
-            [ShotContext.CutLayup]       = Math.Max(p.CutTendency, 0.01),
-            [ShotContext.FastBreakLayup] = phase == ShotClockPhase.Early ? 1.5 : 0.1,
-            [ShotContext.PostMove]       = p.Position is Position.PF or Position.C
+            // ── Layup / non-dunk inside ──────────────────────────────
+            [ShotContext.DrivingLayup]    = Math.Max(p.DriveGravity * 2.0, 0.01),
+            [ShotContext.PickAndRollRoll] = Math.Max(p.DriveGravity * spacingLevel * 0.25 * (1.0 + cm * 0.5), 0.01),
+            [ShotContext.CutLayup]        = Math.Max(p.CutTendency * (1.0 + cm * 0.6), 0.01),
+            [ShotContext.FastBreakLayup]  = phase == ShotClockPhase.Early
+                                            ? 1.5 * (1.0 + cm * 0.5) : 0.1,
+            [ShotContext.PostMove]        = p.Position is Position.PF or Position.C
                                             ? Math.Max(p.Attr_Inside / 100.0 * 1.5, 0.01) : 0.1,
-            [ShotContext.FloaterLayup]   = Math.Max(p.Speed / 100.0 * p.Attr_Dribbling / 100.0, 0.01),
+            [ShotContext.FloaterLayup]    = Math.Max(p.Speed / 100.0 * p.Attr_Dribbling / 100.0 * (1.0 - cm * 0.2), 0.01),
+
+            // ── Dunk contexts — gated by dunk tendency ───────────────
+            // Weights tuned so average team gets ~6-8 dunks/game (target NBA rate).
+            [ShotContext.AlleyOop]        = Math.Max(dunkTend * p.AlleyOopTendency * 0.45 * (1.0 + cm * 0.4), 0.01),
+            [ShotContext.CutDunk]         = Math.Max(dunkTend * p.CutTendency * 0.35 * (1.0 + cm * 0.4), 0.01),
+            [ShotContext.TransitionDunk]  = phase == ShotClockPhase.Early
+                                            ? dunkTend * 0.9 * (1.0 + cm * 0.3)
+                                            : Math.Max(dunkTend * 0.07, 0.01),
+            [ShotContext.PickAndRollDunk] = Math.Max(dunkTend * p.DriveGravity * 0.22 * (1.0 + cm * 0.3), 0.01),
+            [ShotContext.ContactDunk]     = Math.Max(dunkTend * (p.Strength / 100.0) * 0.22, 0.01),
         };
         return WeightedRandom(weights.Keys, k => weights[k]);
     }
 
-    private ShotContext SelectDunkContext(Player p, ShotClockPhase phase)
+    private ShotContext SelectMidRangeContext(Player p, ShotClockPhase phase, CoachingProfile coach)
     {
-        var weights = new Dictionary<ShotContext, double>
-        {
-            [ShotContext.AlleyOop]        = Math.Max(p.AlleyOopTendency, 0.01),
-            [ShotContext.CutDunk]         = Math.Max(p.CutTendency * 0.8, 0.01),
-            [ShotContext.TransitionDunk]  = phase == ShotClockPhase.Early ? 2.0 : 0.15,
-            [ShotContext.PickAndRollDunk] = Math.Max(p.DriveGravity * 0.5, 0.01),
-        };
-        return WeightedRandom(weights.Keys, k => weights[k]);
-    }
+        double cm = coach.CoachingRating / 100.0;
 
-    private ShotContext SelectMidRangeContext(Player p, ShotClockPhase phase)
-    {
         var weights = new Dictionary<ShotContext, double>
         {
-            [ShotContext.PullUpMidRange]     = Math.Max(p.DriveGravity * 0.8, 0.01),
-            [ShotContext.IsolationMidRange]  = Math.Max(p.USG_Weight * (1 - p.DeferralTendency), 0.01),
-            [ShotContext.PickAndRollMidRange]= Math.Max(p.DriveGravity * 0.5, 0.01),
-            [ShotContext.FadeawayMidRange]   = Math.Max(p.Strength / 100.0 * 0.6, 0.01),
-            [ShotContext.PostMoveMidRange]   = p.Position is Position.PF or Position.C
+            [ShotContext.PullUpMidRange]      = Math.Max(p.DriveGravity * 0.8, 0.01),
+            // Good coaches suppress pure iso (low efficiency) — bad coaches let stars do whatever
+            [ShotContext.IsolationMidRange]   = Math.Max(p.USG_Weight * (1 - p.DeferralTendency) * (1.0 - cm * 0.35), 0.01),
+            [ShotContext.PickAndRollMidRange] = Math.Max(p.DriveGravity * 0.5 * (1.0 + cm * 0.3), 0.01),
+            [ShotContext.FadeawayMidRange]    = Math.Max(p.Strength / 100.0 * 0.6, 0.01),
+            [ShotContext.PostMoveMidRange]    = p.Position is Position.PF or Position.C
                                                ? Math.Max(p.Attr_MidRange / 100.0 * 1.2, 0.01) : 0.05,
-            [ShotContext.LateClockMidRange]  = phase == ShotClockPhase.Late ? 2.0 : 0.01,
+            [ShotContext.LateClockMidRange]   = phase == ShotClockPhase.Late ? 2.0 : 0.01,
         };
         return WeightedRandom(weights.Keys, k => weights[k]);
     }
 
-    private ShotContext SelectThreeContext(Player p, ShotClockPhase phase, int spacingLevel)
+    private ShotContext SelectThreeContext(Player p, ShotClockPhase phase, int spacingLevel, CoachingProfile coach)
     {
+        double cm = coach.CoachingRating / 100.0;
+
         var weights = new Dictionary<ShotContext, double>
         {
-            // Corner has a base weight independent of spacingLevel so average teams still hit corners (~17-20% of 3PA)
-            [ShotContext.CatchAndShootCorner]= Math.Max(p.PerimeterGravity * (0.8 + spacingLevel * 0.15), 0.01),
-            [ShotContext.CatchAndShootWing]  = Math.Max(p.PerimeterGravity * 1.2, 0.01),
-            [ShotContext.PullUpThree]        = Math.Max(p.DriveGravity * p.Attr_ThreePoint / 100.0, 0.01),
-            [ShotContext.StepBackThree]      = Math.Max(p.Attr_Dribbling / 100.0 * p.Attr_ThreePoint / 100.0, 0.01),
-            [ShotContext.PickAndRollThree]   = Math.Max(p.DriveGravity * 0.6, 0.01),
-            [ShotContext.TransitionThree]    = Math.Max(p.ShotClockAggressiveness * 0.5, 0.01),
+            // Best looks — good coaches heavily elevate these
+            [ShotContext.CatchAndShootCorner] = Math.Max(
+                p.PerimeterGravity * (0.8 + spacingLevel * 0.15) * (1.0 + cm * 0.8), 0.01),
+            [ShotContext.CatchAndShootWing]   = Math.Max(
+                p.PerimeterGravity * 1.2 * (1.0 + cm * 0.4), 0.01),
+
+            // Worse looks — good coaches suppress these
+            [ShotContext.PullUpThree]         = Math.Max(
+                p.DriveGravity * p.Attr_ThreePoint / 100.0 * (1.0 - cm * 0.3), 0.01),
+            [ShotContext.StepBackThree]       = Math.Max(
+                p.Attr_Dribbling / 100.0 * p.Attr_ThreePoint / 100.0 * (1.0 - cm * 0.4), 0.01),
+
+            // Good coaches create transition threes
+            [ShotContext.TransitionThree]     = Math.Max(
+                p.ShotClockAggressiveness * 0.5 * (1.0 + cm * 0.5), 0.01),
+
+            [ShotContext.PickAndRollThree]    = Math.Max(p.DriveGravity * 0.6, 0.01),
         };
         return WeightedRandom(weights.Keys, k => weights[k]);
     }
 
     private static double AssistProbability(ShotContext context) => context switch
     {
-        ShotContext.CatchAndShootCorner  => 0.92,
-        ShotContext.CatchAndShootWing    => 0.88,
+        ShotContext.CatchAndShootCorner  => 0.95,
+        ShotContext.CatchAndShootWing    => 0.92,
         ShotContext.AlleyOop             => 1.00,
-        ShotContext.CutLayup             => 0.90,
-        ShotContext.CutDunk              => 0.90,
-        ShotContext.PickAndRollRoll      => 0.75,
-        ShotContext.PickAndRollDunk      => 0.72,
-        ShotContext.PickAndRollThree     => 0.68,
-        ShotContext.PickAndRollMidRange  => 0.60,
-        ShotContext.FastBreakLayup       => 0.55,
-        ShotContext.TransitionDunk       => 0.50,
-        ShotContext.TransitionThree      => 0.40,
-        ShotContext.PostMove             => 0.22,
-        ShotContext.PostMoveMidRange     => 0.20,
-        ShotContext.FadeawayMidRange     => 0.12,
-        ShotContext.IsolationMidRange    => 0.08,
-        ShotContext.StepBackThree        => 0.10,
-        ShotContext.PullUpThree          => 0.15,
-        ShotContext.PullUpMidRange       => 0.18,
-        ShotContext.DrivingLayup         => 0.30,
-        ShotContext.FloaterLayup         => 0.22,
-        ShotContext.LateClockMidRange    => 0.05,
+        ShotContext.CutLayup             => 0.92,
+        ShotContext.CutDunk              => 0.92,
+        ShotContext.ContactDunk          => 0.40,
+        ShotContext.PickAndRollRoll      => 0.80,
+        ShotContext.PickAndRollDunk      => 0.78,
+        ShotContext.PickAndRollThree     => 0.75,
+        ShotContext.PickAndRollMidRange  => 0.65,
+        ShotContext.FastBreakLayup       => 0.68,
+        ShotContext.TransitionDunk       => 0.58,
+        ShotContext.TransitionThree      => 0.52,
+        ShotContext.PostMove             => 0.32,
+        ShotContext.PostMoveMidRange     => 0.28,
+        ShotContext.FadeawayMidRange     => 0.15,
+        ShotContext.IsolationMidRange    => 0.10,
+        ShotContext.StepBackThree        => 0.13,
+        ShotContext.PullUpThree          => 0.22,
+        ShotContext.PullUpMidRange       => 0.28,
+        ShotContext.DrivingLayup         => 0.58,  // most NBA drives start with a pass
+        ShotContext.FloaterLayup         => 0.40,
+        ShotContext.LateClockMidRange    => 0.08,
         ShotContext.Putback              => 0.00,
         ShotContext.TipIn                => 0.00,
-        _                               => 0.15
+        _                               => 0.20
     };
 
     private static double ShotContextMakeModifier(ShotContext context, ShotClockPhase phase) => context switch
@@ -744,6 +980,17 @@ public class GameEngine
         _ when phase == ShotClockPhase.BuzzerBeater => 0.20,
         _ => 1.0
     };
+
+    // Controls how strongly attributes shape shot selection.
+    // Low IQ flattens the curve (players ignore their strengths/weaknesses).
+    // High IQ sharpens it (bad skills get suppressed, good skills emphasized).
+    // Exponent range 1.0–2.0 keeps the curve meaningful without extreme values.
+    private static double AttributeCurve(double attr, double iq)
+    {
+        double normalized = Math.Clamp(attr / 100.0, 0.0, 1.0);
+        double exponent   = 1.0 + iq * 1.0;  // range: 1.0 (IQ=0) to 2.0 (IQ=1.0)
+        return Math.Pow(normalized, exponent);
+    }
 
     private Player GetMatchup(Player shooter, List<Player> defenders)
     {
@@ -793,6 +1040,7 @@ public class GameEngine
             ShotContext.CutDunk           => Pick($"{scorer} cuts and DUNKS!{assist}", $"{scorer} jam on the cut!{assist}"),
             ShotContext.TransitionDunk    => Pick($"{scorer} SLAMS it in transition!{assist}", $"{scorer} throws it down on the break!{assist}"),
             ShotContext.PickAndRollDunk   => Pick($"{scorer} catches the lob off the roll — DUNK!{assist}", $"{scorer} oop off the pick — GOOD!{assist}"),
+            ShotContext.ContactDunk       => Pick($"{scorer} powers through — CONTACT DUNK!{assist}", $"{scorer} throws it down through contact!{assist}"),
             ShotContext.PullUpMidRange    => Pick($"{scorer} pull-up mid-range — GOOD!", $"{scorer} stops and pops — hits it!"),
             ShotContext.IsolationMidRange => Pick($"{scorer} isolation — mid-range — GOOD!", $"{scorer} in the iso — knocks it down!"),
             ShotContext.PickAndRollMidRange=> Pick($"{scorer} mid-range off the pick — GOOD!{assist}", $"{scorer} pulls up off the PnR!{assist}"),
@@ -824,6 +1072,7 @@ public class GameEngine
         ShotContext.CutDunk            => $"{shooter} goes up for the dunk — can't finish",
         ShotContext.TransitionDunk     => $"{shooter} misses the dunk in transition — rare!",
         ShotContext.PickAndRollDunk    => $"{shooter} can't finish the PnR dunk",
+        ShotContext.ContactDunk        => $"{shooter} powers up through contact — no good",
         ShotContext.PullUpMidRange     => Pick($"{shooter} pull-up mid-range — off the iron", $"{shooter} pull-up — no good"),
         ShotContext.IsolationMidRange  => Pick($"{shooter} isolation mid-range — no good", $"{shooter} iso — rattles out"),
         ShotContext.PickAndRollMidRange=> $"{shooter} mid-range off the PnR — no good",
@@ -846,6 +1095,7 @@ public class GameEngine
         ShotContext.AlleyOop
             => $"{blocker} SWATS the alley-oop attempt by {shooter}!",
         ShotContext.CutDunk or ShotContext.TransitionDunk or ShotContext.PickAndRollDunk
+            or ShotContext.ContactDunk
             => $"{blocker} rejects the dunk by {shooter}!",
         ShotContext.FloaterLayup
             => $"{blocker} swats the floater by {shooter}!",

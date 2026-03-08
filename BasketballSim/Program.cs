@@ -1,10 +1,14 @@
 using BasketballSim.Components;
+using BasketballSim.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+builder.Services.AddHttpClient<EspnService>();
+builder.Services.AddSingleton<Nba2kCacheService>();
 
 var app = builder.Build();
 
