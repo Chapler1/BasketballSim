@@ -9,6 +9,10 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddHttpClient<EspnService>();
 builder.Services.AddSingleton<Nba2kCacheService>();
+builder.Services.AddSingleton<PlayerDataService>();
+builder.Services.AddSingleton<SeasonScheduleService>();
+builder.Services.AddScoped<NbaRosterService>();
+builder.Services.AddHostedService<EspnRosterSyncService>();
 
 var app = builder.Build();
 

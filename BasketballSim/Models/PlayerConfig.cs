@@ -30,6 +30,23 @@ public class PlayerConfig
     // Defense
     public int PerimeterDefense { get; set; } = 50;
     public int InteriorDefense  { get; set; } = 50;
+    // 5 = very clean, 95 = very foul-prone (mapped from real foul/36 data)
+    public int FoulTendency     { get; set; } = 50;
+
+    // Tendencies — Offense
+    public int Tend_Touches  { get; set; } = 50;
+    public int Tend_Drive    { get; set; } = 50;
+    public int Tend_PostUp   { get; set; } = 50;
+    public int Tend_Iso      { get; set; } = 50;
+    public int Tend_Cut      { get; set; } = 50;
+    public int Tend_PullUp   { get; set; } = 50;
+    public int Tend_MidRange { get; set; } = 50;
+    public int Tend_ThreePt  { get; set; } = 50;
+    public int Tend_OffReb   { get; set; } = 50;
+
+    // Tendencies — Defense
+    public int Tend_Steal    { get; set; } = 50;
+    public int Tend_Block    { get; set; } = 50;
 
     public Player ToPlayer() => new()
     {
@@ -41,6 +58,15 @@ public class PlayerConfig
         Attr_BasketballIQ = BasketballIQ, Attr_Dribbling = Dribbling,
         Attr_Passing = Passing,
         Attr_Rebounding_Off = ReboundingOff, Attr_Rebounding_Def = ReboundingDef,
-        Attr_PerimeterDefense = PerimeterDefense, Attr_InteriorDefense = InteriorDefense
+        Attr_PerimeterDefense = PerimeterDefense, Attr_InteriorDefense = InteriorDefense,
+        Attr_FoulTendency = FoulTendency,
+        Tendencies = new PlayerTendencies
+        {
+            Touches = Tend_Touches, Drive = Tend_Drive, PostUp = Tend_PostUp,
+            Iso = Tend_Iso, Cut = Tend_Cut, PullUp = Tend_PullUp,
+            MidRange = Tend_MidRange, ThreePt = Tend_ThreePt,
+            OffRebound = Tend_OffReb,
+            Steal = Tend_Steal, Block = Tend_Block
+        }
     };
 }

@@ -1,0 +1,236 @@
+.re-page {
+    background: #0f1117;
+    min-height: 100vh;
+    padding: 12px 16px;
+    font-family: monospace;
+    color: #c8d8ea;
+}
+
+/* ── Controls ── */
+.re-select {
+    background: #1a2030;
+    border: 1px solid #2a3550;
+    color: #c0d4e8;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 1.0rem;
+}
+
+.re-tab {
+    background: #1e2535;
+    border: 1px solid #2e3a4e;
+    color: #9ab;
+    padding: 4px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1.0rem;
+}
+
+.re-tab.active {
+    background: #2a3f5f;
+    border-color: #4a8ecf;
+    color: #7eb8f7;
+}
+
+.re-btn {
+    background: #1a2030;
+    border: 1px solid #2a3550;
+    color: #8a9db5;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.98rem;
+}
+
+.re-btn:hover { background: #1e2a40; color: #c8d8ea; }
+
+.re-btn.dirty {
+    border-color: #c8a020;
+    color: #f5c842;
+}
+
+.re-btn.saved {
+    border-color: #2a8a50;
+    color: #4af080;
+}
+
+.re-hint {
+    font-size: 0.92rem;
+    color: #4a6a8a;
+    margin-left: 4px;
+}
+
+/* ── Distribution strip ── */
+.dist-wrap {
+    background: #141926;
+    border: 1px solid #1e2c40;
+    border-radius: 6px;
+    padding: 6px 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.dist-label {
+    font-size: 0.95rem;
+    color: #5a8ab0;
+    white-space: nowrap;
+}
+
+.dist-svg {
+    display: block;
+}
+
+/* ── Grid ── */
+.grid-wrap {
+    overflow: auto;
+    max-height: 72vh;
+    border: 1px solid #1e2c40;
+    border-radius: 6px;
+    overscroll-behavior: contain;
+}
+
+.re-table {
+    border-collapse: collapse;
+    font-size: 0.96rem;
+    width: 100%;
+    min-width: max-content;
+}
+
+.re-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+}
+
+.re-table thead tr:nth-child(2) th {
+    top: 22px;
+    position: sticky;
+}
+
+.group-th {
+    background: #0f1420;
+    color: #3a5a7a;
+    font-size: 0.85rem;
+    text-align: center;
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding: 3px 4px;
+    border-bottom: 1px solid #1e2c40;
+    border-right: 1px solid #181f2d;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+}
+
+.re-table th {
+    background: #141926;
+    color: #5a8ab0;
+    font-weight: 600;
+    text-align: center;
+    padding: 5px 4px;
+    white-space: nowrap;
+    border-bottom: 1px solid #1e2c40;
+    border-right: 1px solid #181f2d;
+}
+
+.sort-th {
+    cursor: pointer;
+    user-select: none;
+}
+
+.sort-th:hover { color: #9ac4e8; background: #1a2235; }
+
+.th-name { text-align: left; padding-left: 8px; min-width: 140px; }
+.th-pos  { text-align: center; min-width: 36px; border-right: 1px solid #2a3550; }
+
+.th-sel {
+    color: #7eb8f7 !important;
+    border-bottom: 2px solid #4a8ecf;
+}
+
+/* bump +/- inside th */
+.bumps {
+    display: flex;
+    justify-content: center;
+    gap: 2px;
+    margin-top: 2px;
+}
+
+.bumps button {
+    font-size: 0.8rem;
+    padding: 0 3px;
+    line-height: 1.3;
+    border: 1px solid #2a3a50;
+    background: #1a2535;
+    color: #7a9ab5;
+    border-radius: 2px;
+    cursor: pointer;
+}
+
+.bumps button:hover { background: #253550; color: #c8d8ea; }
+
+/* ── Rows ── */
+.re-table td {
+    padding: 3px 5px;
+    text-align: center;
+    border-bottom: 1px solid #141926;
+    border-right: 1px solid #181f2d;
+    white-space: nowrap;
+}
+
+.td-name {
+    text-align: left;
+    padding-left: 8px;
+    color: #c8d8ea;
+    min-width: 140px;
+}
+
+.td-pos {
+    color: #5a7a9a;
+    border-right: 1px solid #2a3550;
+}
+
+.td-done { width: 28px; }
+
+.re-table tbody tr:hover td { background: #161e2e; }
+
+.tr-edit td { background: #0d1b2e !important; }
+.tr-dirty td { border-left: 2px solid #c8a020; }
+
+/* ── Inline inputs ── */
+input[type=number] {
+    width: 46px;
+    padding: 1px 2px;
+    border: 1px solid #3a5a7a;
+    border-radius: 2px;
+    text-align: center;
+    font-size: 0.93rem;
+    font-family: monospace;
+    background: #0d1520;
+    color: #e0e8f0;
+    -moz-appearance: textfield;
+}
+
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+input[type=number]:focus {
+    outline: 1px solid #4a90d9;
+    background: #0a1828;
+}
+
+.done-btn {
+    font-size: 0.95rem;
+    padding: 1px 5px;
+    border: 1px solid #2a5a3a;
+    background: #1a3a28;
+    color: #4af080;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.done-btn:hover { background: #1e4a32; }

@@ -81,28 +81,12 @@ public class EspnService(HttpClient http)
                     guards.Add(player);
             }
 
-            // Assign: 1st G → PG, 2nd G → SG, 1st F → SF, 2nd F → PF, 1st C → C
+            // Return full roster with position group assignments (G→PG/SG, F→SF/PF, C→C).
+            // SimLab will sort by sim overall and select the best 5 starters.
             var result = new List<EspnPlayer>();
-            if (guards.Count   > 0) result.Add(guards[0]   with { Position = Position.PG });
-            if (guards.Count   > 1) result.Add(guards[1]   with { Position = Position.SG });
-            if (forwards.Count > 0) result.Add(forwards[0] with { Position = Position.SF });
-            if (forwards.Count > 1) result.Add(forwards[1] with { Position = Position.PF });
-            if (centers.Count  > 0) result.Add(centers[0]  with { Position = Position.C  });
-
-            // If we don't have 5 yet, fill from remaining in order
-            if (result.Count < 5)
-            {
-                var used = result.Select(p => p.Name).ToHashSet();
-                var remaining = guards.Skip(2).Concat(forwards.Skip(2)).Concat(centers.Skip(1))
-                    .Where(p => !used.Contains(p.Name));
-                var posSlots = new[] { Position.PG, Position.SG, Position.SF, Position.PF, Position.C };
-                foreach (var p in remaining)
-                {
-                    if (result.Count >= 5) break;
-                    result.Add(p with { Position = posSlots[result.Count] });
-                }
-            }
-
+            for (int i = 0; i < guards.Count;   i++) result.Add(guards[i]   with { Position = i % 2 == 0 ? Position.PG : Position.SG });
+            for (int i = 0; i < forwards.Count; i++) result.Add(forwards[i] with { Position = i % 2 == 0 ? Position.SF : Position.PF });
+            foreach (var c in centers)               result.Add(c            with { Position = Position.C });
             return result;
         }
         catch

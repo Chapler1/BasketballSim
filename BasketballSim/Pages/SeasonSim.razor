@@ -1,0 +1,971 @@
+@page "/season"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@using BasketballSim.Models
+@using BasketballSim.Services
+@using System.Text.Json
+@using Microsoft.AspNetCore.Components.Web
+@using static Microsoft.AspNetCore.Components.Web.RenderMode
+@inject NbaRosterService RosterSvc
+@inject SeasonScheduleService SeasonSvc
+@inject PlayerDataService PlayerSvc
+
+<PageTitle>Season Sim</PageTitle>
+
+<style>
+    .ssim { font-family: monospace; color: #d4d4d4; padding: 0.75rem 1.25rem; }
+    .ssim table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+    .ssim th { padding: 4px 6px; color: #555; font-weight: 600; letter-spacing: 0.5px; border-bottom: 1px solid #2a2a2a; white-space: nowrap; user-select: none; }
+    .ssim th.sort-active { color: #fca; }
+    .ssim th[data-sortable] { cursor: pointer; }
+    .ssim th[data-sortable]:hover { color: #aaa; }
+    .ssim td { padding: 3px 6px; border-bottom: 1px solid #191919; white-space: nowrap; }
+    .ssim tr:hover td { background: #1e1e1e; }
+    .ssim .section-title { font-size: 0.85rem; font-weight: 700; color: #555; letter-spacing: 2px; margin-bottom: 6px; }
+    .ssim .scroll-x { overflow-x: auto; }
+    .ssim .tag-playoff { background: #0d1a0d; }
+    .ssim .tag-playin  { background: #0d0d1a; }
+    .ssim input[type=text] { background: #1a1a1a; color: #d4d4d4; border: 1px solid #333; padding: 4px 10px; border-radius: 4px; font-family: monospace; font-size: 0.93rem; outline: none; }
+    .ssim input[type=text]:focus { border-color: #555; }
+    .ssim select { background: #1a1a1a; color: #d4d4d4; border: 1px solid #333; padding: 4px 10px; border-radius: 4px; font-family: monospace; font-size: 0.93rem; cursor: pointer; }
+    .ssim tr.clickable-row { cursor: pointer; }
+    .pdlg-tab { background:none;border:none;padding:6px 16px;font-family:monospace;font-size: 0.92rem;cursor:pointer;letter-spacing:0.5px;border-bottom:2px solid transparent; }
+    .pdlg-tab.active { color:#fca;border-bottom-color:#fca; }
+    .pdlg-tab:not(.active) { color:#555; }
+    .pdlg-attr { display:flex;align-items:center;gap:6px;margin:3px 0; }
+    .pdlg-attr-label { width:92px;color:#555;font-size: 0.88rem;text-align:right; }
+    .pdlg-attr-bar-bg { width:120px;background:#1a1a1a;height:4px;border-radius:2px; }
+    .pdlg-attr-val { width:24px;color:#c8c8c8;font-size: 0.88rem;text-align:right;font-weight:600; }
+</style>
+
+<div class="ssim">
+
+<div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem;flex-wrap:wrap;">
+    <span style="font-size: 1.3rem;font-weight:800;color:#e8e8e8;letter-spacing:2px;">SEASON SIM</span>
+    <span style="color:#2a2a2a;font-size: 0.85rem;letter-spacing:1px;">82 GAMES · 30 TEAMS · 1,230 MATCHUPS</span>
+    @if (_phase == Phase.Done && _season is not null)
+    {
+        <button @onclick="SimulateSeason" style="margin-left:auto;background:#1a2a1a;color:#4af080;border:1px solid #2a4a2a;padding:4px 16px;border-radius:4px;cursor:pointer;font-size: 0.92rem;font-family:monospace;">↺ Re-simulate</button>
+        <span style="color:#444;font-size: 0.82rem;">@_season.SimulatedAt.ToString("yyyy-MM-dd HH:mm")</span>
+        @if (_savedPath is not null)
+        {
+            <span style="color:#333;font-size: 0.8rem;" title="@_savedPath">💾 saved</span>
+        }
+    }
+</div>
+
+@if (_phase == Phase.NeedFetch)
+{
+    <div style="text-align:center;padding:4rem 0;">
+        <div style="color:#555;font-size: 1.0rem;margin-bottom:0.4rem;">No roster data found.</div>
+        <div style="color:#444;font-size: 0.9rem;margin-bottom:1.5rem;">Fetch once from ESPN to cache rosters locally.</div>
+        <button @onclick="FetchRosters" style="background:#3a2a1a;color:#fca;border:1px solid #6a4a2a;padding:10px 36px;border-radius:5px;cursor:pointer;font-size: 1.05rem;font-family:monospace;font-weight:700;">↓ Fetch Rosters from ESPN</button>
+    </div>
+}
+else if (_phase == Phase.Fetching)
+{
+    <div style="text-align:center;padding:4rem 0;color:#555;">
+        <div style="margin-bottom:0.5rem;">Fetching rosters… @_fetchDone / @_fetchTotal teams</div>
+        <div style="background:#1a1a1a;border-radius:4px;height:6px;width:320px;margin:0 auto;">
+            <div style="background:#fca;height:6px;border-radius:4px;width:@(_fetchTotal>0?_fetchDone*100/_fetchTotal:0)%;transition:width 0.2s;"></div>
+        </div>
+    </div>
+}
+else if (_phase == Phase.Ready)
+{
+    <div style="text-align:center;padding:3rem 0;">
+        <div style="color:#555;font-size: 0.98rem;margin-bottom:1rem;">@_teams.Count teams loaded · 1,230 games to simulate</div>
+        <button @onclick="SimulateSeason" style="background:#1a3a6a;color:#cdf;border:none;padding:12px 48px;border-radius:5px;cursor:pointer;font-weight:700;font-size: 1.15rem;font-family:monospace;">▶ Simulate Season</button>
+        <div style="margin-top:0.75rem;">
+            <button @onclick="FetchRosters" style="background:none;border:none;color:#444;font-size: 0.83rem;cursor:pointer;font-family:monospace;">↺ Re-fetch rosters from ESPN</button>
+        </div>
+    </div>
+}
+else if (_phase == Phase.Simulating)
+{
+    <div style="text-align:center;padding:4rem 0;color:#555;">
+        <div style="margin-bottom:0.5rem;">Simulating… @_gamesPlayed / 1,230 games</div>
+        <div style="background:#1a1a1a;border-radius:4px;height:6px;width:320px;margin:0 auto;">
+            <div style="background:#4af080;height:6px;border-radius:4px;width:@(_gamesPlayed*100/1230)%;transition:width 0.15s;"></div>
+        </div>
+    </div>
+}
+else if (_phase == Phase.Done && _season is not null)
+{
+    <!-- ═══ STANDINGS ═══ -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.5rem;">
+        @foreach (var conf in new[] { "Eastern", "Western" })
+        {
+            var confTeams = _season.TeamStats
+                .Where(t => t.Conference == conf)
+                .OrderByDescending(t => t.Wins).ThenBy(t => t.Losses)
+                .ToList();
+            var leader = confTeams.FirstOrDefault();
+
+            <div>
+                <div class="section-title">@conf.ToUpper() CONFERENCE</div>
+                <div class="scroll-x">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width:18px;"></th>
+                            <th style="text-align:left;">TEAM</th>
+                            <th style="text-align:left;color:#3a3a3a;font-size: 0.8rem;">DIV</th>
+                            <th style="text-align:center;width:28px;">W</th>
+                            <th style="text-align:center;width:28px;">L</th>
+                            <th style="text-align:center;width:44px;">PCT</th>
+                            <th style="text-align:center;width:34px;">GB</th>
+                            <th style="text-align:center;width:52px;">CONF</th>
+                            <th style="text-align:center;width:44px;">HOME</th>
+                            <th style="text-align:center;width:44px;">AWAY</th>
+                            <th style="text-align:center;width:38px;">PPG</th>
+                            <th style="text-align:center;width:38px;">OPP</th>
+                            <th style="text-align:center;width:38px;">DIFF</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (int rank = 0; rank < confTeams.Count; rank++)
+                        {
+                            var t = confTeams[rank];
+                            double gb = leader is null ? 0 : ((leader.Wins - t.Wins) + (t.Losses - leader.Losses)) / 2.0;
+                            double diff = t.Ppg - t.Papg;
+                            string rowBg = rank < 6 ? "#0d1a0d" : rank < 10 ? "#0d0d1a" : "#111";
+                            <tr style="background:@rowBg;">
+                                <td style="color:#3a3a3a;font-size: 0.8rem;text-align:right;">@(rank+1)</td>
+                                <td>
+                                    <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:@t.PrimaryColor;margin-right:4px;vertical-align:middle;"></span>
+                                    <span style="font-weight:@(rank<3?"700":"400");color:@(rank==0?"#e8e8e8":"#c0c0c0");">@t.Abbreviation</span>
+                                </td>
+                                <td style="color:#3a3a3a;font-size: 0.8rem;">@(t.Division.Length >= 3 ? t.Division[..3].ToUpper() : t.Division.ToUpper())</td>
+                                <td style="text-align:center;color:#4af080;font-weight:@(rank==0?"700":"400");">@t.Wins</td>
+                                <td style="text-align:center;color:#f06060;">@t.Losses</td>
+                                <td style="text-align:center;">@t.Pct.ToString("F3")</td>
+                                <td style="text-align:center;color:#444;font-size: 0.85rem;">@(rank==0?"—":gb.ToString("F1"))</td>
+                                <td style="text-align:center;color:#777;font-size: 0.85rem;">@t.ConfWins-@t.ConfLosses</td>
+                                <td style="text-align:center;color:#777;font-size: 0.85rem;">@t.HomeWins-@t.HomeLosses</td>
+                                <td style="text-align:center;color:#777;font-size: 0.85rem;">@t.AwayWins-@t.AwayLosses</td>
+                                <td style="text-align:center;">@t.Ppg.ToString("F1")</td>
+                                <td style="text-align:center;color:#888;">@t.Papg.ToString("F1")</td>
+                                <td style="text-align:center;color:@(diff>=0?"#4af080":"#f06060");">@diff.ToString("+0.0;-0.0;0.0")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                </div>
+                <div style="font-size: 0.78rem;color:#2a2a2a;margin-top:3px;display:flex;gap:8px;">
+                    <span style="background:#0d1a0d;padding:1px 6px;border-radius:2px;">■ playoff (1-6)</span>
+                    <span style="background:#0d0d1a;padding:1px 6px;border-radius:2px;">■ play-in (7-10)</span>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- ═══ LEAGUE LEADERS ═══ -->
+    <div>
+            <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.6rem;flex-wrap:wrap;">
+                <span class="section-title" style="margin-bottom:0;">LEAGUE LEADERS</span>
+                <input type="text" @bind="_leagueSearch" @bind:event="oninput" placeholder="Search player…" style="width:160px;" />
+                <select @bind="_leagueTeamFilter" style="font-size: 0.88rem;padding:3px 6px;">
+                    <option value="">All Teams</option>
+                    @foreach (var t in _season.TeamStats.OrderBy(t => t.Abbreviation))
+                    {
+                        <option value="@t.TeamName">@t.Abbreviation</option>
+                    }
+                </select>
+                <span style="color:#333;font-size: 0.8rem;margin-left:auto;">@SortedLeaguePlayers().Count() players</span>
+            </div>
+            <div class="scroll-x" style="max-height:520px;overflow-y:auto;">
+            <table>
+                <thead style="position:sticky;top:0;background:#111;z-index:1;">
+                    <tr>
+                        <th style="text-align:left;min-width:110px;">PLAYER</th>
+                        <th style="text-align:left;min-width:36px;">TEAM</th>
+                        <th style="text-align:center;min-width:28px;">POS</th>
+                        @LeagueTh("gp",      "GP")
+                        @LeagueTh("min",     "MIN")
+                        @LeagueTh("pts",     "PTS")
+                        @LeagueTh("reb",     "REB")
+                        @LeagueTh("ast",     "AST")
+                        @LeagueTh("stl",     "STL")
+                        @LeagueTh("blk",     "BLK")
+                        @LeagueTh("tov",     "TOV")
+                        @LeagueTh("pm",       "+/-")
+                        @LeagueTh("per",      "PER")
+                        @LeagueTh("ows",      "OWS")
+                        @LeagueTh("dws",      "DWS")
+                        @LeagueTh("ws",       "WS")
+                        @LeagueTh("ws48",     "WS/48")
+                        @LeagueTh("shotpct",  "SHOT%")
+                        @LeagueTh("touch",    "TOUCH%")
+                        @LeagueTh("touchpg",  "TCH/G")
+                        @LeagueTh("shotrate", "SA/TCH")
+                        @LeagueTh("fgm",      "FGM")
+                        @LeagueTh("fga",     "FGA")
+                        @LeagueTh("fg",      "FG%")
+                        @LeagueTh("3pm",     "3PM")
+                        @LeagueTh("3pa",     "3PA")
+                        @LeagueTh("3p",      "3P%")
+                        @LeagueTh("ftm",     "FTM")
+                        @LeagueTh("fta",     "FTA")
+                        @LeagueTh("ft",      "FT%")
+                        @LeagueTh("ofg",     "oFG%")
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in SortedLeaguePlayers())
+                    {
+                        bool isSelected = _leagueTeamFilter.Length > 0 && p.Team == _leagueTeamFilter;
+                        <tr class="clickable-row" style="@(isSelected?"background:#1a1a12;":"")" @onclick="() => OpenPlayerModal(p)">
+                            <td style="color:@(isSelected?"#ffe090":"#b8b8b8");">@p.Name</td>
+                            <td style="color:#555;font-size: 0.85rem;">@p.TeamAbbr</td>
+                            <td style="text-align:center;color:#444;font-size: 0.8rem;">@p.Position</td>
+                            <td style="text-align:center;color:#555;">@p.GP</td>
+                            <td style="text-align:center;color:#777;">@p.Mpg.ToString("F1")</td>
+                            <td style="text-align:center;color:#e8c060;font-weight:600;">@p.Ppg.ToString("F1")</td>
+                            <td style="text-align:center;">@p.Rpg.ToString("F1")</td>
+                            <td style="text-align:center;color:#60c8e8;">@p.Apg.ToString("F1")</td>
+                            <td style="text-align:center;color:#a0e080;">@p.Spg.ToString("F1")</td>
+                            <td style="text-align:center;color:#e08060;">@p.Bpg.ToString("F1")</td>
+                            <td style="text-align:center;color:#f06060;">@p.Topg.ToString("F1")</td>
+                            <td style="text-align:center;color:@PmColor(p.AvgPlusMinus);">@p.AvgPlusMinus.ToString("+0.0;-0.0;0.0")</td>
+                            <td style="text-align:center;color:@PerColor(p.PER);">@p.PER.ToString("F1")</td>
+                            <td style="text-align:center;color:#aaa;">@p.OWS.ToString("F1")</td>
+                            <td style="text-align:center;color:#aaa;">@p.DWS.ToString("F1")</td>
+                            <td style="text-align:center;color:#c8a840;font-weight:600;">@p.WS.ToString("F1")</td>
+                            <td style="text-align:center;color:#888;">@p.WS48.ToString("F3")</td>
+                            <td style="text-align:center;color:#aaa;">@p.ShotSharePct.ToString("P1")</td>
+                            <td style="text-align:center;color:#aaa;">@p.TouchPct.ToString("P1")</td>
+                            <td style="text-align:center;color:#aaa;">@p.TouchesPg.ToString("F1")</td>
+                            <td style="text-align:center;color:#aaa;">@p.ShotAttemptRate.ToString("P1")</td>
+                            <td style="text-align:center;color:#888;">@p.Fgm.ToString("F1")</td>
+                            <td style="text-align:center;color:#666;">@p.Fga.ToString("F1")</td>
+                            <td style="text-align:center;color:@FgPctColor(p.FgPct);">@p.FgPct.ToString("P1")</td>
+                            <td style="text-align:center;color:#888;">@p.Tpm.ToString("F1")</td>
+                            <td style="text-align:center;color:#666;">@p.Tpa.ToString("F1")</td>
+                            <td style="text-align:center;color:@TpPctColor(p.TpPct);">@(p.TotalThreeAtt > 0 ? p.TpPct.ToString("P1") : "—")</td>
+                            <td style="text-align:center;color:#888;">@p.Ftm.ToString("F1")</td>
+                            <td style="text-align:center;color:#666;">@p.Fta.ToString("F1")</td>
+                            <td style="text-align:center;color:@FtPctColor(p.FtPct);">@(p.TotalFTA > 0 ? p.FtPct.ToString("P1") : "—")</td>
+                            <td style="text-align:center;color:@OppFgColor(p.OppFgPct);">@(p.TotalDefFGA > 0 ? p.OppFgPct.ToString("P1") : "—")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+                <tfoot>
+                @{
+                    var _ftl = SortedLeaguePlayers().ToList();
+                    long _ftTotalGP = _ftl.Sum(p => (long)p.GP);
+                    double _ftPpg  = _ftTotalGP > 0 ? (double)_ftl.Sum(p => p.TotalPTS) / _ftTotalGP : 0;
+                    double _ftRpg  = _ftTotalGP > 0 ? (double)_ftl.Sum(p => p.TotalOREB + p.TotalDREB) / _ftTotalGP : 0;
+                    double _ftApg  = _ftTotalGP > 0 ? (double)_ftl.Sum(p => p.TotalAST) / _ftTotalGP : 0;
+                    double _ftSpg  = _ftTotalGP > 0 ? (double)_ftl.Sum(p => p.TotalSTL) / _ftTotalGP : 0;
+                    double _ftBpg  = _ftTotalGP > 0 ? (double)_ftl.Sum(p => p.TotalBLK) / _ftTotalGP : 0;
+                    double _ftTopg = _ftTotalGP > 0 ? (double)_ftl.Sum(p => p.TotalTOV) / _ftTotalGP : 0;
+                    double _ftMpg  = _ftTotalGP > 0 ? _ftl.Sum(p => p.TotalMIN) / _ftTotalGP : 0;
+                    double _ftPm   = _ftl.Count > 0 ? _ftl.Average(p => p.AvgPlusMinus) : 0;
+                    double _ftPer  = _ftl.Count > 0 ? _ftl.Average(p => p.PER) : 0;
+                    double _ftOws  = _ftl.Count > 0 ? _ftl.Average(p => p.OWS) : 0;
+                    double _ftDws  = _ftl.Count > 0 ? _ftl.Average(p => p.DWS) : 0;
+                    double _ftWs   = _ftl.Count > 0 ? _ftl.Average(p => p.WS) : 0;
+                    double _ftWs48 = _ftl.Count > 0 ? _ftl.Average(p => p.WS48) : 0;
+                    long _ftFGA  = _ftl.Sum(p => (long)p.TotalFGA);
+                    long _ftFGM  = _ftl.Sum(p => (long)p.TotalFGM);
+                    long _ft3PA  = _ftl.Sum(p => (long)p.TotalThreeAtt);
+                    long _ft3PM  = _ftl.Sum(p => (long)p.TotalThreeMade);
+                    long _ftFTAx = _ftl.Sum(p => (long)p.TotalFTA);
+                    long _ftFTMx = _ftl.Sum(p => (long)p.TotalFTM);
+                    long _ftDFGA = _ftl.Sum(p => (long)p.TotalDefFGA);
+                    long _ftDFGM = _ftl.Sum(p => (long)p.TotalDefFGM);
+                    double _ftFgmPg  = _ftTotalGP > 0 ? (double)_ftFGM / _ftTotalGP : 0;
+                    double _ftFgaPg  = _ftTotalGP > 0 ? (double)_ftFGA / _ftTotalGP : 0;
+                    double _ftFgPct  = _ftFGA > 0 ? (double)_ftFGM / _ftFGA : 0;
+                    double _ft3pmPg  = _ftTotalGP > 0 ? (double)_ft3PM / _ftTotalGP : 0;
+                    double _ft3paPg  = _ftTotalGP > 0 ? (double)_ft3PA / _ftTotalGP : 0;
+                    double _ft3Pct   = _ft3PA > 0 ? (double)_ft3PM / _ft3PA : 0;
+                    double _ftFtmPg  = _ftTotalGP > 0 ? (double)_ftFTMx / _ftTotalGP : 0;
+                    double _ftFtaPg  = _ftTotalGP > 0 ? (double)_ftFTAx / _ftTotalGP : 0;
+                    double _ftFtPct  = _ftFTAx > 0 ? (double)_ftFTMx / _ftFTAx : 0;
+                    double _ftOppFg  = _ftDFGA > 0 ? (double)_ftDFGM / _ftDFGA : 0;
+                    double _ftShotPct  = _ftl.Count > 0 ? _ftl.Average(p => p.ShotSharePct) : 0;
+                    double _ftTouchPct = _ftl.Count > 0 ? _ftl.Average(p => p.TouchPct) : 0;
+                    double _ftTouchPg  = _ftl.Count > 0 ? _ftl.Average(p => p.TouchesPg) : 0;
+                    double _ftShotRate = _ftl.Count > 0 ? _ftl.Average(p => p.ShotAttemptRate) : 0;
+                    string _ftLabel = _ftl.Count == 0 ? "—"
+                        : _leagueTeamFilter.Length > 0
+                            ? (_season!.TeamStats.FirstOrDefault(t => t.TeamName == _leagueTeamFilter)?.Abbreviation ?? "FILTER") + " AVG"
+                            : "LEAGUE AVG";
+                }
+                <tr style="border-top:2px solid #333;color:#888;background:#0f0f0f;">
+                    <td style="color:#555;font-weight:600;padding:4px 6px;">@_ftLabel</td>
+                    <td></td>
+                    <td></td>
+                    <td style="text-align:center;color:#555;">—</td>
+                    <td style="text-align:center;">@_ftMpg.ToString("F1")</td>
+                    <td style="text-align:center;color:#e8c060;font-weight:600;">@_ftPpg.ToString("F1")</td>
+                    <td style="text-align:center;">@_ftRpg.ToString("F1")</td>
+                    <td style="text-align:center;color:#60c8e8;">@_ftApg.ToString("F1")</td>
+                    <td style="text-align:center;color:#a0e080;">@_ftSpg.ToString("F1")</td>
+                    <td style="text-align:center;color:#e08060;">@_ftBpg.ToString("F1")</td>
+                    <td style="text-align:center;color:#f06060;">@_ftTopg.ToString("F1")</td>
+                    <td style="text-align:center;color:@PmColor(_ftPm);">@_ftPm.ToString("+0.0;-0.0;0.0")</td>
+                    <td style="text-align:center;color:@PerColor(_ftPer);">@_ftPer.ToString("F1")</td>
+                    <td style="text-align:center;">@_ftOws.ToString("F1")</td>
+                    <td style="text-align:center;">@_ftDws.ToString("F1")</td>
+                    <td style="text-align:center;color:#c8a840;font-weight:600;">@_ftWs.ToString("F1")</td>
+                    <td style="text-align:center;">@_ftWs48.ToString("F3")</td>
+                    <td style="text-align:center;">@_ftShotPct.ToString("P1")</td>
+                    <td style="text-align:center;">@_ftTouchPct.ToString("P1")</td>
+                    <td style="text-align:center;">@_ftTouchPg.ToString("F1")</td>
+                    <td style="text-align:center;">@_ftShotRate.ToString("P1")</td>
+                    <td style="text-align:center;color:#888;">@_ftFgmPg.ToString("F1")</td>
+                    <td style="text-align:center;color:#666;">@_ftFgaPg.ToString("F1")</td>
+                    <td style="text-align:center;color:@FgPctColor(_ftFgPct);font-weight:600;">@_ftFgPct.ToString("P1")</td>
+                    <td style="text-align:center;color:#888;">@_ft3pmPg.ToString("F1")</td>
+                    <td style="text-align:center;color:#666;">@_ft3paPg.ToString("F1")</td>
+                    <td style="text-align:center;color:@TpPctColor(_ft3Pct);font-weight:600;">@(_ft3PA > 0 ? _ft3Pct.ToString("P1") : "—")</td>
+                    <td style="text-align:center;color:#888;">@_ftFtmPg.ToString("F1")</td>
+                    <td style="text-align:center;color:#666;">@_ftFtaPg.ToString("F1")</td>
+                    <td style="text-align:center;color:@FtPctColor(_ftFtPct);font-weight:600;">@(_ftFTAx > 0 ? _ftFtPct.ToString("P1") : "—")</td>
+                    <td style="text-align:center;color:@OppFgColor(_ftOppFg);font-weight:600;">@(_ftDFGA > 0 ? _ftOppFg.ToString("P1") : "—")</td>
+                </tr>
+                </tfoot>
+            </div>
+            <div style="font-size: 0.78rem;color:#333;margin-top:4px;">All stats per game · click headers to sort · selected team highlighted</div>
+    </div>
+
+    <!-- ═══ LEAGUE STATS ═══ -->
+    <div style="margin-top:1.5rem;">
+        <div class="section-title">LEAGUE STATS</div>
+        <div style="display:grid;grid-template-columns:repeat(4,auto);gap:0.75rem 2.5rem;align-items:start;">
+
+            <!-- Pace & Possessions -->
+            <div>
+                <div style="font-size: 0.78rem;color:#444;letter-spacing:1px;margin-bottom:4px;">PACE</div>
+                <table style="font-size: 0.9rem;">
+                    <tbody>
+                        <tr>
+                            <td style="color:#666;padding-right:1rem;">Possessions / Team / Game</td>
+                            <td style="color:#e8e8e8;font-weight:600;text-align:right;">@_season.AvgPossessionsPerTeam.ToString("F1")</td>
+                        </tr>
+                        <tr>
+                            <td style="color:#666;padding-right:1rem;">Avg Possession Length</td>
+                            <td style="color:#e8e8e8;font-weight:600;text-align:right;">@_season.AvgPossessionLengthSeconds.ToString("F1")s</td>
+                        </tr>
+                        <tr>
+                            <td style="color:#666;padding-right:1rem;">Avg Passes / Possession</td>
+                            <td style="color:#e8e8e8;font-weight:600;text-align:right;">@_season.AvgPassesPerPossession.ToString("F2")</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Per-game averages -->
+            <div>
+                <div style="font-size: 0.78rem;color:#444;letter-spacing:1px;margin-bottom:4px;">PER TEAM PER GAME</div>
+                <table style="font-size: 0.9rem;">
+                    <tbody>
+                        @{
+                            double lgPpg  = _season.TeamStats.Count > 0 ? _season.TeamStats.Average(t => t.Ppg)  : 0;
+                            double lgRpg  = _season.TeamStats.Count > 0 ? _season.TeamStats.Average(t => t.Reb)  : 0;
+                            double lgOrb  = _season.TeamStats.Count > 0 ? _season.TeamStats.Average(t => t.Oreb) : 0;
+                            double lgDrb  = _season.TeamStats.Count > 0 ? _season.TeamStats.Average(t => t.Dreb) : 0;
+                            double lgApg  = _season.TeamStats.Count > 0 ? _season.TeamStats.Average(t => t.Ast)  : 0;
+                            double lgSpg  = _season.TeamStats.Count > 0 ? _season.TeamStats.Average(t => t.Stl)  : 0;
+                            double lgBpg  = _season.TeamStats.Count > 0 ? _season.TeamStats.Average(t => t.Blk)  : 0;
+                            double lgTov  = _season.TeamStats.Count > 0 ? _season.TeamStats.Average(t => t.Tov)  : 0;
+                        }
+                        <tr><td style="color:#666;padding-right:1.5rem;">PTS</td><td style="color:#e8c060;font-weight:600;text-align:right;">@lgPpg.ToString("F1")</td></tr>
+                        <tr><td style="color:#666;">REB</td><td style="color:#e8e8e8;text-align:right;">@lgRpg.ToString("F1")</td></tr>
+                        <tr><td style="color:#666;">OREB</td><td style="color:#888;text-align:right;">@lgOrb.ToString("F1")</td></tr>
+                        <tr><td style="color:#666;">DREB</td><td style="color:#888;text-align:right;">@lgDrb.ToString("F1")</td></tr>
+                        <tr><td style="color:#666;">AST</td><td style="color:#60c8e8;text-align:right;">@lgApg.ToString("F1")</td></tr>
+                        <tr><td style="color:#666;">STL</td><td style="color:#a0e080;text-align:right;">@lgSpg.ToString("F1")</td></tr>
+                        <tr><td style="color:#666;">BLK</td><td style="color:#e08060;text-align:right;">@lgBpg.ToString("F1")</td></tr>
+                        <tr><td style="color:#666;">TOV</td><td style="color:#f06060;text-align:right;">@lgTov.ToString("F1")</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Shooting Splits -->
+            <div>
+                <div style="font-size: 0.78rem;color:#444;letter-spacing:1px;margin-bottom:4px;">SHOOTING (PER TEAM PER GAME)</div>
+                <table style="font-size: 0.9rem;border-collapse:collapse;">
+                    <thead>
+                        <tr>
+                            <th style="color:#444;padding:2px 10px 2px 0;text-align:left;font-weight:400;font-size: 0.82rem;"></th>
+                            <th style="color:#555;padding:2px 10px;text-align:right;font-weight:400;font-size: 0.82rem;">MADE</th>
+                            <th style="color:#555;padding:2px 10px;text-align:right;font-weight:400;font-size: 0.82rem;">ATT</th>
+                            <th style="color:#555;padding:2px 10px;text-align:right;font-weight:400;font-size: 0.82rem;">PCT</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="color:#666;padding-right:1rem;">FG</td>
+                            <td style="text-align:right;padding:1px 10px;color:#c8c8c8;">@_season.LeagueFgmPg.ToString("F1")</td>
+                            <td style="text-align:right;padding:1px 10px;color:#888;">@_season.LeagueFgaPg.ToString("F1")</td>
+                            <td style="text-align:right;padding:1px 10px;color:@FgPctColor(_season.LeagueFgPct);font-weight:600;">@_season.LeagueFgPct.ToString("P1")</td>
+                        </tr>
+                        <tr>
+                            <td style="color:#666;padding-right:1rem;">3PT</td>
+                            <td style="text-align:right;padding:1px 10px;color:#c8c8c8;">@_season.LeagueTpmPg.ToString("F1")</td>
+                            <td style="text-align:right;padding:1px 10px;color:#888;">@_season.LeagueTpaPg.ToString("F1")</td>
+                            <td style="text-align:right;padding:1px 10px;color:@TpPctColor(_season.LeagueTpPct);font-weight:600;">@_season.LeagueTpPct.ToString("P1")</td>
+                        </tr>
+                        <tr>
+                            <td style="color:#666;padding-right:1rem;">2PT</td>
+                            @{
+                                double lg2pm = _season.LeagueFgmPg - _season.LeagueTpmPg;
+                                double lg2pa = _season.LeagueFgaPg - _season.LeagueTpaPg;
+                                double lg2pct = lg2pa > 0 ? lg2pm / lg2pa : 0;
+                            }
+                            <td style="text-align:right;padding:1px 10px;color:#c8c8c8;">@lg2pm.ToString("F1")</td>
+                            <td style="text-align:right;padding:1px 10px;color:#888;">@lg2pa.ToString("F1")</td>
+                            <td style="text-align:right;padding:1px 10px;color:@FgPctColor(lg2pct);font-weight:600;">@lg2pct.ToString("P1")</td>
+                        </tr>
+                        <tr>
+                            <td style="color:#666;padding-right:1rem;">FT</td>
+                            <td style="text-align:right;padding:1px 10px;color:#c8c8c8;">@_season.LeagueFtmPg.ToString("F1")</td>
+                            <td style="text-align:right;padding:1px 10px;color:#888;">@_season.LeagueFtaPg.ToString("F1")</td>
+                            <td style="text-align:right;padding:1px 10px;color:@FtPctColor(_season.LeagueFtPct);font-weight:600;">@_season.LeagueFtPct.ToString("P1")</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+
+}
+
+<!-- ═══ PLAYER DETAIL MODAL ═══ -->
+@if (_detailPlayer is not null)
+{
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,0.80);z-index:1000;display:flex;align-items:center;justify-content:center;padding:1rem;"
+         @onclick="CloseModal">
+        <div style="background:#141414;border:1px solid #2a2a2a;border-radius:6px;width:min(960px,95vw);max-height:94vh;overflow-y:auto;font-family:monospace;color:#d4d4d4;"
+             @onclick:stopPropagation="true">
+
+            <!-- Header -->
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:1rem 1.25rem 0.75rem;border-bottom:1px solid #1e1e1e;">
+                <div>
+                    <div style="font-size: 1.35rem;font-weight:800;color:#e8e8e8;letter-spacing:1px;">@_detailPlayer.Name</div>
+                    <div style="font-size: 0.95rem;color:#666;margin-top:4px;">
+                        @_detailPlayer.TeamAbbr &nbsp;·&nbsp; @_detailPlayer.Position
+                        @if (_detailRecord is not null)
+                        {
+                            <span>&nbsp;·&nbsp; @_detailRecord.Height</span>
+                        }
+                    </div>
+                </div>
+                <button @onclick="CloseModal" style="background:none;border:none;color:#444;font-size: 1.3rem;cursor:pointer;line-height:1;padding:0 2px;">✕</button>
+            </div>
+
+            <div style="padding:0.85rem 1.25rem;">
+
+            <!-- Bio grid -->
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px 12px;background:#0d0d0d;border-radius:4px;padding:12px;margin-bottom:1rem;font-size: 0.92rem;">
+                <div><div style="color:#3a3a3a;letter-spacing:0.5px;margin-bottom:3px;">TEAM</div><div style="color:#aaa;">@_detailPlayer.Team</div></div>
+                <div><div style="color:#3a3a3a;letter-spacing:0.5px;margin-bottom:2px;">HEIGHT</div><div style="color:#aaa;">@(_detailRecord?.Height ?? "—")</div></div>
+                <div><div style="color:#3a3a3a;letter-spacing:0.5px;margin-bottom:2px;">WEIGHT</div><div style="color:#555;">—</div></div>
+                <div><div style="color:#3a3a3a;letter-spacing:0.5px;margin-bottom:2px;">AGE</div><div style="color:#555;">—</div></div>
+                <div><div style="color:#3a3a3a;letter-spacing:0.5px;margin-bottom:2px;">COLLEGE</div><div style="color:#555;">—</div></div>
+                <div><div style="color:#3a3a3a;letter-spacing:0.5px;margin-bottom:2px;">FROM</div><div style="color:#555;">—</div></div>
+                <div><div style="color:#3a3a3a;letter-spacing:0.5px;margin-bottom:2px;">BIRTHDATE</div><div style="color:#555;">—</div></div>
+                @if (_detailRecord is not null)
+                {
+                    <div><div style="color:#3a3a3a;letter-spacing:0.5px;margin-bottom:2px;">POSITIONS</div><div style="color:#aaa;">@string.Join(", ", _detailRecord.Positions)</div></div>
+                }
+            </div>
+
+            <!-- Attributes / Tendencies tabs -->
+            @if (_detailRecord is not null)
+            {
+                <div style="display:flex;gap:0;margin-bottom:0.65rem;border-bottom:1px solid #1e1e1e;">
+                    <button class="pdlg-tab @(_detailTab=="attrs"?"active":"")" @onclick='() => _detailTab = "attrs"'>ATTRIBUTES</button>
+                    <button class="pdlg-tab @(_detailTab=="tends"?"active":"")" @onclick='() => _detailTab = "tends"'>TENDENCIES</button>
+                </div>
+
+                @if (_detailTab == "attrs")
+                {
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem 1.5rem;margin-bottom:0.85rem;">
+                        @AttrGroup("PHYSICAL",  new[]{("Height","Height"),("Strength","Strength"),("Speed","Speed"),("Jumping","Jumping"),("Endurance","Endurance")})
+                        @AttrGroup("SHOOTING",  new[]{("Inside","Inside"),("Dunks","Dunks"),("Free Throw","FreeThrow"),("Mid-Range","MidRange"),("3-Point","ThreePoint")})
+                        @AttrGroup("SKILL",     new[]{("Basketball IQ","BasketballIQ"),("Dribbling","Dribbling"),("Passing","Passing"),("Off Reb","RebOff"),("Def Reb","RebDef")})
+                        @AttrGroup("DEFENSE",   new[]{("Perim Def","PerimDef"),("Interior Def","IntDef"),("Foul Tend","FoulTend")})
+                    </div>
+                }
+                else
+                {
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem 1.5rem;margin-bottom:0.85rem;">
+                        @TendGroup("OFFENSIVE", new[]{("Touches","Touches"),("Drive","Drive"),("3-Point","ThreePt"),("Mid-Range","MidRange"),("Post-Up","PostUp"),("Isolation","Iso"),("Pull-Up","PullUp"),("Cut","Cut"),("Off Rebound","OffReb")})
+                        @TendGroup("DEFENSIVE", new[]{("Steal","Steal"),("Block","Block")})
+                    </div>
+                }
+            }
+
+            <!-- Stats / Advanced tabs -->
+            <div style="display:flex;gap:0;margin-bottom:0.65rem;border-bottom:1px solid #1e1e1e;">
+                <button class="pdlg-tab @(_statsTab=="regular"?"active":"")" @onclick='() => _statsTab = "regular"'>STATS</button>
+                <button class="pdlg-tab @(_statsTab=="advanced"?"active":"")" @onclick='() => _statsTab = "advanced"'>ADVANCED</button>
+            </div>
+
+            @if (_statsTab == "regular")
+            {
+                <div class="scroll-x" style="margin-bottom:1rem;">
+                <table style="width:100%;font-size: 0.95rem;border-collapse:collapse;">
+                    <thead>
+                        <tr style="border-bottom:1px solid #2a2a2a;">
+                            <th style="color:#444;font-weight:600;text-align:left;padding:4px 10px 4px 0;white-space:nowrap;">SEASON</th>
+                            <th style="color:#555;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">GP</th>
+                            <th style="color:#555;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">MIN</th>
+                            <th style="color:#e8c060;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">PTS</th>
+                            <th style="color:#555;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">REB</th>
+                            <th style="color:#555;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">ORB</th>
+                            <th style="color:#555;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">DRB</th>
+                            <th style="color:#60c8e8;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">AST</th>
+                            <th style="color:#a0e080;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">STL</th>
+                            <th style="color:#e08060;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">BLK</th>
+                            <th style="color:#f06060;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">TOV</th>
+                            <th style="color:#555;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">+/-</th>
+                            <th style="color:#555;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">FG%</th>
+                            <th style="color:#555;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">3P%</th>
+                            <th style="color:#555;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">FT%</th>
+                            <th style="color:#555;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">oFG%</th>
+                            <th style="color:#555;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">TOUCH%</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="color:#aaa;font-weight:600;padding:6px 10px 6px 0;white-space:nowrap;">25/26</td>
+                            <td style="text-align:center;padding:6px 8px;color:#777;">@_detailPlayer.GP</td>
+                            <td style="text-align:center;padding:6px 8px;color:#888;">@_detailPlayer.Mpg.ToString("F1")</td>
+                            <td style="text-align:center;padding:6px 8px;color:#e8c060;font-weight:700;font-size: 1.02rem;">@_detailPlayer.Ppg.ToString("F1")</td>
+                            <td style="text-align:center;padding:6px 8px;color:#c8c8c8;">@_detailPlayer.Rpg.ToString("F1")</td>
+                            <td style="text-align:center;padding:6px 8px;color:#888;">@_detailPlayer.Opg.ToString("F1")</td>
+                            <td style="text-align:center;padding:6px 8px;color:#888;">@_detailPlayer.Dpg.ToString("F1")</td>
+                            <td style="text-align:center;padding:6px 8px;color:#60c8e8;">@_detailPlayer.Apg.ToString("F1")</td>
+                            <td style="text-align:center;padding:6px 8px;color:#a0e080;">@_detailPlayer.Spg.ToString("F1")</td>
+                            <td style="text-align:center;padding:6px 8px;color:#e08060;">@_detailPlayer.Bpg.ToString("F1")</td>
+                            <td style="text-align:center;padding:6px 8px;color:#f06060;">@_detailPlayer.Topg.ToString("F1")</td>
+                            <td style="text-align:center;padding:6px 8px;color:@PmColor(_detailPlayer.AvgPlusMinus);">@_detailPlayer.AvgPlusMinus.ToString("+0.0;-0.0;0.0")</td>
+                            <td style="text-align:center;padding:6px 8px;color:@FgPctColor(_detailPlayer.FgPct);">@_detailPlayer.FgPct.ToString("P1")</td>
+                            <td style="text-align:center;padding:6px 8px;color:@TpPctColor(_detailPlayer.TpPct);">@(_detailPlayer.TotalThreeAtt > 0 ? _detailPlayer.TpPct.ToString("P1") : "—")</td>
+                            <td style="text-align:center;padding:6px 8px;color:@FtPctColor(_detailPlayer.FtPct);">@(_detailPlayer.TotalFTA > 0 ? _detailPlayer.FtPct.ToString("P1") : "—")</td>
+                            <td style="text-align:center;padding:6px 8px;color:@OppFgColor(_detailPlayer.OppFgPct);">@(_detailPlayer.TotalDefFGA > 0 ? _detailPlayer.OppFgPct.ToString("P1") : "—")</td>
+                            <td style="text-align:center;padding:6px 8px;color:#777;">@_detailPlayer.TouchPct.ToString("P1")</td>
+                        </tr>
+                    </tbody>
+                </table>
+                </div>
+            }
+            else
+            {
+                <div class="scroll-x" style="margin-bottom:1rem;">
+                <table style="width:100%;font-size: 0.95rem;border-collapse:collapse;">
+                    <thead>
+                        <tr style="border-bottom:1px solid #2a2a2a;">
+                            <th style="color:#444;font-weight:600;text-align:left;padding:4px 10px 4px 0;white-space:nowrap;">SEASON</th>
+                            <th style="color:#555;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">PER</th>
+                            <th style="color:#555;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">OWS</th>
+                            <th style="color:#555;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">DWS</th>
+                            <th style="color:#c8a840;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">WS</th>
+                            <th style="color:#555;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">WS/48</th>
+                            <th style="color:#555;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">SHOT%</th>
+                            <th style="color:#555;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">SA/TCH</th>
+                            <th style="color:#555;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">TCH/G</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="color:#aaa;font-weight:600;padding:6px 10px 6px 0;">25/26</td>
+                            <td style="text-align:center;padding:6px 8px;color:@PerColor(_detailPlayer.PER);font-weight:700;">@_detailPlayer.PER.ToString("F1")</td>
+                            <td style="text-align:center;padding:6px 8px;color:#aaa;">@_detailPlayer.OWS.ToString("F1")</td>
+                            <td style="text-align:center;padding:6px 8px;color:#aaa;">@_detailPlayer.DWS.ToString("F1")</td>
+                            <td style="text-align:center;padding:6px 8px;color:#c8a840;font-weight:700;">@_detailPlayer.WS.ToString("F1")</td>
+                            <td style="text-align:center;padding:6px 8px;color:#888;">@_detailPlayer.WS48.ToString("F3")</td>
+                            <td style="text-align:center;padding:6px 8px;color:#777;">@_detailPlayer.ShotSharePct.ToString("P1")</td>
+                            <td style="text-align:center;padding:6px 8px;color:#777;">@_detailPlayer.ShotAttemptRate.ToString("P1")</td>
+                            <td style="text-align:center;padding:6px 8px;color:#777;">@_detailPlayer.TouchesPg.ToString("F1")</td>
+                        </tr>
+                    </tbody>
+                </table>
+                </div>
+            }
+
+            <!-- Shot Breakdown -->
+            <div style="border-top:1px solid #1e1e1e;padding-top:0.65rem;">
+                <div style="font-size: 0.85rem;color:#444;letter-spacing:1.5px;margin-bottom:8px;">SHOT BREAKDOWN</div>
+                <table style="width:100%;font-size: 0.96rem;border-collapse:collapse;">
+                    <thead>
+                        <tr>
+                            <th style="color:#3a3a3a;font-weight:400;text-align:left;padding:2px 8px 2px 0;width:80px;">TYPE</th>
+                            <th style="color:#444;font-weight:400;text-align:right;padding:2px 10px;">MADE/G</th>
+                            <th style="color:#444;font-weight:400;text-align:right;padding:2px 10px;">ATT/G</th>
+                            <th style="color:#444;font-weight:400;text-align:right;padding:2px 10px;">PCT</th>
+                            <th style="padding:2px 10px;width:120px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @ShotRow("Inside",   _detailPlayer.InsidePg,         _detailPlayer.InsideApg,        _detailPlayer.InsidePct,  _detailPlayer.TotalInsideAtt > 0)
+                        @ShotRow("Mid-Range",_detailPlayer.MidPg,            _detailPlayer.MidApg,           _detailPlayer.MidPct,     _detailPlayer.TotalMidAtt > 0)
+                        @ShotRow("3-Point",  _detailPlayer.Tpm,              _detailPlayer.Tpa,              _detailPlayer.TpPct,      _detailPlayer.TotalThreeAtt > 0)
+                        @ShotRow("Free Throw",_detailPlayer.Ftm,             _detailPlayer.Fta,              _detailPlayer.FtPct,      _detailPlayer.TotalFTA > 0)
+                        <tr style="border-top:1px solid #1e1e1e;">
+                            <td style="color:#555;padding:3px 8px 0 0;">Total FG</td>
+                            <td style="text-align:right;padding:3px 10px;color:#888;">@_detailPlayer.Fgm.ToString("F1")</td>
+                            <td style="text-align:right;padding:3px 10px;color:#666;">@_detailPlayer.Fga.ToString("F1")</td>
+                            <td style="text-align:right;padding:3px 10px;color:@FgPctColor(_detailPlayer.FgPct);font-weight:600;">@_detailPlayer.FgPct.ToString("P1")</td>
+                            <td style="padding:3px 10px;">@ShotBar(_detailPlayer.FgPct, "#c8c8c8")</td>
+                        </tr>
+                        @if (_detailPlayer.TotalDefFGA > 0)
+                        {
+                            <tr>
+                                <td style="color:#555;padding:3px 8px 0 0;">oFG% (def)</td>
+                                <td style="text-align:right;padding:3px 10px;color:#888;">—</td>
+                                <td style="text-align:right;padding:3px 10px;color:#666;">@((_detailPlayer.TotalDefFGA / (double)_detailPlayer.GP).ToString("F1"))</td>
+                                <td style="text-align:right;padding:3px 10px;color:@OppFgColor(_detailPlayer.OppFgPct);font-weight:600;">@_detailPlayer.OppFgPct.ToString("P1")</td>
+                                <td style="padding:3px 10px;">@ShotBar(_detailPlayer.OppFgPct, OppFgColor(_detailPlayer.OppFgPct))</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            </div><!-- end padding div -->
+        </div>
+    </div>
+}
+
+</div>
+
+@code {
+    private enum Phase { NeedFetch, Fetching, Ready, Simulating, Done }
+
+    private Phase         _phase            = Phase.NeedFetch;
+    private int           _fetchDone        = 0;
+    private int           _fetchTotal       = 30;
+    private int           _gamesPlayed      = 0;
+    private SeasonResult? _season;
+    private string?       _savedPath;
+    private string        _leagueSearch     = "";
+    private string        _leagueTeamFilter = "";
+
+    private string _leagueSort  = "pts";
+    private bool   _leagueSortAsc = false;
+
+    private Dictionary<string, Team> _teams = [];
+
+    // ── Player detail modal ───────────────────────────────────────────────────
+    private PlayerSeasonStats? _detailPlayer;
+    private PlayerRecord?      _detailRecord;
+    private string             _detailTab = "attrs";
+    private string             _statsTab  = "regular";
+
+    // ── Lifecycle ─────────────────────────────────────────────────────────────
+    protected override Task OnInitializedAsync()
+    {
+        if (RosterSvc.HasData)
+        {
+            _teams = RosterSvc.LoadTeams();
+            _phase = Phase.Ready;
+        }
+        return Task.CompletedTask;
+    }
+
+    // ── ESPN fetch ────────────────────────────────────────────────────────────
+    private async Task FetchRosters()
+    {
+        _phase = Phase.Fetching; _fetchDone = 0;
+        StateHasChanged();
+        var progress = new Progress<(int done, int total)>(p =>
+        {
+            _fetchDone = p.done; _fetchTotal = p.total;
+            InvokeAsync(StateHasChanged);
+        });
+        await RosterSvc.FetchAndSaveAsync(progress);
+        _teams = RosterSvc.LoadTeams();
+        _phase = Phase.Ready;
+        StateHasChanged();
+    }
+
+    // ── Simulate ──────────────────────────────────────────────────────────────
+    private async Task SimulateSeason()
+    {
+        _phase = Phase.Simulating; _gamesPlayed = 0; _season = null;
+        StateHasChanged();
+        var progress = new Progress<(int current, int total)>(p =>
+        {
+            _gamesPlayed = p.current;
+            InvokeAsync(StateHasChanged);
+        });
+        _season    = await Task.Run(() => SeasonSvc.SimulateSeason(_teams, progress));
+        _savedPath = await Task.Run(() => SaveResults(_season));
+        _phase = Phase.Done;
+        StateHasChanged();
+    }
+
+    // ── Modal ─────────────────────────────────────────────────────────────────
+    private void OpenPlayerModal(PlayerSeasonStats p)
+    {
+        _detailPlayer = p;
+        _detailRecord = PlayerSvc.GetPlayers()
+            .FirstOrDefault(r => r.Name.Equals(p.Name, StringComparison.OrdinalIgnoreCase));
+        _detailTab = "attrs";
+        _statsTab  = "regular";
+    }
+
+    private void CloseModal() => _detailPlayer = null;
+
+    // ── Sorting helpers ───────────────────────────────────────────────────────
+    private void SetLeagueSort(string col)
+    {
+        if (_leagueSort == col) _leagueSortAsc = !_leagueSortAsc;
+        else { _leagueSort = col; _leagueSortAsc = false; }
+    }
+
+    private IEnumerable<PlayerSeasonStats> SortedLeaguePlayers()
+    {
+        var q = _season!.PlayerStats.AsEnumerable();
+        if (_leagueSearch.Length > 1)
+            q = q.Where(p => p.Name.Contains(_leagueSearch, StringComparison.OrdinalIgnoreCase));
+        if (_leagueTeamFilter.Length > 0)
+            q = q.Where(p => p.Team == _leagueTeamFilter);
+        return ApplySort(q, _leagueSort, _leagueSortAsc);
+    }
+
+    private static IEnumerable<PlayerSeasonStats> ApplySort(
+        IEnumerable<PlayerSeasonStats> src, string col, bool asc)
+    {
+        Func<PlayerSeasonStats, double> key = col switch
+        {
+            "pts" => p => p.Ppg,
+            "reb" => p => p.Rpg,
+            "orb" => p => p.Opg,
+            "drb" => p => p.Dpg,
+            "ast" => p => p.Apg,
+            "stl" => p => p.Spg,
+            "blk" => p => p.Bpg,
+            "tov" => p => p.Topg,
+            "min" => p => p.Mpg,
+            "gp"  => p => p.GP,
+            "fg"      => p => p.FgPct,
+            "3p"      => p => p.TpPct,
+            "ft"      => p => p.FtPct,
+            "fgm"     => p => p.Fgm,
+            "fga"     => p => p.Fga,
+            "3pm"     => p => p.Tpm,
+            "3pa"     => p => p.Tpa,
+            "ftm"     => p => p.Ftm,
+            "fta"     => p => p.Fta,
+            "pm"       => p => p.AvgPlusMinus,
+            "shotpct"  => p => p.ShotSharePct,
+            "touch"    => p => p.TouchPct,
+            "touchpg"  => p => p.TouchesPg,
+            "shotrate" => p => p.ShotAttemptRate,
+            "per"      => p => p.PER,
+            "ows"      => p => p.OWS,
+            "dws"      => p => p.DWS,
+            "ws"       => p => p.WS,
+            "ws48"     => p => p.WS48,
+            "ofg"      => p => p.OppFgPct,
+            _          => p => p.Ppg,
+        };
+        return asc ? src.OrderBy(key) : src.OrderByDescending(key);
+    }
+
+    // ── Render helpers ────────────────────────────────────────────────────────
+    private RenderFragment LeagueTh(string col, string label) =>
+        @<th data-sortable="true" class="@(_leagueSort == col ? "sort-active" : "")"
+             style="text-align:center;"
+             @onclick="() => SetLeagueSort(col)">
+            @label@(_leagueSort == col ? (_leagueSortAsc ? " ▲" : " ▼") : "")
+        </th>;
+
+    private static string PmColor(double pm) =>
+        pm > 2 ? "#4af080" : pm < -2 ? "#f06060" : "#888";
+
+    private static string PerColor(double per) =>
+        per >= 25 ? "#4af080" : per >= 20 ? "#a0e080" : per >= 15 ? "#c8c8c8" : per >= 10 ? "#888" : "#666";
+
+    private static string FgPctColor(double pct) =>
+        pct >= 0.50 ? "#4af080" : pct >= 0.44 ? "#c8c8c8" : pct >= 0.38 ? "#aaa" : "#f06060";
+
+    private static string TpPctColor(double pct) =>
+        pct >= 0.38 ? "#4af080" : pct >= 0.33 ? "#c8c8c8" : "#f06060";
+
+    private static string FtPctColor(double pct) =>
+        pct >= 0.82 ? "#4af080" : pct >= 0.72 ? "#c8c8c8" : "#f06060";
+
+    // oFG%: lower is better for defense — green = elite lockdown, red = sieve
+    private static string OppFgColor(double pct) =>
+        pct <= 0.40 ? "#4af080" : pct <= 0.45 ? "#a0e080" : pct <= 0.50 ? "#c8c8c8" : pct <= 0.55 ? "#e0a060" : "#f06060";
+
+    private static string AttrBarColor(int v) =>
+        v >= 80 ? "#4af080" : v >= 65 ? "#a0e080" : v >= 50 ? "#c8c880" : v >= 35 ? "#e0a060" : "#f06060";
+
+    // ── Modal render helpers ──────────────────────────────────────────────────
+    private RenderFragment AttrGroup(string title, (string Label, string Key)[] attrs) =>
+        @<div>
+            <div style="font-size: 0.82rem;color:#3a3a3a;letter-spacing:1.5px;margin-bottom:5px;">@title</div>
+            @foreach (var (label, key) in attrs)
+            {
+                int v = _detailRecord!.Attrs.GetValueOrDefault(key, 50);
+                <div class="pdlg-attr">
+                    <div class="pdlg-attr-label">@label</div>
+                    <div class="pdlg-attr-bar-bg">
+                        <div style="width:@v%;background:@AttrBarColor(v);height:3px;border-radius:2px;"></div>
+                    </div>
+                    <div class="pdlg-attr-val">@v</div>
+                </div>
+            }
+        </div>;
+
+    private RenderFragment TendGroup(string title, (string Label, string Key)[] tends) =>
+        @<div>
+            <div style="font-size: 0.82rem;color:#3a3a3a;letter-spacing:1.5px;margin-bottom:5px;">@title</div>
+            @foreach (var (label, key) in tends)
+            {
+                int v = _detailRecord!.Tends.GetValueOrDefault(key, 50);
+                <div class="pdlg-attr">
+                    <div class="pdlg-attr-label">@label</div>
+                    <div class="pdlg-attr-bar-bg">
+                        <div style="width:@v%;background:@AttrBarColor(v);height:3px;border-radius:2px;"></div>
+                    </div>
+                    <div class="pdlg-attr-val">@v</div>
+                </div>
+            }
+        </div>;
+
+    private static RenderFragment StatBox(string label, string val, string color) =>
+        @<div style="background:#0d0d0d;border-radius:3px;padding:6px 8px;text-align:center;">
+            <div style="font-size: 0.78rem;color:#3a3a3a;letter-spacing:0.5px;margin-bottom:2px;">@label</div>
+            <div style="font-size: 0.98rem;font-weight:600;color:@color;">@val</div>
+        </div>;
+
+    private static RenderFragment ShotRow(string label, double made, double att, double pct, bool hasData) =>
+        @<tr>
+            <td style="color:#555;padding:3px 8px 0 0;">@label</td>
+            <td style="text-align:right;padding:3px 10px;color:#888;">@(hasData ? made.ToString("F1") : "—")</td>
+            <td style="text-align:right;padding:3px 10px;color:#666;">@(hasData ? att.ToString("F1") : "—")</td>
+            <td style="text-align:right;padding:3px 10px;color:@FgPctColor(pct);">@(hasData ? pct.ToString("P1") : "—")</td>
+            <td style="padding:3px 10px;">@(hasData ? ShotBar(pct, FgPctColor(pct)) : (RenderFragment)(_ => {}))</td>
+        </tr>;
+
+    private static RenderFragment ShotBar(double pct, string color) =>
+        @<div style="background:#1a1a1a;height:3px;border-radius:2px;">
+            <div style="width:@(Math.Clamp(pct, 0, 1) * 100)%;background:@color;height:3px;border-radius:2px;"></div>
+        </div>;
+
+    // ── Save calibration output ───────────────────────────────────────────────
+    private static string? SaveResults(SeasonResult season)
+    {
+        try
+        {
+            var repoRoot  = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../"));
+            var calibPath = Path.Combine(repoRoot, "BasketballSim.Calibration");
+            Directory.CreateDirectory(calibPath);
+
+            // ── League averages ───────────────────────────────────────────────
+            var leagueAvg = new
+            {
+                ppg    = R1(season.TeamStats.Average(t => t.Ppg)),
+                papg   = R1(season.TeamStats.Average(t => t.Papg)),
+                fgm    = R1(season.TeamStats.Average(t => t.Fgm)),
+                fga    = R1(season.TeamStats.Average(t => t.Fga)),
+                fg_pct = R3(season.TeamStats.Average(t => t.FgPct)),
+                tpm    = R1(season.TeamStats.Average(t => t.Tpm)),
+                tpa    = R1(season.TeamStats.Average(t => t.Tpa)),
+                tp_pct = R3(season.TeamStats.Average(t => t.TpPct)),
+                ftm    = R1(season.TeamStats.Average(t => t.Ftm)),
+                fta    = R1(season.TeamStats.Average(t => t.Fta)),
+                ft_pct = R3(season.TeamStats.Average(t => t.FtPct)),
+                oreb   = R1(season.TeamStats.Average(t => t.Oreb)),
+                dreb   = R1(season.TeamStats.Average(t => t.Dreb)),
+                reb    = R1(season.TeamStats.Average(t => t.Reb)),
+                ast    = R1(season.TeamStats.Average(t => t.Ast)),
+                stl    = R1(season.TeamStats.Average(t => t.Stl)),
+                blk    = R1(season.TeamStats.Average(t => t.Blk)),
+                tov    = R1(season.TeamStats.Average(t => t.Tov)),
+            };
+
+            // ── Player lookup by team ─────────────────────────────────────────
+            var playersByTeam = season.PlayerStats
+                .GroupBy(p => p.Team)
+                .ToDictionary(g => g.Key, g => g.OrderByDescending(p => p.Ppg).ToList());
+
+            // ── Teams with embedded player stats ──────────────────────────────
+            var teams = season.TeamStats
+                .OrderByDescending(t => t.Wins)
+                .Select(t =>
+                {
+                    var players = playersByTeam.TryGetValue(t.TeamName, out var pl) ? pl : [];
+                    return new
+                    {
+                        name   = t.TeamName, abbr = t.Abbreviation,
+                        conf   = t.Conference, div = t.Division,
+                        record = new
+                        {
+                            wins = t.Wins, losses = t.Losses, pct = R3(t.Pct),
+                            home = $"{t.HomeWins}-{t.HomeLosses}",
+                            away = $"{t.AwayWins}-{t.AwayLosses}",
+                            conf_record = $"{t.ConfWins}-{t.ConfLosses}",
+                            div_record  = $"{t.DivWins}-{t.DivLosses}",
+                        },
+                        per_game = new
+                        {
+                            ppg    = R1(t.Ppg),  opp    = R1(t.Papg), diff = R1(t.Ppg - t.Papg),
+                            fgm    = R1(t.Fgm),  fga    = R1(t.Fga),  fg_pct = R3(t.FgPct),
+                            tpm    = R1(t.Tpm),  tpa    = R1(t.Tpa),  tp_pct = R3(t.TpPct),
+                            ftm    = R1(t.Ftm),  fta    = R1(t.Fta),  ft_pct = R3(t.FtPct),
+                            oreb   = R1(t.Oreb), dreb   = R1(t.Dreb), reb    = R1(t.Reb),
+                            ast    = R1(t.Ast),  stl    = R1(t.Stl),
+                            blk    = R1(t.Blk),  tov    = R1(t.Tov),
+                        },
+                        players = players.Select(p => PlayerRow(p)),
+                    };
+                });
+
+            // ── Full league leaders (sorted by PPG) ───────────────────────────
+            var leagueLeaders = season.PlayerStats
+                .OrderByDescending(p => p.Ppg)
+                .Select(p => PlayerRow(p));
+
+            var payload = new
+            {
+                simulated_at    = season.SimulatedAt.ToString("yyyy-MM-dd HH:mm:ss"),
+                total_games     = season.Games.Count,
+                league_averages = leagueAvg,
+                teams,
+                league_leaders  = leagueLeaders,
+            };
+
+            var json    = JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true });
+            var outPath = Path.Combine(calibPath, "season_results.json");
+            File.WriteAllText(outPath, json);
+            return outPath;
+        }
+        catch { return null; }
+    }
+
+    private static object PlayerRow(PlayerSeasonStats p) => new
+    {
+        name     = p.Name,
+        team     = p.TeamAbbr,
+        pos      = p.Position.ToString(),
+        gp       = p.GP,
+        min      = R1(p.Mpg),
+        pts      = R1(p.Ppg),
+        reb      = R1(p.Rpg),
+        orb      = R1(p.Opg),
+        drb      = R1(p.Dpg),
+        ast      = R1(p.Apg),
+        stl      = R1(p.Spg),
+        blk      = R1(p.Bpg),
+        tov      = R1(p.Topg),
+        fgm      = R1(p.Fgm),  fga = R1(p.Fga),  fg_pct = R3(p.FgPct),
+        tpm      = R1(p.Tpm),  tpa = R1(p.Tpa),  tp_pct = p.TotalThreeAtt > 0 ? R3(p.TpPct) : (double?)null,
+        ftm      = R1(p.Ftm),  fta = R1(p.Fta),  ft_pct = p.TotalFTA > 0 ? R3(p.FtPct) : (double?)null,
+    };
+
+    private static double R1(double v) => Math.Round(v, 1);
+    private static double R3(double v) => Math.Round(v, 3);
+}

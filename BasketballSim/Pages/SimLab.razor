@@ -2,243 +2,265 @@
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 @using BasketballSim.Models
 @using BasketballSim.Simulation
-@using BasketballSim.Data
 @using BasketballSim.Services
 @inject EspnService EspnSvc
+@inject Nba2kCacheService Nba2kSvc
 @using Microsoft.AspNetCore.Components.Web
 @using static Microsoft.AspNetCore.Components.Web.RenderMode
 
 <PageTitle>Sim Lab</PageTitle>
 
-<div style="max-width:880px;margin:0 auto;padding:1.25rem 1rem;color:#d4d4d4;font-family:monospace;">
+<div style="max-width:1480px;margin:0 auto;padding:1rem 1rem;color:#d4d4d4;font-family:monospace;">
 
-    <div style="margin-bottom:1.25rem;">
-        <div style="font-size:1.4rem;font-weight:800;color:#e8e8e8;letter-spacing:1px;">SIM LAB</div>
-        <div style="color:#555;font-size:0.75rem;margin-top:2px;letter-spacing:1px;">CONFIGURE ROSTERS &middot; SIMULATE 10,000 GAMES &middot; ANALYZE TRENDS</div>
-    </div>
-
-    <!-- Pace sliders -->
-    <div style="display:flex;gap:2rem;margin-bottom:1rem;background:#1e1e1e;border:1px solid #2a2a2a;border-radius:6px;padding:0.65rem 1rem;">
-        <div style="display:flex;align-items:center;gap:0.6rem;">
-            <span style="color:@_homeColor;font-weight:700;font-size:0.72rem;letter-spacing:1px;width:90px;">HOME PACE</span>
-            <input type="range" min="85" max="115" step="1" @bind="_homePace" style="width:110px;" />
-            <span style="color:#e8e8e8;font-size:0.82rem;width:28px;">@_homePace</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:0.6rem;">
-            <span style="color:@_awayColor;font-weight:700;font-size:0.72rem;letter-spacing:1px;width:90px;">AWAY PACE</span>
-            <input type="range" min="85" max="115" step="1" @bind="_awayPace" style="width:110px;" />
-            <span style="color:#e8e8e8;font-size:0.82rem;width:28px;">@_awayPace</span>
-        </div>
-    </div>
-
-    <!-- Coaching panels -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1rem;background:#1e1e1e;border:1px solid #2a2a2a;border-radius:6px;padding:0.75rem 1rem;">
-
-        <!-- Home coaching -->
+    <!-- Header + action bar -->
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:0.5rem;">
         <div>
-            <div style="color:@_homeColor;font-weight:700;font-size:0.72rem;letter-spacing:1px;margin-bottom:0.45rem;">HOME COACH</div>
-            <div style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:0.55rem;">
-                @foreach (var preset in _coachPresets)
-                {
-                    var p = preset;
-                    <button @onclick="() => SetHomeCoach(p.Profile)"
-                            style="background:#252525;color:#888;border:1px solid #333;padding:2px 8px;border-radius:3px;cursor:pointer;font-size:0.68rem;font-family:monospace;">
-                        @p.Name
-                    </button>
-                }
-            </div>
-            <div style="display:grid;grid-template-columns:52px 1fr 36px;align-items:center;gap:3px 6px;font-size:0.72rem;">
-                <span style="color:#999;">Inside</span>
-                <input type="range" min="30" max="200" step="5"
-                       value="@((int)(_homeInsideMod * 100))"
-                       @onchange="e => _homeInsideMod = int.Parse(e.Value!.ToString()!) / 100.0"
-                       style="width:100%;" />
-                <span style="color:#e8e8e8;text-align:right;font-family:monospace;">@_homeInsideMod.ToString("F2")</span>
-
-                <span style="color:#999;">Mid</span>
-                <input type="range" min="30" max="200" step="5"
-                       value="@((int)(_homeMidMod * 100))"
-                       @onchange="e => _homeMidMod = int.Parse(e.Value!.ToString()!) / 100.0"
-                       style="width:100%;" />
-                <span style="color:#e8e8e8;text-align:right;font-family:monospace;">@_homeMidMod.ToString("F2")</span>
-
-                <span style="color:#999;">3PT</span>
-                <input type="range" min="30" max="200" step="5"
-                       value="@((int)(_homeThreeMod * 100))"
-                       @onchange="e => _homeThreeMod = int.Parse(e.Value!.ToString()!) / 100.0"
-                       style="width:100%;" />
-                <span style="color:#e8e8e8;text-align:right;font-family:monospace;">@_homeThreeMod.ToString("F2")</span>
-
-                <span style="color:#999;">Coaching</span>
-                <input type="range" min="0" max="100" step="1"
-                       value="@((int)_homeCoachRating)"
-                       @onchange="e => _homeCoachRating = int.Parse(e.Value!.ToString()!)"
-                       style="width:100%;" />
-                <span style="color:#e8e8e8;text-align:right;font-family:monospace;">@_homeCoachRating.ToString("F0")</span>
-            </div>
+            <span style="font-size: 1.5rem;font-weight:800;color:#e8e8e8;letter-spacing:1px;">SIM LAB</span>
+            <span style="color:#333;font-size: 0.88rem;margin-left:0.75rem;letter-spacing:1px;">CONFIGURE · SIMULATE · ANALYZE</span>
         </div>
-
-        <!-- Away coaching -->
-        <div>
-            <div style="color:@_awayColor;font-weight:700;font-size:0.72rem;letter-spacing:1px;margin-bottom:0.45rem;">AWAY COACH</div>
-            <div style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:0.55rem;">
-                @foreach (var preset in _coachPresets)
-                {
-                    var p = preset;
-                    <button @onclick="() => SetAwayCoach(p.Profile)"
-                            style="background:#252525;color:#888;border:1px solid #333;padding:2px 8px;border-radius:3px;cursor:pointer;font-size:0.68rem;font-family:monospace;">
-                        @p.Name
-                    </button>
-                }
-            </div>
-            <div style="display:grid;grid-template-columns:52px 1fr 36px;align-items:center;gap:3px 6px;font-size:0.72rem;">
-                <span style="color:#999;">Inside</span>
-                <input type="range" min="30" max="200" step="5"
-                       value="@((int)(_awayInsideMod * 100))"
-                       @onchange="e => _awayInsideMod = int.Parse(e.Value!.ToString()!) / 100.0"
-                       style="width:100%;" />
-                <span style="color:#e8e8e8;text-align:right;font-family:monospace;">@_awayInsideMod.ToString("F2")</span>
-
-                <span style="color:#999;">Mid</span>
-                <input type="range" min="30" max="200" step="5"
-                       value="@((int)(_awayMidMod * 100))"
-                       @onchange="e => _awayMidMod = int.Parse(e.Value!.ToString()!) / 100.0"
-                       style="width:100%;" />
-                <span style="color:#e8e8e8;text-align:right;font-family:monospace;">@_awayMidMod.ToString("F2")</span>
-
-                <span style="color:#999;">3PT</span>
-                <input type="range" min="30" max="200" step="5"
-                       value="@((int)(_awayThreeMod * 100))"
-                       @onchange="e => _awayThreeMod = int.Parse(e.Value!.ToString()!) / 100.0"
-                       style="width:100%;" />
-                <span style="color:#e8e8e8;text-align:right;font-family:monospace;">@_awayThreeMod.ToString("F2")</span>
-
-                <span style="color:#999;">Coaching</span>
-                <input type="range" min="0" max="100" step="1"
-                       value="@((int)_awayCoachRating)"
-                       @onchange="e => _awayCoachRating = int.Parse(e.Value!.ToString()!)"
-                       style="width:100%;" />
-                <span style="color:#e8e8e8;text-align:right;font-family:monospace;">@_awayCoachRating.ToString("F0")</span>
-            </div>
-        </div>
-
-    </div>
-
-    <!-- Team tabs -->
-    <div style="display:flex;gap:4px;margin-bottom:0;">
-        <button style="background:@(_activeTab=="home"?_homeColor:"#2a2a2a");color:@(_activeTab=="home"?"white":"#888");border:none;padding:5px 20px;border-radius:4px 4px 0 0;cursor:pointer;font-weight:700;font-size:0.75rem;letter-spacing:1px;"
-                @onclick='() => _activeTab = "home"'>HOME TEAM</button>
-        <button style="background:@(_activeTab=="away"?_awayColor:"#2a2a2a");color:@(_activeTab=="away"?"white":"#888");border:none;padding:5px 20px;border-radius:4px 4px 0 0;cursor:pointer;font-weight:700;font-size:0.75rem;letter-spacing:1px;"
-                @onclick='() => _activeTab = "away"'>AWAY TEAM</button>
-    </div>
-
-    <!-- Template loader -->
-    <div style="display:flex;gap:6px;align-items:center;padding:5px 8px;background:#252525;border:1px solid #2a2a2a;border-top:none;border-bottom:none;flex-wrap:wrap;">
-        <span style="color:#444;font-size:0.65rem;letter-spacing:1px;text-transform:uppercase;white-space:nowrap;">Load Team:</span>
-        @if (_teamsLoading)
-        {
-            <span style="color:#555;font-size:0.68rem;font-family:monospace;">fetching teams...</span>
-        }
-        else if (_espnTeams.Count == 0)
-        {
-            <span style="color:#664;font-size:0.68rem;font-family:monospace;">ESPN unavailable</span>
-        }
-        else
-        {
-            <select @onchange="OnTeamSelected" disabled="@_rosterLoading"
-                    style="background:#1e1e1e;color:#ccc;border:1px solid #333;padding:2px 6px;border-radius:3px;font-size:0.70rem;font-family:monospace;cursor:pointer;min-width:180px;">
-                <option value="">— select team —</option>
-                @foreach (var team in _espnTeams)
-                {
-                    <option value="@team.Id">@team.Abbreviation — @team.Name</option>
-                }
-            </select>
-            @if (_rosterLoading)
-            {
-                <span style="color:#555;font-size:0.68rem;font-family:monospace;">loading roster...</span>
-            }
-            @if (_loadedTeam != null)
-            {
-                <span style="font-size:0.68rem;font-family:monospace;">
-                    <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:@_loadedTeam.PrimaryColor;margin-right:3px;vertical-align:middle;"></span>
-                    <span style="color:#888;">@_loadedTeam.Location @_loadedTeam.Abbreviation loaded</span>
-                </span>
-            }
-        }
-    </div>
-
-    <!-- Config grid -->
-    <div style="border:1px solid #2a2a2a;border-radius:0 4px 4px 4px;overflow-x:auto;background:#1e1e1e;margin-bottom:1rem;">
-        <table style="border-collapse:collapse;font-size:0.77rem;width:100%;">
-            <thead>
-                <tr style="background:#252525;color:#555;text-transform:uppercase;font-size:0.65rem;letter-spacing:1px;">
-                    <th style="text-align:left;padding:6px 10px;width:120px;">Attribute</th>
-                    <th style="padding:6px 6px;width:56px;color:#444;">Bulk</th>
-                    @for (int pi = 0; pi < ActiveTeam.Count; pi++)
-                    {
-                        var ph = ActiveTeam[pi];
-                        <th @key="ph.Name" style="text-align:center;padding:6px 4px;width:72px;">
-                            <div style="color:#ccc;">@ph.Name</div>
-                            <div style="color:#444;font-size:0.6rem;">@ph.Position</div>
-                        </th>
-                    }
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var group in _attrGroups)
-                {
-                    <tr style="background:#222;">
-                        <td colspan="7" style="padding:3px 10px;font-size:0.63rem;letter-spacing:2px;color:#444;text-transform:uppercase;border-top:1px solid #2a2a2a;">@group.Group</td>
-                    </tr>
-                    @foreach (var attr in group.Attrs)
-                    {
-                        <tr style="border-bottom:1px solid #252525;">
-                            <td style="padding:3px 10px;color:#999;">@attr.Label</td>
-                            <td style="padding:2px 4px;text-align:center;white-space:nowrap;">
-                                <button @onclick="() => BulkAdjust(ActiveTeam, attr, 1)"
-                                        style="background:#2a3a2a;color:#8f8;border:none;padding:1px 6px;border-radius:3px;cursor:pointer;font-size:0.7rem;margin-right:2px;">+1</button>
-                                <button @onclick="() => BulkAdjust(ActiveTeam, attr, -1)"
-                                        style="background:#3a2a2a;color:#f88;border:none;padding:1px 6px;border-radius:3px;cursor:pointer;font-size:0.7rem;">-1</button>
-                            </td>
-                            @for (int pi = 0; pi < ActiveTeam.Count; pi++)
-                            {
-                                var player = ActiveTeam[pi];
-                                var curVal = attr.Get(player);
-                                <td style="padding:2px 4px;text-align:center;">
-                                    <input type="number" min="1" max="100"
-                                           value="@curVal"
-                                           @onchange="e => OnAttrChange(e, attr, player)"
-                                           style="width:54px;text-align:center;background:#252525;border:1px solid #333;color:@ValColor(curVal);padding:2px;border-radius:3px;font-size:0.77rem;font-family:monospace;" />
-                                </td>
-                            }
-                        </tr>
-                    }
-                }
-            </tbody>
-        </table>
-    </div>
-
-    <!-- Action buttons -->
-    <div style="display:flex;gap:0.6rem;align-items:center;margin-bottom:0.75rem;flex-wrap:wrap;">
-        <button @onclick="ResetDefaults"
-                style="background:#252525;color:#888;border:1px solid #333;padding:6px 16px;border-radius:4px;cursor:pointer;font-size:0.78rem;">
-            Reset Defaults
-        </button>
-        <button @onclick="SaveConfig"
-                style="background:@(_saved?"#1a3a1a":"#1e1e2e");color:@(_saved?"#8f8":"#99f");border:1px solid @(_saved?"#3a6a3a":"#334");padding:6px 16px;border-radius:4px;cursor:pointer;font-size:0.78rem;">
-            @(_saved ? "Config Saved" : "Save Config")
-        </button>
-        <div style="display:flex;align-items:center;gap:0.4rem;margin-left:auto;">
-            <label style="color:#666;font-size:0.72rem;letter-spacing:1px;text-transform:uppercase;">Games</label>
-            <input type="number" min="100" max="500000" step="100"
-                   @bind="_totalGames"
-                   disabled="@_simulating"
-                   style="width:90px;background:#252525;border:1px solid #333;color:#e8e8e8;padding:5px 6px;border-radius:4px;font-size:0.78rem;font-family:monospace;text-align:right;" />
+        <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+            <button @onclick="ResetDefaults"
+                    style="background:#252525;color:#666;border:1px solid #2a2a2a;padding:5px 14px;border-radius:4px;cursor:pointer;font-size: 0.92rem;font-family:monospace;">
+                Reset
+            </button>
+            <button @onclick="SaveConfig"
+                    style="background:@(_saved?"#1a3a1a":"#1e1e2e");color:@(_saved?"#8f8":"#66f");border:1px solid @(_saved?"#2a4a2a":"#2a2a4a");padding:5px 14px;border-radius:4px;cursor:pointer;font-size: 0.92rem;font-family:monospace;">
+                @(_saved ? "Saved!" : "Save")
+            </button>
+            <input type="number" min="100" max="500000" step="100" @bind="_totalGames" disabled="@_simulating"
+                   style="width:80px;background:#252525;border:1px solid #2a2a2a;color:#ccc;padding:4px 6px;border-radius:4px;font-size: 0.92rem;font-family:monospace;text-align:right;" />
             <button @onclick="RunSimulation" disabled="@_simulating"
-                    style="background:@(_simulating?"#1a2a3a":"#1a3a6a");color:@(_simulating?"#667":"white");border:none;padding:6px 20px;border-radius:4px;cursor:@(_simulating?"wait":"pointer");font-weight:700;font-size:0.78rem;letter-spacing:0.5px;">
-                Simulate
+                    style="background:@(_simulating?"#1a2a3a":"#1a3a6a");color:@(_simulating?"#446":"#cdf");border:none;padding:5px 20px;border-radius:4px;cursor:@(_simulating?"wait":"pointer");font-weight:700;font-size: 0.98rem;letter-spacing:0.5px;">
+                @(_simulating ? $"Simulating... {_simProgress * 100 / Math.Max(1,_totalGames)}%" : "Simulate")
             </button>
         </div>
+    </div>
+
+    <!-- Two-team columns -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1rem;align-items:start;">
+
+        @foreach (var side in new[] { "home", "away" })
+        {
+            var isHome    = side == "home";
+            var configs   = isHome ? _homeConfigs : _awayConfigs;
+            var teamColor = isHome ? _homeColor   : _awayColor;
+            var labelText = isHome ? "HOME" : "AWAY";
+
+            <div style="background:#1a1a1a;border:1px solid #252525;border-radius:8px;">
+
+                <!-- Team header -->
+                <div style="background:#1e1e1e;border-bottom:2px solid @teamColor;padding:0.55rem 0.85rem;display:flex;align-items:center;gap:0.6rem;flex-wrap:wrap;border-radius:8px 8px 0 0;overflow:hidden;">
+                    <span style="color:@teamColor;font-weight:800;font-size: 0.98rem;letter-spacing:2px;">@labelText</span>
+                    <span style="color:#333;font-size: 0.85rem;">|</span>
+                    @if (_teamsLoading)
+                    {
+                        <span style="color:#444;font-size: 0.88rem;">fetching...</span>
+                    }
+                    else if (_espnTeams.Count == 0)
+                    {
+                        <span style="color:#553;font-size: 0.88rem;">ESPN unavailable</span>
+                    }
+                    else
+                    {
+                        var isLoadingThis = isHome ? _homeRosterLoading : _awayRosterLoading;
+                        var loadedTeam    = isHome ? _homeLoadedTeam    : _awayLoadedTeam;
+                        <select value="" @onchange="e => OnTeamSelected(e, side)" disabled="@isLoadingThis"
+                                style="background:#252525;color:#999;border:1px solid #2a2a2a;padding:2px 5px;border-radius:3px;font-size: 0.88rem;font-family:monospace;cursor:pointer;flex:1;min-width:140px;max-width:220px;">
+                            <option value="">— load team —</option>
+                            @foreach (var t in _espnTeams)
+                            {
+                                <option value="@t.Id">@t.Abbreviation — @t.Name</option>
+                            }
+                        </select>
+                        @if (isLoadingThis)
+                        {
+                            <span style="color:#555;font-size: 0.85rem;">loading...</span>
+                        }
+                        else if (loadedTeam != null)
+                        {
+                            <span style="font-size: 0.85rem;color:#888;">
+                                <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:@loadedTeam.PrimaryColor;margin-right:3px;vertical-align:middle;"></span>
+                                @loadedTeam.Abbreviation
+                            </span>
+                        }
+                    }
+                </div>
+
+                <!-- Coach + game settings -->
+                <div style="padding:0.6rem 0.85rem;border-bottom:1px solid #252525;">
+                    <div style="font-size: 0.8rem;letter-spacing:2px;color:#444;text-transform:uppercase;margin-bottom:0.4rem;">Offensive Style</div>
+                    <div style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:0.5rem;">
+                        @foreach (var preset in _coachPresets)
+                        {
+                            var p = preset;
+                            <button @onclick="() => { if (isHome) SetHomeCoach(p.Profile); else SetAwayCoach(p.Profile); }"
+                                    style="background:#252525;color:#666;border:1px solid #2a2a2a;padding:2px 7px;border-radius:3px;cursor:pointer;font-size: 0.85rem;font-family:monospace;">
+                                @p.Name
+                            </button>
+                        }
+                    </div>
+                    <div style="font-size: 0.8rem;letter-spacing:2px;color:#444;text-transform:uppercase;margin-bottom:0.4rem;">Defensive Style</div>
+                    <div style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:0.5rem;">
+                        @{
+                            var curDefStyle = isHome ? _homeDefStyle : _awayDefStyle;
+                            foreach (var (styleName, styleVal) in new (string, DefensiveStyle)[]
+                            {
+                                ("Balanced", DefensiveStyle.Balanced),
+                                ("Protect Paint", DefensiveStyle.ProtectThePaint),
+                                ("Stop the 3", DefensiveStyle.StopTheThree),
+                            })
+                            {
+                                var sv = styleVal;
+                                var sn = styleName;
+                                bool active = curDefStyle == sv;
+                                <button @onclick="() => { if (isHome) _homeDefStyle = sv; else _awayDefStyle = sv; }"
+                                        style="background:@(active ? teamColor : "#252525");color:@(active ? "#111" : "#666");border:1px solid @(active ? teamColor : "#2a2a2a");padding:2px 7px;border-radius:3px;cursor:pointer;font-size: 0.85rem;font-family:monospace;">
+                                    @sn
+                                </button>
+                            }
+                        }
+                    </div>
+                    @{
+                        var insideMod  = isHome ? _homeInsideMod  : _awayInsideMod;
+                        var midMod     = isHome ? _homeMidMod     : _awayMidMod;
+                        var threeMod   = isHome ? _homeThreeMod   : _awayThreeMod;
+                        var offRat     = isHome ? _homeOffRating  : _awayOffRating;
+                        var defRat     = isHome ? _homeDefRating  : _awayDefRating;
+                        var pace       = isHome ? _homePace        : _awayPace;
+                        var rotDepth   = isHome ? _homeRotationDepth : _awayRotationDepth;
+                        var rotMax     = configs.Count;
+                        var stBias     = isHome ? _homeStarterBias : _awayStarterBias;
+                    }
+                    <div style="display:grid;grid-template-columns:72px 1fr 34px;align-items:center;gap:2px 6px;font-size: 0.88rem;">
+                        <span style="color:#555;">Inside</span>
+                        <input type="range" min="80" max="120" step="2"
+                               value="@((int)(insideMod * 100))"
+                               @oninput="e => { if (isHome) _homeInsideMod = int.Parse(e.Value!.ToString()!) / 100.0; else _awayInsideMod = int.Parse(e.Value!.ToString()!) / 100.0; }"
+                               style="width:100%;accent-color:@teamColor;" />
+                        <span style="color:#aaa;text-align:right;">@insideMod.ToString("F2")</span>
+
+                        <span style="color:#555;">Mid</span>
+                        <input type="range" min="80" max="120" step="2"
+                               value="@((int)(midMod * 100))"
+                               @oninput="e => { if (isHome) _homeMidMod = int.Parse(e.Value!.ToString()!) / 100.0; else _awayMidMod = int.Parse(e.Value!.ToString()!) / 100.0; }"
+                               style="width:100%;accent-color:@teamColor;" />
+                        <span style="color:#aaa;text-align:right;">@midMod.ToString("F2")</span>
+
+                        <span style="color:#555;">3-PT</span>
+                        <input type="range" min="80" max="120" step="2"
+                               value="@((int)(threeMod * 100))"
+                               @oninput="e => { if (isHome) _homeThreeMod = int.Parse(e.Value!.ToString()!) / 100.0; else _awayThreeMod = int.Parse(e.Value!.ToString()!) / 100.0; }"
+                               style="width:100%;accent-color:@teamColor;" />
+                        <span style="color:#aaa;text-align:right;">@threeMod.ToString("F2")</span>
+
+                        <span style="color:#555;" title="Offensive coaching quality: context selection, ball security">Off Coach</span>
+                        <input type="range" min="0" max="100" step="1"
+                               value="@((int)offRat)"
+                               @oninput="e => { if (isHome) _homeOffRating = int.Parse(e.Value!.ToString()!); else _awayOffRating = int.Parse(e.Value!.ToString()!); }"
+                               style="width:100%;accent-color:@teamColor;" />
+                        <span style="color:#aaa;text-align:right;">@((int)offRat)</span>
+
+                        <span style="color:#555;" title="Defensive coaching quality: contest effectiveness">Def Coach</span>
+                        <input type="range" min="0" max="100" step="1"
+                               value="@((int)defRat)"
+                               @oninput="e => { if (isHome) _homeDefRating = int.Parse(e.Value!.ToString()!); else _awayDefRating = int.Parse(e.Value!.ToString()!); }"
+                               style="width:100%;accent-color:@teamColor;" />
+                        <span style="color:#aaa;text-align:right;">@((int)defRat)</span>
+
+                        <span style="color:#555;">Pace</span>
+                        <input type="range" min="85" max="115" step="1"
+                               value="@pace"
+                               @oninput="e => { if (isHome) _homePace = int.Parse(e.Value!.ToString()!); else _awayPace = int.Parse(e.Value!.ToString()!); }"
+                               style="width:100%;accent-color:@teamColor;" />
+                        <span style="color:#aaa;text-align:right;">@pace</span>
+
+                        <span style="color:#555;" title="Number of players in rotation (5 = starters only)">Rotation</span>
+                        <input type="range" min="5" max="@rotMax" step="1"
+                               value="@Math.Min(rotDepth, rotMax)"
+                               @oninput="e => { var v = int.Parse(e.Value!.ToString()!); if (isHome) _homeRotationDepth = v; else _awayRotationDepth = v; }"
+                               style="width:100%;accent-color:@teamColor;" />
+                        <span style="color:#aaa;text-align:right;">@Math.Min(rotDepth, rotMax)</span>
+
+                        <span style="color:#555;" title="0 = equal minutes all rotation players, 100 = max starter load">Starter ↑</span>
+                        <input type="range" min="0" max="100" step="5"
+                               value="@stBias"
+                               @oninput="e => { var v = int.Parse(e.Value!.ToString()!); if (isHome) _homeStarterBias = v; else _awayStarterBias = v; }"
+                               style="width:100%;accent-color:@teamColor;" />
+                        <span style="color:#aaa;text-align:right;">@stBias</span>
+                    </div>
+                </div>
+
+                <!-- Roster / minutes table -->
+                @{
+                    var expMin = ComputeExpectedMinutes(configs, rotDepth, stBias);
+                }
+                <div>
+                    <table style="border-collapse:collapse;width:100%;font-size: 0.92rem;font-family:monospace;">
+                        <thead>
+                            <tr style="color:#333;font-size: 0.78rem;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid #252525;background:#1e1e1e;">
+                                <th style="padding:4px 6px 4px 10px;text-align:center;width:24px;">#</th>
+                                <th style="text-align:left;padding:4px 8px;">Player</th>
+                                <th style="text-align:center;padding:4px 6px;width:42px;">POS</th>
+                                <th style="text-align:right;padding:4px 10px;width:48px;">MIN</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (int pi = 0; pi < configs.Count; pi++)
+                            {
+                                var player   = configs[pi];
+                                bool inRot   = pi < rotDepth;
+                                bool isStar  = pi < 5;
+                                double pMin  = inRot ? expMin.GetValueOrDefault(player.Name, 0.0) : 0.0;
+                                string hk    = $"{side}::{player.Name}";
+                                bool hovered = _hoveredPlayerKey == hk;
+                                @if (pi == 5)
+                                {
+                                    <tr><td colspan="4" style="padding:2px 10px;font-size: 0.75rem;letter-spacing:2px;color:#2a2a2a;text-transform:uppercase;border-top:1px solid #252525;">── bench ──────────────────────</td></tr>
+                                }
+                                <tr @key="@hk" style="border-bottom:1px solid #1e1e1e;opacity:@(inRot ? "1" : "0.28");">
+                                    <td style="padding:3px 0 3px 10px;text-align:center;color:#333;font-size: 0.8rem;">@(pi + 1)</td>
+                                    <td style="padding:3px 8px;position:relative;">
+                                        <span @onmouseenter="() => _hoveredPlayerKey = hk"
+                                              @onmouseleave="() => _hoveredPlayerKey = null"
+                                              style="color:@(isStar ? "#c8c8c8" : "#666");white-space:nowrap;border-bottom:1px dotted @(hovered ? "#555" : "transparent");cursor:default;">
+                                            @player.Name
+                                        </span>
+                                        @if (hovered)
+                                        {
+                                            <div style="position:absolute;left:calc(100% + 4px);top:50%;transform:translateY(-50%);z-index:600;background:#111;border:1px solid #2a2a2a;border-radius:6px;padding:8px 12px;pointer-events:none;width:234px;box-shadow:0 8px 28px rgba(0,0,0,0.9);">
+                                                <div style="font-weight:700;color:#c8c8c8;margin-bottom:5px;font-size: 0.94rem;border-bottom:1px solid #1e1e1e;padding-bottom:4px;">
+                                                    @player.Name <span style="color:#444;font-weight:400;font-size: 0.83rem;">@player.Position</span>
+                                                </div>
+                                                @foreach (var grp in _attrGroups.Where(g => !g.Group.StartsWith("Tendencies")))
+                                                {
+                                                    <div style="color:#333;font-size: 0.75rem;letter-spacing:2px;text-transform:uppercase;margin-top:5px;margin-bottom:2px;">@grp.Group</div>
+                                                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 10px;">
+                                                        @foreach (var attr2 in grp.Attrs)
+                                                        {
+                                                            var v2 = attr2.Get(player);
+                                                            <div style="display:flex;justify-content:space-between;padding:1px 0;">
+                                                                <span style="color:#555;font-size: 0.83rem;">@attr2.Label</span>
+                                                                <span style="color:@ValColor(v2);font-size: 0.86rem;font-weight:600;">@v2</span>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                }
+                                            </div>
+                                        }
+                                    </td>
+                                    <td style="padding:3px 6px;text-align:center;color:#444;font-size: 0.88rem;">@player.Position</td>
+                                    <td style="padding:3px 10px;text-align:right;color:@(inRot ? teamColor : "#2a2a2a");font-weight:@(inRot ? "600" : "400");">
+                                        @(inRot ? pMin.ToString("F1") : "—")
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        }
+
     </div>
 
     <!-- Progress bar -->
@@ -247,8 +269,8 @@
         int pct = _totalGames > 0 ? _simProgress * 100 / _totalGames : 0;
         <div style="background:#1e1e1e;border:1px solid #2a2a2a;border-radius:6px;padding:0.75rem 1rem;margin-bottom:1rem;">
             <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.4rem;">
-                <span style="color:@_homeColor;font-size:0.78rem;font-weight:700;">Simulating...</span>
-                <span style="color:#888;font-size:0.75rem;font-family:monospace;">@_simProgress.ToString("N0") / @_totalGames.ToString("N0") games &nbsp; @pct%</span>
+                <span style="color:@_homeColor;font-size: 0.98rem;font-weight:700;">Simulating...</span>
+                <span style="color:#888;font-size: 0.95rem;font-family:monospace;">@_simProgress.ToString("N0") / @_totalGames.ToString("N0") games &nbsp; @pct%</span>
             </div>
             <div style="background:#252525;border-radius:3px;height:8px;overflow:hidden;">
                 <div style="@($"background:{_homeColor};height:100%;width:{pct}%;transition:width 0.1s ease;")"></div>
@@ -259,13 +281,13 @@
     <!-- Results -->
     @if (_results != null)
     {
-        <div style="background:#1e1e1e;border:1px solid #2a2a2a;border-radius:6px;padding:1rem;font-size:0.8rem;">
-            <div style="font-size:0.65rem;letter-spacing:2px;color:#444;text-transform:uppercase;margin-bottom:0.75rem;border-bottom:1px solid #2a2a2a;padding-bottom:0.5rem;">
+        <div style="background:#1e1e1e;border:1px solid #2a2a2a;border-radius:6px;padding:1rem;font-size: 1.0rem;">
+            <div style="font-size: 0.85rem;letter-spacing:2px;color:#444;text-transform:uppercase;margin-bottom:0.75rem;border-bottom:1px solid #2a2a2a;padding-bottom:0.5rem;">
                 @_results.Games.ToString("N0") Games Simulated
             </div>
             <table style="width:100%;border-collapse:collapse;">
                 <thead>
-                    <tr style="font-size:0.65rem;text-transform:uppercase;letter-spacing:1px;color:#444;">
+                    <tr style="font-size: 0.85rem;text-transform:uppercase;letter-spacing:1px;color:#444;">
                         <th style="text-align:left;padding:3px 0;width:45%;"></th>
                         <th style="text-align:center;padding:3px 12px;color:@_homeColor;">HOME</th>
                         <th style="text-align:center;padding:3px 12px;color:@_awayColor;">AWAY</th>
@@ -303,8 +325,8 @@
                         var aMade   = _results.AwayShotMade.GetValueOrDefault(st, 0L);
                         var aAtt    = _results.AwayShotAtt.GetValueOrDefault(st,  0L);
                         <tr @key="st" style="border-bottom:1px solid #252525;">
-                            <td style="padding:4px 0;color:#666;font-size:0.74rem;">@stLabel</td>
-                            <td style="text-align:center;padding:4px 12px;font-size:0.82rem;position:relative;"
+                            <td style="padding:4px 0;color:#666;font-size: 0.94rem;">@stLabel</td>
+                            <td style="text-align:center;padding:4px 12px;font-size: 1.02rem;position:relative;"
                                 @onmouseenter="() => _hoverKey = hKey"
                                 @onmouseleave="() => _hoverKey = null">
                                 <span style="color:#d4d4d4;border-bottom:1px dotted #555;cursor:default;">@ShootStr(hMade, hAtt)</span>
@@ -317,7 +339,7 @@
                                             var cAtt  = _results.HomeCtxAtt.GetValueOrDefault(ctx,  0L);
                                             if (cAtt > 0)
                                             {
-                                                <div style="display:flex;justify-content:space-between;gap:16px;font-size:0.68rem;font-family:monospace;margin:1px 0;">
+                                                <div style="display:flex;justify-content:space-between;gap:16px;font-size: 0.88rem;font-family:monospace;margin:1px 0;">
                                                     <span style="color:#666;">@ContextLabel(ctx)</span>
                                                     <span style="color:#ccc;">@ShootStr(cMade, cAtt)</span>
                                                 </div>
@@ -326,7 +348,7 @@
                                     </div>
                                 }
                             </td>
-                            <td style="text-align:center;padding:4px 12px;font-size:0.82rem;position:relative;"
+                            <td style="text-align:center;padding:4px 12px;font-size: 1.02rem;position:relative;"
                                 @onmouseenter="() => _hoverKey = aKey"
                                 @onmouseleave="() => _hoverKey = null">
                                 <span style="color:#d4d4d4;border-bottom:1px dotted #555;cursor:default;">@ShootStr(aMade, aAtt)</span>
@@ -339,7 +361,7 @@
                                             var cAtt  = _results.AwayCtxAtt.GetValueOrDefault(ctx,  0L);
                                             if (cAtt > 0)
                                             {
-                                                <div style="display:flex;justify-content:space-between;gap:16px;font-size:0.68rem;font-family:monospace;margin:1px 0;">
+                                                <div style="display:flex;justify-content:space-between;gap:16px;font-size: 0.88rem;font-family:monospace;margin:1px 0;">
                                                     <span style="color:#666;">@ContextLabel(ctx)</span>
                                                     <span style="color:#ccc;">@ShootStr(cMade, cAtt)</span>
                                                 </div>
@@ -369,6 +391,8 @@
             </table>
         </div>
 
+        <!-- Per-player box scores side by side -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-top:0.75rem;">
         @foreach (var teamName in new[] { "Home", "Away" })
         {
             var teamColor  = teamName == "Home" ? _homeColor : _awayColor;
@@ -378,47 +402,50 @@
                 .ToList();
             var g = (double)_results.Games;
 
-            <div style="background:#1e1e1e;border:1px solid #2a2a2a;border-radius:6px;padding:0.85rem 1rem;margin-top:0.75rem;overflow-x:auto;">
-                <div style="font-size:0.62rem;letter-spacing:2px;color:@teamColor;text-transform:uppercase;margin-bottom:0.6rem;border-bottom:1px solid #2a2a2a;padding-bottom:0.4rem;">
-                    @teamName — avg box score
+            <div style="background:#1a1a1a;border:1px solid #252525;border-radius:6px;overflow-x:auto;">
+                <div style="font-size: 0.8rem;letter-spacing:2px;color:@teamColor;text-transform:uppercase;padding:0.4rem 0.75rem;border-bottom:1px solid #252525;">
+                    @teamName — avg box score / game
                 </div>
-                <table style="border-collapse:collapse;font-size:0.72rem;font-family:monospace;width:100%;min-width:640px;">
+                <table style="border-collapse:collapse;font-size: 0.9rem;font-family:monospace;width:100%;min-width:480px;">
                     <thead>
-                        <tr style="color:#444;font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid #2a2a2a;">
-                            <th style="text-align:left;padding:3px 8px 3px 0;white-space:nowrap;">Player</th>
-                            <th style="padding:3px 6px;text-align:center;">Pos</th>
-                            <th style="padding:3px 6px;text-align:center;">Pts</th>
-                            <th style="padding:3px 6px;text-align:center;">Reb</th>
-                            <th style="padding:3px 6px;text-align:center;">Ast</th>
-                            <th style="padding:3px 6px;text-align:center;">Stl</th>
-                            <th style="padding:3px 6px;text-align:center;">Blk</th>
-                            <th style="padding:3px 6px;text-align:center;">TO</th>
-                            <th style="padding:3px 10px;text-align:center;">FG</th>
-                            <th style="padding:3px 10px;text-align:center;">3PT</th>
-                            <th style="padding:3px 10px;text-align:center;">FT</th>
+                        <tr style="color:#444;font-size: 0.78rem;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid #252525;background:#1e1e1e;">
+                            <th style="text-align:left;padding:3px 6px 3px 8px;white-space:nowrap;">Player</th>
+                            <th style="padding:3px 4px;text-align:center;">MIN</th>
+                            <th style="padding:3px 4px;text-align:center;">PTS</th>
+                            <th style="padding:3px 4px;text-align:center;">REB</th>
+                            <th style="padding:3px 4px;text-align:center;">AST</th>
+                            <th style="padding:3px 4px;text-align:center;">STL</th>
+                            <th style="padding:3px 4px;text-align:center;">BLK</th>
+                            <th style="padding:3px 4px;text-align:center;">TO</th>
+                            <th style="padding:3px 4px;text-align:center;">PF</th>
+                            <th style="padding:3px 6px;text-align:center;">FG</th>
+                            <th style="padding:3px 6px;text-align:center;">3PT</th>
+                            <th style="padding:3px 6px;text-align:center;">FT</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach (var p in teamPlayers)
                         {
-                            <tr style="border-bottom:1px solid #252525;">
-                                <td style="padding:3px 8px 3px 0;color:#aaa;white-space:nowrap;">@p.Name</td>
-                                <td style="padding:3px 6px;color:#555;text-align:center;">@p.Position</td>
-                                <td style="padding:3px 6px;color:#e8e8e8;text-align:center;font-weight:700;">@((p.Pts   / g).ToString("F1"))</td>
-                                <td style="padding:3px 6px;color:#d4d4d4;text-align:center;">@((p.Reb   / g).ToString("F1"))</td>
-                                <td style="padding:3px 6px;color:#d4d4d4;text-align:center;">@((p.Ast   / g).ToString("F1"))</td>
-                                <td style="padding:3px 6px;color:#d4d4d4;text-align:center;">@((p.Stl   / g).ToString("F1"))</td>
-                                <td style="padding:3px 6px;color:#d4d4d4;text-align:center;">@((p.Blk   / g).ToString("F1"))</td>
-                                <td style="padding:3px 6px;color:#d4d4d4;text-align:center;">@((p.To    / g).ToString("F1"))</td>
-                                <td style="padding:3px 10px;color:#d4d4d4;text-align:center;white-space:nowrap;">@BxShoot(p.FGM,    p.FGA,    g)</td>
-                                <td style="padding:3px 10px;color:#d4d4d4;text-align:center;white-space:nowrap;">@BxShoot(p.ThreeM, p.ThreeA, g)</td>
-                                <td style="padding:3px 10px;color:#d4d4d4;text-align:center;white-space:nowrap;">@BxShoot(p.FTM,    p.FTA,    g)</td>
+                            <tr style="border-bottom:1px solid #1e1e1e;">
+                                <td style="padding:3px 6px 3px 8px;color:#999;white-space:nowrap;">@p.Name</td>
+                                <td style="padding:2px 4px;color:#555;text-align:center;">@((p.Min   / g).ToString("F1"))</td>
+                                <td style="padding:2px 4px;color:#e8e8e8;text-align:center;font-weight:700;">@((p.Pts   / g).ToString("F1"))</td>
+                                <td style="padding:2px 4px;color:#ccc;text-align:center;">@((p.Reb   / g).ToString("F1"))</td>
+                                <td style="padding:2px 4px;color:#ccc;text-align:center;">@((p.Ast   / g).ToString("F1"))</td>
+                                <td style="padding:2px 4px;color:#ccc;text-align:center;">@((p.Stl   / g).ToString("F1"))</td>
+                                <td style="padding:2px 4px;color:#ccc;text-align:center;">@((p.Blk   / g).ToString("F1"))</td>
+                                <td style="padding:2px 4px;color:#ccc;text-align:center;">@((p.To    / g).ToString("F1"))</td>
+                                <td style="padding:2px 4px;color:#888;text-align:center;">@((p.Fouls / g).ToString("F1"))</td>
+                                <td style="padding:2px 5px;color:#ccc;text-align:center;white-space:nowrap;">@BxShoot(p.FGM,    p.FGA,    g)</td>
+                                <td style="padding:2px 5px;color:#ccc;text-align:center;white-space:nowrap;">@BxShoot(p.ThreeM, p.ThreeA, g)</td>
+                                <td style="padding:2px 5px;color:#ccc;text-align:center;white-space:nowrap;">@BxShoot(p.FTM,    p.FTA,    g)</td>
                             </tr>
                         }
                     </tbody>
                 </table>
             </div>
         }
+        </div>
     }
 
 </div>
@@ -450,6 +477,19 @@
         new("Def Rebounding", "Skill",    50, p => p.ReboundingDef,   (p,v) => p.ReboundingDef = v),
         new("Perim Defense",  "Defense",  50, p => p.PerimeterDefense,(p,v) => p.PerimeterDefense = v),
         new("Interior Def",   "Defense",  50, p => p.InteriorDefense, (p,v) => p.InteriorDefense = v),
+        new("Foul Tendency",  "Defense",  50, p => p.FoulTendency,    (p,v) => p.FoulTendency = v),
+
+        new("Touches",        "Tendencies — Off", 50, p => p.Tend_Touches,  (p,v) => p.Tend_Touches = v),
+        new("Drive",          "Tendencies — Off", 50, p => p.Tend_Drive,    (p,v) => p.Tend_Drive = v),
+        new("Post-Up",        "Tendencies — Off", 50, p => p.Tend_PostUp,   (p,v) => p.Tend_PostUp = v),
+        new("Iso",            "Tendencies — Off", 50, p => p.Tend_Iso,      (p,v) => p.Tend_Iso = v),
+        new("Cut",            "Tendencies — Off", 50, p => p.Tend_Cut,      (p,v) => p.Tend_Cut = v),
+        new("Pull-Up",        "Tendencies — Off", 50, p => p.Tend_PullUp,   (p,v) => p.Tend_PullUp = v),
+        new("Mid-Range",      "Tendencies — Off", 50, p => p.Tend_MidRange, (p,v) => p.Tend_MidRange = v),
+        new("3-Point",        "Tendencies — Off", 50, p => p.Tend_ThreePt,  (p,v) => p.Tend_ThreePt = v),
+        new("Off. Reb.",      "Tendencies — Off", 50, p => p.Tend_OffReb,   (p,v) => p.Tend_OffReb = v),
+        new("Steal",          "Tendencies — Def", 50, p => p.Tend_Steal,    (p,v) => p.Tend_Steal = v),
+        new("Block",          "Tendencies — Def", 50, p => p.Tend_Block,    (p,v) => p.Tend_Block = v),
     ];
 
     // Pre-computed once; static so it can be initialized from the static _attrs field
@@ -472,7 +512,6 @@
     // ── State ───────────────────────────────────────────────────────────────
     private List<PlayerConfig> _homeConfigs = MakeDefaultTeam("Home");
     private List<PlayerConfig> _awayConfigs = MakeDefaultTeam("Away");
-    private string _activeTab  = "home";
     private string _homeColor  = "#4a9eff";
     private string _awayColor  = "#ef5b40";
     private int _homePace = 100;
@@ -480,21 +519,27 @@
     private double _homeInsideMod    = 1.00;
     private double _homeMidMod       = 1.00;
     private double _homeThreeMod     = 1.00;
-    private double _homeCoachRating  = 60;
-    private double _awayInsideMod    = 1.00;
-    private double _awayMidMod       = 1.00;
-    private double _awayThreeMod     = 1.00;
-    private double _awayCoachRating  = 60;
+    private double _homeOffRating    = 60;
+    private double _homeDefRating    = 60;
+    private DefensiveStyle _homeDefStyle = DefensiveStyle.Balanced;
+    private int    _homeRotationDepth = 8;
+    private int    _homeStarterBias   = 65;
+    private double _awayInsideMod     = 1.00;
+    private double _awayMidMod        = 1.00;
+    private double _awayThreeMod      = 1.00;
+    private double _awayOffRating     = 60;
+    private double _awayDefRating     = 60;
+    private DefensiveStyle _awayDefStyle = DefensiveStyle.Balanced;
+    private int    _awayRotationDepth = 8;
+    private int    _awayStarterBias   = 65;
     private bool _saved = false;
     private bool _simulating = false;
     private int _simProgress = 0;
     private int _totalGames = 10_000;
     private BatchAccumulator? _results = null;
 
-    private List<PlayerConfig> ActiveTeam =>
-        _activeTab == "home" ? _homeConfigs : _awayConfigs;
-
     private string? _hoverKey = null;
+    private string? _hoveredPlayerKey = null;
 
     private static readonly Dictionary<ShotType, ShotContext[]> _shotTypeContexts = new()
     {
@@ -542,10 +587,12 @@
     };
 
     // ── ESPN team picker ─────────────────────────────────────────────────────
-    private List<EspnTeam> _espnTeams   = [];
-    private bool           _teamsLoading  = true;
-    private bool           _rosterLoading = false;
-    private EspnTeam?      _loadedTeam    = null;
+    private List<EspnTeam> _espnTeams        = [];
+    private bool           _teamsLoading     = true;
+    private bool           _homeRosterLoading = false;
+    private bool           _awayRosterLoading = false;
+    private EspnTeam?      _homeLoadedTeam    = null;
+    private EspnTeam?      _awayLoadedTeam    = null;
 
     protected override async Task OnInitializedAsync()
     {
@@ -553,7 +600,7 @@
         _teamsLoading = false;
     }
 
-    private async Task OnTeamSelected(ChangeEventArgs e)
+    private async Task OnTeamSelected(ChangeEventArgs e, string side)
     {
         var id = e.Value?.ToString();
         if (string.IsNullOrEmpty(id)) return;
@@ -561,98 +608,314 @@
         var team = _espnTeams.FirstOrDefault(t => t.Id == id);
         if (team == null) return;
 
-        _rosterLoading = true;
-        _loadedTeam    = null;
+        bool isHome = side == "home";
+        if (isHome) { _homeRosterLoading = true; _homeLoadedTeam = null; }
+        else        { _awayRosterLoading = true; _awayLoadedTeam = null; }
         StateHasChanged();
 
-        var players = await EspnSvc.GetRosterAsync(id);
+        var cache2k     = Nba2kSvc.GetPlayers();
+        var lookup      = cache2k.ToDictionary(p => EspnTeamFactory.NormalizeName(p.Name), p => p);
+        var espnPlayers = await EspnSvc.GetRosterAsync(id);
+        string slot     = isHome ? "Home" : "Away";
 
-        string slot = _activeTab == "home" ? "Home" : "Away";
-        var configs = players.Select(p => new PlayerConfig
-        {
-            Name = p.Name, Team = slot, Position = p.Position,
-            Height = p.HeightRating
-            // all skill/shooting/defense attrs default to 50
-        }).ToList();
+        var configs = EspnTeamFactory.BuildRoster(espnPlayers, lookup, slot);
 
-        // Pad to 5 if ESPN returned fewer
-        var posSlots = new[] { Position.PG, Position.SG, Position.SF, Position.PF, Position.C };
-        while (configs.Count < 5)
+        if (isHome)
         {
-            var pos = posSlots[configs.Count];
-            configs.Add(new PlayerConfig { Name = $"{pos}", Team = slot, Position = pos });
-        }
-
-        if (_activeTab == "home")
-        {
-            _homeConfigs = configs;
-            _homePace    = 100;
+            _homeConfigs         = configs;
+            _homePace            = 100;
+            _homeRotationDepth   = Math.Min(8, configs.Count);
+            _homeLoadedTeam      = team;
+            _homeRosterLoading   = false;
             if (team != null) _homeColor = team.PrimaryColor;
         }
         else
         {
-            _awayConfigs = configs;
-            _awayPace    = 100;
+            _awayConfigs         = configs;
+            _awayPace            = 100;
+            _awayRotationDepth   = Math.Min(8, configs.Count);
+            _awayLoadedTeam      = team;
+            _awayRosterLoading   = false;
             if (team != null) _awayColor = team.PrimaryColor;
         }
 
-        _loadedTeam    = team;
-        _rosterLoading = false;
-        _results       = null;
+        _results = null;
     }
 
     // ── Factory ─────────────────────────────────────────────────────────────
-    private static List<PlayerConfig> MakeDefaultTeam(string teamName)
-    {
-        var positions = new[] { Position.PG, Position.SG, Position.SF, Position.PF, Position.C };
-        string suffix = teamName == "Home" ? "H" : "A";
-        return positions.Select((pos, i) => new PlayerConfig
+    // Default home team: New York Knicks 2024-25
+    // Default away team: Oklahoma City Thunder 2024-25
+    // Attributes on 5–95 scale (50 = NBA average).
+    // FoulTendency mapped from real foul/36 data: 5 ≈ 1.2 f/36 (Tyus Jones), 95 ≈ 5.6 f/36 (Valanciunas).
+    private static List<PlayerConfig> MakeDefaultTeam(string teamName) =>
+        teamName == "Home" ? MakeKnicks() : MakeThunder();
+
+    private static List<PlayerConfig> MakeKnicks() =>
+    [
+        new PlayerConfig
         {
-            Name = $"Player {i + 1}{suffix}",
-            Team = teamName,
-            Position = pos
-        }).ToList();
-    }
+            Name = "Jalen Brunson", Team = "New York", Position = Position.PG,
+            Height=40, Speed=68, Strength=65, Jumping=58, Endurance=85,
+            Inside=74, Dunks=40, FreeThrow=86, MidRange=90, ThreePoint=72,
+            BasketballIQ=94, Dribbling=92, Passing=82, ReboundingOff=28, ReboundingDef=35,
+            PerimeterDefense=62, InteriorDefense=40, FoulTendency=30,
+            Tend_Touches=85, Tend_Drive=80, Tend_ThreePt=58, Tend_MidRange=82,
+            Tend_PostUp=55, Tend_Iso=78, Tend_PullUp=82, Tend_Cut=40,
+            Tend_OffReb=25, Tend_Steal=55, Tend_Block=30,
+        },
+        new PlayerConfig
+        {
+            Name = "Mikal Bridges", Team = "New York", Position = Position.SG,
+            Height=62, Speed=78, Strength=68, Jumping=72, Endurance=85,
+            Inside=62, Dunks=58, FreeThrow=76, MidRange=72, ThreePoint=68,
+            BasketballIQ=82, Dribbling=72, Passing=70, ReboundingOff=40, ReboundingDef=52,
+            PerimeterDefense=86, InteriorDefense=58, FoulTendency=26,
+            Tend_Touches=58, Tend_Drive=65, Tend_ThreePt=68, Tend_MidRange=62,
+            Tend_PostUp=30, Tend_Iso=55, Tend_PullUp=60, Tend_Cut=62,
+            Tend_OffReb=38, Tend_Steal=68, Tend_Block=52,
+        },
+        new PlayerConfig
+        {
+            Name = "OG Anunoby", Team = "New York", Position = Position.SF,
+            Height=65, Speed=80, Strength=80, Jumping=80, Endurance=82,
+            Inside=70, Dunks=72, FreeThrow=72, MidRange=68, ThreePoint=72,
+            BasketballIQ=80, Dribbling=70, Passing=68, ReboundingOff=45, ReboundingDef=60,
+            PerimeterDefense=90, InteriorDefense=72, FoulTendency=36,
+            Tend_Touches=58, Tend_Drive=70, Tend_ThreePt=70, Tend_MidRange=55,
+            Tend_PostUp=35, Tend_Iso=50, Tend_PullUp=55, Tend_Cut=68,
+            Tend_OffReb=42, Tend_Steal=72, Tend_Block=65,
+        },
+        new PlayerConfig
+        {
+            Name = "Josh Hart", Team = "New York", Position = Position.PF,
+            Height=55, Speed=72, Strength=74, Jumping=70, Endurance=90,
+            Inside=65, Dunks=60, FreeThrow=65, MidRange=58, ThreePoint=58,
+            BasketballIQ=78, Dribbling=65, Passing=72, ReboundingOff=80, ReboundingDef=75,
+            PerimeterDefense=78, InteriorDefense=60, FoulTendency=40,
+            Tend_Touches=52, Tend_Drive=62, Tend_ThreePt=55, Tend_MidRange=48,
+            Tend_PostUp=35, Tend_Iso=42, Tend_PullUp=50, Tend_Cut=58,
+            Tend_OffReb=80, Tend_Steal=62, Tend_Block=48,
+        },
+        new PlayerConfig
+        {
+            Name = "Karl-Anthony Towns", Team = "New York", Position = Position.C,
+            Height=82, Speed=62, Strength=72, Jumping=70, Endurance=70,
+            Inside=82, Dunks=72, FreeThrow=84, MidRange=78, ThreePoint=84,
+            BasketballIQ=82, Dribbling=65, Passing=72, ReboundingOff=68, ReboundingDef=72,
+            PerimeterDefense=50, InteriorDefense=68, FoulTendency=64,
+            Tend_Touches=78, Tend_Drive=60, Tend_ThreePt=78, Tend_MidRange=68,
+            Tend_PostUp=72, Tend_Iso=62, Tend_PullUp=65, Tend_Cut=45,
+            Tend_OffReb=65, Tend_Steal=42, Tend_Block=58,
+        },
+        // ── Bench ──────────────────────────────────────────────────────────────
+        new PlayerConfig
+        {
+            Name = "Donte DiVincenzo", Team = "New York", Position = Position.SG,
+            Height=45, Speed=72, Strength=58, Jumping=62, Endurance=80,
+            Inside=52, Dunks=40, FreeThrow=78, MidRange=62, ThreePoint=72,
+            BasketballIQ=74, Dribbling=70, Passing=68, ReboundingOff=32, ReboundingDef=42,
+            PerimeterDefense=75, InteriorDefense=42, FoulTendency=38,
+            Tend_Touches=48, Tend_Drive=58, Tend_ThreePt=72, Tend_MidRange=55,
+            Tend_PostUp=22, Tend_Iso=42, Tend_PullUp=60, Tend_Cut=55,
+            Tend_OffReb=30, Tend_Steal=60, Tend_Block=32,
+        },
+        new PlayerConfig
+        {
+            Name = "Miles McBride", Team = "New York", Position = Position.PG,
+            Height=42, Speed=70, Strength=58, Jumping=58, Endurance=78,
+            Inside=48, Dunks=38, FreeThrow=72, MidRange=58, ThreePoint=65,
+            BasketballIQ=68, Dribbling=72, Passing=65, ReboundingOff=28, ReboundingDef=38,
+            PerimeterDefense=72, InteriorDefense=40, FoulTendency=35,
+            Tend_Touches=44, Tend_Drive=62, Tend_ThreePt=65, Tend_MidRange=50,
+            Tend_PostUp=18, Tend_Iso=38, Tend_PullUp=58, Tend_Cut=48,
+            Tend_OffReb=25, Tend_Steal=62, Tend_Block=28,
+        },
+        new PlayerConfig
+        {
+            Name = "Precious Achiuwa", Team = "New York", Position = Position.PF,
+            Height=68, Speed=65, Strength=75, Jumping=75, Endurance=75,
+            Inside=60, Dunks=62, FreeThrow=58, MidRange=45, ThreePoint=40,
+            BasketballIQ=60, Dribbling=45, Passing=50, ReboundingOff=68, ReboundingDef=65,
+            PerimeterDefense=55, InteriorDefense=65, FoulTendency=58,
+            Tend_Touches=38, Tend_Drive=55, Tend_ThreePt=30, Tend_MidRange=35,
+            Tend_PostUp=48, Tend_Iso=30, Tend_PullUp=30, Tend_Cut=52,
+            Tend_OffReb=68, Tend_Steal=42, Tend_Block=52,
+        },
+        new PlayerConfig
+        {
+            Name = "Bojan Bogdanovic", Team = "New York", Position = Position.SF,
+            Height=55, Speed=52, Strength=55, Jumping=48, Endurance=65,
+            Inside=52, Dunks=35, FreeThrow=84, MidRange=78, ThreePoint=78,
+            BasketballIQ=80, Dribbling=60, Passing=60, ReboundingOff=28, ReboundingDef=38,
+            PerimeterDefense=55, InteriorDefense=40, FoulTendency=40,
+            Tend_Touches=48, Tend_Drive=40, Tend_ThreePt=78, Tend_MidRange=72,
+            Tend_PostUp=30, Tend_Iso=45, Tend_PullUp=65, Tend_Cut=40,
+            Tend_OffReb=25, Tend_Steal=38, Tend_Block=25,
+        },
+        new PlayerConfig
+        {
+            Name = "Mitchell Robinson", Team = "New York", Position = Position.C,
+            Height=85, Speed=55, Strength=75, Jumping=80, Endurance=60,
+            Inside=62, Dunks=68, FreeThrow=38, MidRange=28, ThreePoint=18,
+            BasketballIQ=55, Dribbling=25, Passing=40, ReboundingOff=80, ReboundingDef=80,
+            PerimeterDefense=48, InteriorDefense=82, FoulTendency=72,
+            Tend_Touches=30, Tend_Drive=42, Tend_ThreePt=10, Tend_MidRange=18,
+            Tend_PostUp=52, Tend_Iso=22, Tend_PullUp=15, Tend_Cut=58,
+            Tend_OffReb=80, Tend_Steal=35, Tend_Block=72,
+        },
+    ];
 
-    // ── Event handlers ──────────────────────────────────────────────────────
-    private void OnAttrChange(ChangeEventArgs e, AttrSpec attr, PlayerConfig player)
-    {
-        if (int.TryParse(e.Value?.ToString(), out var v))
-            attr.Set(player, Math.Clamp(v, 1, 100));
-    }
-
-    private static void BulkAdjust(List<PlayerConfig> team, AttrSpec attr, int delta)
-    {
-        foreach (var p in team)
-            attr.Set(p, Math.Clamp(attr.Get(p) + delta, 1, 100));
-    }
+    private static List<PlayerConfig> MakeThunder() =>
+    [
+        new PlayerConfig
+        {
+            Name = "Shai Gilgeous-Alexander", Team = "Oklahoma City", Position = Position.PG,
+            Height=58, Speed=88, Strength=65, Jumping=78, Endurance=85,
+            Inside=78, Dunks=68, FreeThrow=87, MidRange=92, ThreePoint=80,
+            BasketballIQ=92, Dribbling=95, Passing=78, ReboundingOff=30, ReboundingDef=42,
+            PerimeterDefense=78, InteriorDefense=48, FoulTendency=26,
+            Tend_Touches=85, Tend_Drive=85, Tend_ThreePt=60, Tend_MidRange=80,
+            Tend_PostUp=40, Tend_Iso=75, Tend_PullUp=78, Tend_Cut=45,
+            Tend_OffReb=25, Tend_Steal=65, Tend_Block=40,
+        },
+        new PlayerConfig
+        {
+            Name = "Cason Wallace", Team = "Oklahoma City", Position = Position.SG,
+            Height=50, Speed=74, Strength=62, Jumping=68, Endurance=78,
+            Inside=55, Dunks=48, FreeThrow=72, MidRange=60, ThreePoint=68,
+            BasketballIQ=72, Dribbling=65, Passing=65, ReboundingOff=35, ReboundingDef=48,
+            PerimeterDefense=78, InteriorDefense=50, FoulTendency=36,
+            Tend_Touches=50, Tend_Drive=60, Tend_ThreePt=70, Tend_MidRange=50,
+            Tend_PostUp=25, Tend_Iso=45, Tend_PullUp=55, Tend_Cut=55,
+            Tend_OffReb=35, Tend_Steal=70, Tend_Block=40,
+        },
+        new PlayerConfig
+        {
+            Name = "Luguentz Dort", Team = "Oklahoma City", Position = Position.SF,
+            Height=48, Speed=74, Strength=80, Jumping=70, Endurance=85,
+            Inside=60, Dunks=55, FreeThrow=68, MidRange=55, ThreePoint=55,
+            BasketballIQ=72, Dribbling=60, Passing=55, ReboundingOff=42, ReboundingDef=52,
+            PerimeterDefense=90, InteriorDefense=68, FoulTendency=56,
+            Tend_Touches=45, Tend_Drive=65, Tend_ThreePt=50, Tend_MidRange=45,
+            Tend_PostUp=30, Tend_Iso=50, Tend_PullUp=50, Tend_Cut=45,
+            Tend_OffReb=42, Tend_Steal=68, Tend_Block=50,
+        },
+        new PlayerConfig
+        {
+            Name = "Jalen Williams", Team = "Oklahoma City", Position = Position.PF,
+            Height=60, Speed=76, Strength=70, Jumping=72, Endurance=82,
+            Inside=80, Dunks=68, FreeThrow=80, MidRange=84, ThreePoint=74,
+            BasketballIQ=86, Dribbling=82, Passing=76, ReboundingOff=52, ReboundingDef=58,
+            PerimeterDefense=68, InteriorDefense=62, FoulTendency=52,
+            Tend_Touches=78, Tend_Drive=78, Tend_ThreePt=65, Tend_MidRange=72,
+            Tend_PostUp=55, Tend_Iso=68, Tend_PullUp=70, Tend_Cut=50,
+            Tend_OffReb=50, Tend_Steal=55, Tend_Block=50,
+        },
+        new PlayerConfig
+        {
+            Name = "Chet Holmgren", Team = "Oklahoma City", Position = Position.C,
+            Height=85, Speed=65, Strength=55, Jumping=82, Endurance=72,
+            Inside=65, Dunks=70, FreeThrow=72, MidRange=72, ThreePoint=75,
+            BasketballIQ=84, Dribbling=58, Passing=68, ReboundingOff=55, ReboundingDef=75,
+            PerimeterDefense=62, InteriorDefense=92, FoulTendency=38,
+            Tend_Touches=60, Tend_Drive=50, Tend_ThreePt=72, Tend_MidRange=65,
+            Tend_PostUp=48, Tend_Iso=45, Tend_PullUp=60, Tend_Cut=55,
+            Tend_OffReb=52, Tend_Steal=48, Tend_Block=88,
+        },
+        // ── Bench ──────────────────────────────────────────────────────────────
+        new PlayerConfig
+        {
+            Name = "Isaiah Hartenstein", Team = "Oklahoma City", Position = Position.C,
+            Height=78, Speed=55, Strength=72, Jumping=65, Endurance=75,
+            Inside=65, Dunks=62, FreeThrow=62, MidRange=55, ThreePoint=45,
+            BasketballIQ=78, Dribbling=50, Passing=72, ReboundingOff=65, ReboundingDef=72,
+            PerimeterDefense=50, InteriorDefense=72, FoulTendency=50,
+            Tend_Touches=42, Tend_Drive=48, Tend_ThreePt=32, Tend_MidRange=42,
+            Tend_PostUp=55, Tend_Iso=30, Tend_PullUp=35, Tend_Cut=58,
+            Tend_OffReb=65, Tend_Steal=40, Tend_Block=60,
+        },
+        new PlayerConfig
+        {
+            Name = "Alex Caruso", Team = "Oklahoma City", Position = Position.SG,
+            Height=45, Speed=78, Strength=60, Jumping=65, Endurance=82,
+            Inside=48, Dunks=45, FreeThrow=80, MidRange=58, ThreePoint=65,
+            BasketballIQ=82, Dribbling=68, Passing=68, ReboundingOff=30, ReboundingDef=42,
+            PerimeterDefense=88, InteriorDefense=52, FoulTendency=30,
+            Tend_Touches=40, Tend_Drive=60, Tend_ThreePt=65, Tend_MidRange=50,
+            Tend_PostUp=18, Tend_Iso=35, Tend_PullUp=55, Tend_Cut=58,
+            Tend_OffReb=28, Tend_Steal=78, Tend_Block=32,
+        },
+        new PlayerConfig
+        {
+            Name = "Aaron Wiggins", Team = "Oklahoma City", Position = Position.SG,
+            Height=52, Speed=70, Strength=60, Jumping=65, Endurance=75,
+            Inside=52, Dunks=50, FreeThrow=72, MidRange=60, ThreePoint=68,
+            BasketballIQ=66, Dribbling=58, Passing=55, ReboundingOff=35, ReboundingDef=45,
+            PerimeterDefense=70, InteriorDefense=48, FoulTendency=40,
+            Tend_Touches=44, Tend_Drive=55, Tend_ThreePt=68, Tend_MidRange=52,
+            Tend_PostUp=22, Tend_Iso=40, Tend_PullUp=58, Tend_Cut=50,
+            Tend_OffReb=32, Tend_Steal=55, Tend_Block=35,
+        },
+        new PlayerConfig
+        {
+            Name = "Kenrich Williams", Team = "Oklahoma City", Position = Position.SF,
+            Height=58, Speed=65, Strength=65, Jumping=60, Endurance=80,
+            Inside=52, Dunks=45, FreeThrow=68, MidRange=55, ThreePoint=58,
+            BasketballIQ=72, Dribbling=55, Passing=62, ReboundingOff=45, ReboundingDef=55,
+            PerimeterDefense=72, InteriorDefense=60, FoulTendency=42,
+            Tend_Touches=38, Tend_Drive=52, Tend_ThreePt=55, Tend_MidRange=48,
+            Tend_PostUp=28, Tend_Iso=30, Tend_PullUp=45, Tend_Cut=55,
+            Tend_OffReb=45, Tend_Steal=58, Tend_Block=42,
+        },
+        new PlayerConfig
+        {
+            Name = "Ousmane Dieng", Team = "Oklahoma City", Position = Position.SF,
+            Height=65, Speed=68, Strength=52, Jumping=65, Endurance=68,
+            Inside=52, Dunks=48, FreeThrow=62, MidRange=52, ThreePoint=58,
+            BasketballIQ=58, Dribbling=60, Passing=55, ReboundingOff=42, ReboundingDef=50,
+            PerimeterDefense=58, InteriorDefense=50, FoulTendency=45,
+            Tend_Touches=38, Tend_Drive=55, Tend_ThreePt=55, Tend_MidRange=45,
+            Tend_PostUp=25, Tend_Iso=35, Tend_PullUp=45, Tend_Cut=48,
+            Tend_OffReb=40, Tend_Steal=48, Tend_Block=40,
+        },
+    ];
 
     // ── Coaching helpers ─────────────────────────────────────────────────────
     private void SetHomeCoach(CoachingProfile c)
     {
-        _homeInsideMod   = c.InsideMod;
-        _homeMidMod      = c.MidMod;
-        _homeThreeMod    = c.ThreeMod;
-        _homeCoachRating = c.CoachingRating;
+        _homeInsideMod = c.InsideMod;
+        _homeMidMod    = c.MidMod;
+        _homeThreeMod  = c.ThreeMod;
+        _homeOffRating = c.OffensiveRating;
+        _homeDefRating = c.DefensiveRating;
+        _homeDefStyle  = c.DefStyle;
     }
 
     private void SetAwayCoach(CoachingProfile c)
     {
-        _awayInsideMod   = c.InsideMod;
-        _awayMidMod      = c.MidMod;
-        _awayThreeMod    = c.ThreeMod;
-        _awayCoachRating = c.CoachingRating;
+        _awayInsideMod = c.InsideMod;
+        _awayMidMod    = c.MidMod;
+        _awayThreeMod  = c.ThreeMod;
+        _awayOffRating = c.OffensiveRating;
+        _awayDefRating = c.DefensiveRating;
+        _awayDefStyle  = c.DefStyle;
     }
 
     // ── Actions ─────────────────────────────────────────────────────────────
     private void ResetDefaults()
     {
-        _homeConfigs = MakeDefaultTeam("Home");
-        _awayConfigs = MakeDefaultTeam("Away");
-        _homePace = 100;
-        _awayPace = 100;
+        _homeConfigs       = MakeDefaultTeam("Home");
+        _awayConfigs       = MakeDefaultTeam("Away");
+        _homePace          = 100; _awayPace          = 100;
+        _homeRotationDepth = Math.Min(8, _homeConfigs.Count);
+        _awayRotationDepth = Math.Min(8, _awayConfigs.Count);
+        _homeStarterBias   = 65;  _awayStarterBias   = 65;
+        _homeColor         = "#4a9eff"; _awayColor   = "#ef5b40";
+        _homeLoadedTeam    = null; _awayLoadedTeam    = null;
         SetHomeCoach(CoachingProfiles.Balanced);
         SetAwayCoach(CoachingProfiles.Balanced);
+        _homeDefStyle = DefensiveStyle.Balanced;
+        _awayDefStyle = DefensiveStyle.Balanced;
         _saved = false;
         _results = null;
     }
@@ -677,9 +940,11 @@
         var accum  = new BatchAccumulator();
         var engine = new GameEngine();
         var home   = BuildTeam(_homeConfigs, "Home", "HME", _homeColor, _homePace,
-                         new CoachingProfile(_homeInsideMod, _homeMidMod, _homeThreeMod, _homeCoachRating));
+                         new CoachingProfile(_homeInsideMod, _homeMidMod, _homeThreeMod, _homeOffRating, _homeDefRating, _homeDefStyle),
+                         _homeRotationDepth, _homeStarterBias);
         var away   = BuildTeam(_awayConfigs, "Away", "AWY", _awayColor, _awayPace,
-                         new CoachingProfile(_awayInsideMod, _awayMidMod, _awayThreeMod, _awayCoachRating));
+                         new CoachingProfile(_awayInsideMod, _awayMidMod, _awayThreeMod, _awayOffRating, _awayDefRating, _awayDefStyle),
+                         _awayRotationDepth, _awayStarterBias);
 
         int totalGames = Math.Max(1, _totalGames);
         const int batchSize = 500;
@@ -706,19 +971,28 @@
         StateHasChanged();
     }
 
-    private static Team BuildTeam(List<PlayerConfig> configs, string name, string abbr,
-                                   string color, int pace, CoachingProfile coach) => new()
+    private static Dictionary<string, double> ComputeExpectedMinutes(
+        List<PlayerConfig> configs, int rotDepth, int starterBias)
     {
-        Name = name, Abbreviation = abbr,
-        PrimaryColor = color, SecondaryColor = "#888888",
-        Pace = pace,
-        Coach = coach,
-        Roster = configs.Select(c => c.ToPlayer()).ToList()
-    };
+        if (configs.Count < 5) return new();
+        var team = new Team
+        {
+            Name = "tmp", Abbreviation = "TMP", PrimaryColor = "#fff", SecondaryColor = "#888",
+            Roster        = configs.Select(c => c.ToPlayer()).ToList(),
+            RotationDepth = Math.Clamp(rotDepth,    5, configs.Count),
+            StarterBias   = Math.Clamp(starterBias, 0, 100),
+        };
+        return RotationManager.ComputeTargetMinutes(team);
+    }
+
+    private static Team BuildTeam(List<PlayerConfig> configs, string name, string abbr,
+                                   string color, int pace, CoachingProfile coach,
+                                   int rotationDepth = 8, int starterBias = 65) =>
+        EspnTeamFactory.BuildTeam(configs, name, abbr, color, pace, coach, rotationDepth, starterBias);
 
     // ── Styling helpers ─────────────────────────────────────────────────────
     private static string InputStyle(int v) =>
-        $"width:54px;text-align:center;background:#252525;border:1px solid #333;color:{ValColor(v)};padding:2px;border-radius:3px;font-size:0.77rem;font-family:monospace;";
+        $"width:54px;text-align:center;background:#252525;border:1px solid #333;color:{ValColor(v)};padding:2px;border-radius:3px;font-size: 0.97rem;font-family:monospace;";
 
     private static string ValColor(int v) => v switch
     {
@@ -747,15 +1021,15 @@
         string afw = awayWins ? "700" : "400";
         string bg  = isSection ? "#252525" : "#1e1e1e";
         return @<tr style="border-bottom:1px solid #252525;background:@bg;">
-            <td style="padding:4px 0;color:#666;font-size:0.74rem;">@label</td>
-            <td style="text-align:center;padding:4px 12px;color:@hc;font-weight:@hfw;font-size:0.82rem;">@home</td>
-            <td style="text-align:center;padding:4px 12px;color:@ac;font-weight:@afw;font-size:0.82rem;">@away</td>
+            <td style="padding:4px 0;color:#666;font-size: 0.94rem;">@label</td>
+            <td style="text-align:center;padding:4px 12px;color:@hc;font-weight:@hfw;font-size: 1.02rem;">@home</td>
+            <td style="text-align:center;padding:4px 12px;color:@ac;font-weight:@afw;font-size: 1.02rem;">@away</td>
         </tr>;
     }
 
     private RenderFragment SectionHeader(string label) =>
         @<tr style="background:#222;border-top:1px solid #2a2a2a;">
-            <td colspan="3" style="padding:4px 0;font-size:0.62rem;letter-spacing:2px;color:#444;text-transform:uppercase;">@label</td>
+            <td colspan="3" style="padding:4px 0;font-size: 0.82rem;letter-spacing:2px;color:#444;text-transform:uppercase;">@label</td>
         </tr>;
 
     // ── Batch accumulator ───────────────────────────────────────────────────
@@ -780,8 +1054,9 @@
             public required string   Name;
             public required string   Team;
             public required Position Position;
-            public long Pts, Reb, Ast, Stl, Blk, To;
+            public long Pts, Reb, Ast, Stl, Blk, To, Fouls;
             public long FGM, FGA, ThreeM, ThreeA, FTM, FTA;
+            public double Min;
         }
 
         public Dictionary<string, PlayerAccum> PlayerStats = new();
@@ -813,6 +1088,7 @@
                 pa.Pts    += s.Points;      pa.Reb  += s.Rebounds;
                 pa.Ast    += s.Assists;     pa.Stl  += s.Steals;
                 pa.Blk    += s.Blocks;      pa.To   += s.Turnovers;
+                pa.Fouls  += s.Fouls;       pa.Min  += s.MinutesPlayed;
                 pa.FGM    += s.FGMade;      pa.FGA  += s.FGAttempts;
                 pa.ThreeM += s.ThreeMade;   pa.ThreeA += s.ThreeAttempts;
                 pa.FTM    += s.FTMade;      pa.FTA  += s.FTAttempts;

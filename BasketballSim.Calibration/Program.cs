@@ -1,6 +1,7 @@
+using System.Text.Json;
 using BasketballSim.Models;
+using BasketballSim.Services;
 using BasketballSim.Simulation;
-using BasketballSim.Data;
 
 // ── Output setup ────────────────────────────────────────────────────────────
 var outputPath = Path.Combine(
@@ -88,25 +89,212 @@ RunScenario("High FT drivers (FT=85, Inside=75, Spd=75, Drib=75)",
     MT("Away", "AVG", "#f84", 100));
 
 WH("SET 7: COACHING");
-RunScenario("Coach 95 vs Coach 5 — target ~6 pt differential",
-    MT("Home", "COA", "#4af", 100, coach: new CoachingProfile(1.0, 1.0, 1.0, 95)),
-    MT("Away", "COB", "#f84", 100, coach: new CoachingProfile(1.0, 1.0, 1.0, 5)));
+RunScenario("Coach OffRat 95 vs 5 — target ~6 pt differential",
+    MT("Home", "COA", "#4af", 100, coach: new CoachingProfile(1.0, 1.0, 1.0, 95, 60)),
+    MT("Away", "COB", "#f84", 100, coach: new CoachingProfile(1.0, 1.0, 1.0, 5, 60)));
 RunScenario("Pace&Space coach vs PostUp coach",
     MT("Home", "P&S", "#4af", 100, coach: CoachingProfiles.PaceAndSpace),
     MT("Away", "PST", "#f84", 100, coach: CoachingProfiles.PostUp));
 
-WH("SET 8: REAL TEAM DATA");
-RunScenario("Knicks (real data) vs All-50 baseline",
-    RosterData.Knicks,
-    MT("Baseline", "BAS", "#888", 100));
-
-WH("SET 9: RATING EXTREMES");
+WH("SET 8: RATING EXTREMES");
 RunScenario("All-95 vs All-50",
     MT("Elite", "ELT", "#4af", 100, all: 95),
     MT("Average", "AVG", "#f84", 100, all: 50));
 RunScenario("All-95 vs All-5",
     MT("Elite", "ELT", "#4af", 100, all: 95),
     MT("Awful", "AWF", "#f84", 100, all: 5));
+
+// ── Season Sim with Real NBA Rosters ─────────────────────────────────────────
+W("");
+W("══════════════════════════════════════════════════════════════════");
+W(" SEASON SIM — REAL NBA ROSTERS (1,230 games)");
+W("══════════════════════════════════════════════════════════════════");
+
+// Find the BasketballSim data directory relative to the running assembly.
+// The calibration binary lives under BasketballSim.Calibration/bin/...,
+// and the data files live under BasketballSim/Data/.
+var asmDir = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location)!;
+var repoRoot = asmDir;
+// Walk up until we find the solution root (contains both project folders)
+for (int i = 0; i < 8; i++)
+{
+    if (Directory.Exists(Path.Combine(repoRoot, "BasketballSim", "Data"))) break;
+    repoRoot = Path.GetDirectoryName(repoRoot)!;
+}
+var dataDir      = Path.Combine(repoRoot, "BasketballSim", "Data");
+var cacheJsonPath = Path.Combine(dataDir, "nba2k_cache.json");
+var rosterJsonPath = Path.Combine(dataDir, "nba_roster.json");
+
+if (!File.Exists(cacheJsonPath) || !File.Exists(rosterJsonPath))
+{
+    W($"⚠  Data files not found under: {dataDir}");
+    W("   Skipping season sim. Run the app and fetch rosters first.");
+}
+else
+{
+    W($"   Loading 2K cache: {cacheJsonPath}");
+    var players2k = Nba2kCacheService.LoadFromPath(cacheJsonPath);
+    var lookup    = players2k.ToDictionary(p => EspnTeamFactory.NormalizeName(p.Name), p => p);
+    W($"   Players in cache: {players2k.Count}");
+
+    // Parse nba_roster.json (same structure as NbaRosterService.LoadTeams)
+    using var rosterDoc = JsonDocument.Parse(File.ReadAllText(rosterJsonPath));
+    var teamsArr = rosterDoc.RootElement.GetProperty("teams");
+
+    var teamsByName = new Dictionary<string, Team>(StringComparer.OrdinalIgnoreCase);
+
+    foreach (var t in teamsArr.EnumerateArray())
+    {
+        var name      = t.GetString("name")!;
+        var abbr      = t.GetString("abbreviation")!;
+        var primary   = t.GetString("primaryColor") ?? "#888";
+        var secondary = t.GetString("secondaryColor") ?? "#888";
+        var division  = t.GetString("division") ?? "";
+        var conf      = t.GetString("conference") ?? "";
+
+        var espnPlayers = new List<EspnPlayer>();
+        if (t.TryGetProperty("players", out var playersArr))
+        {
+            foreach (var p in playersArr.EnumerateArray())
+            {
+                var pName    = p.GetString("name") ?? "Unknown";
+                var posGroup = p.GetString("espnPosition") ?? "G";
+                var hRating  = p.TryGetProperty("heightRating", out var hr) && hr.TryGetInt32(out int h) ? h : 50;
+                var pos = posGroup == "C" ? Position.C : posGroup == "F" ? Position.SF : Position.PG;
+                espnPlayers.Add(new EspnPlayer(pName, 0, pos, hRating, 25));
+            }
+        }
+
+        var configs = EspnTeamFactory.BuildRoster(espnPlayers, lookup, name);
+        var team    = EspnTeamFactory.BuildTeam(
+            configs, name, abbr, primary,
+            rotationDepth: 10,
+            secondaryColor: secondary, division: division, conference: conf);
+        teamsByName[name] = team;
+    }
+
+    W($"   Teams loaded: {teamsByName.Count}");
+    W("   Simulating 1,230 games...");
+
+    int lastPct = -1;
+    var progress = new Progress<(int current, int total)>(p =>
+    {
+        int pct = p.current * 100 / p.total;
+        if (pct / 10 > lastPct / 10)
+        {
+            lastPct = pct;
+            Console.Write($"\r   {p.current}/{p.total} games ({pct}%)   ");
+        }
+    });
+
+    var schedSvc = new SeasonScheduleService();
+    var seasonResult = schedSvc.SimulateSeason(teamsByName, progress);
+    Console.WriteLine();
+
+    // ── Print league averages ──────────────────────────────────────────────────
+    var ts = seasonResult.TeamStats;
+    double nTeams = ts.Count;
+
+    double leaguePpg    = ts.Average(t2 => t2.Ppg);
+    double leagueFgaPg  = ts.Average(t2 => t2.Fga);
+    double leagueFgmPg  = ts.Average(t2 => t2.Fgm);
+    double leagueFgPct  = seasonResult.LeagueFgPct * 100;
+    double leagueTpaPg  = ts.Average(t2 => t2.Tpa);
+    double leagueTpmPg  = ts.Average(t2 => t2.Tpm);
+    double leagueTpPct  = seasonResult.LeagueTpPct * 100;
+    double leagueFtaPg  = ts.Average(t2 => t2.Fta);
+    double leagueFtmPg  = ts.Average(t2 => t2.Ftm);
+    double leagueFtPct  = seasonResult.LeagueFtPct * 100;
+    double leagueOrebPg = ts.Average(t2 => t2.Oreb);
+    double leagueDrebPg = ts.Average(t2 => t2.Dreb);
+    double leagueAstPg  = ts.Average(t2 => t2.Ast);
+    double leagueStlPg  = ts.Average(t2 => t2.Stl);
+    double leagueBlkPg  = ts.Average(t2 => t2.Blk);
+    double leagueTovPg  = ts.Average(t2 => t2.Tov);
+    double avg2PA       = leagueFgaPg - leagueTpaPg;
+    double avg2PM       = leagueFgmPg - leagueTpmPg;
+    double avg2PPct     = avg2PA > 0 ? avg2PM / avg2PA * 100 : 0;
+
+    W("");
+    W("  LEAGUE AVG (per team per game)");
+    W($"  {"Stat",-8} {"Sim",8} {"Target",8} {"Delta",8}");
+    W($"  {"─────────────────────────────────────────"}");
+    Stat("PTS",    leaguePpg,   114.6);
+    Stat("FGA",    leagueFgaPg,  88.7);
+    Stat("FGM",    leagueFgmPg,  42.9);
+    StatPct("FG%", leagueFgPct,  48.4);
+    Stat("3PA",    leagueTpaPg,  35.1);
+    Stat("3PM",    leagueTpmPg,  13.1);
+    StatPct("3P%", leagueTpPct,  37.3);
+    Stat("2PA",    avg2PA,       53.6);
+    Stat("2PM",    avg2PM,       29.8);
+    StatPct("2P%", avg2PPct,     55.6);
+    Stat("FTA",    leagueFtaPg,  21.5);
+    Stat("FTM",    leagueFtmPg,  16.7);
+    StatPct("FT%", leagueFtPct,  77.5);
+    Stat("ORB",    leagueOrebPg,  9.5);
+    Stat("DRB",    leagueDrebPg, 32.6);
+    Stat("AST",    leagueAstPg,  26.5);
+    Stat("STL",    leagueStlPg,   7.4);
+    Stat("BLK",    leagueBlkPg,   4.9);
+    Stat("TOV",    leagueTovPg,  13.9);
+    W("");
+    W($"  Avg possessions/team/game: {seasonResult.AvgPossessionsPerTeam:F1}  (NBA ~100)");
+    W($"  Avg possession length:     {seasonResult.AvgPossessionLengthSeconds:F1}s  (NBA ~14s)");
+    W($"  Avg passes/possession:     {seasonResult.AvgPassesPerPossession:F1}");
+
+    // Top 10 scorers
+    W("");
+    W("  TOP 10 SCORERS");
+    W($"  {"#",-3} {"Name",-22} {"Team",4} {"GP",4} {"PPG",6} {"FTA",6} {"MPG",6}");
+    foreach (var (ps, idx) in seasonResult.PlayerStats.Take(10).Select((p, i) => (p, i)))
+        W($"  {idx+1,-3} {ps.Name,-22} {ps.TeamAbbr,4} {ps.GP,4} {ps.Ppg,6:F1} {ps.Fta,6:F1} {ps.Mpg,6:F1}");
+
+    // Top 5 rebounders
+    W("");
+    W("  TOP 10 REBOUNDERS");
+    W($"  {"#",-3} {"Name",-22} {"Team",4} {"RPG",6} {"OPG",6} {"DPG",6}");
+    foreach (var (ps, idx) in seasonResult.PlayerStats.OrderByDescending(p => p.Rpg).Take(10).Select((p, i) => (p, i)))
+        W($"  {idx+1,-3} {ps.Name,-22} {ps.TeamAbbr,4} {ps.Rpg,6:F1} {ps.Opg,6:F1} {ps.Dpg,6:F1}");
+
+    // Top 5 blockers
+    W("");
+    W("  TOP 10 BLOCKERS");
+    W($"  {"#",-3} {"Name",-22} {"Team",4} {"BPG",6}");
+    foreach (var (ps, idx) in seasonResult.PlayerStats.OrderByDescending(p => p.Bpg).Take(10).Select((p, i) => (p, i)))
+        W($"  {idx+1,-3} {ps.Name,-22} {ps.TeamAbbr,4} {ps.Bpg,6:F2}");
+
+    // Save season results JSON
+    var seasonOutputPath = Path.Combine(
+        Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location)!,
+        "season_results.json");
+    var serOptions = new JsonSerializerOptions { WriteIndented = true };
+    File.WriteAllText(seasonOutputPath, JsonSerializer.Serialize(new
+    {
+        simulated_at = seasonResult.SimulatedAt,
+        league_averages = new
+        {
+            ppg = leaguePpg,    fga = leagueFgaPg,  fgm = leagueFgmPg,  fg_pct = leagueFgPct,
+            tpa = leagueTpaPg,  tpm = leagueTpmPg,  tp_pct = leagueTpPct,
+            fta = leagueFtaPg,  ftm = leagueFtmPg,  ft_pct = leagueFtPct,
+            orb = leagueOrebPg, drb = leagueDrebPg, ast = leagueAstPg,
+            stl = leagueStlPg,  blk = leagueBlkPg,  tov = leagueTovPg,
+        },
+        team_standings = seasonResult.TeamStats.Select(t2 => new
+        {
+            t2.TeamName, t2.Abbreviation, t2.Conference, t2.Division,
+            t2.Wins, t2.Losses, pct = t2.Pct,
+            ppg = t2.Ppg, papg = t2.Papg,
+        }),
+        top_scorers = seasonResult.PlayerStats.Take(25).Select(p => new
+        {
+            p.Name, p.Team, p.TeamAbbr, pos = p.Position.ToString(),
+            p.GP, ppg = p.Ppg, rpg = p.Rpg, apg = p.Apg, bpg = p.Bpg, spg = p.Spg,
+            fta = p.Fta, mpg = p.Mpg,
+        }),
+    }, serOptions));
+    W($"   Season results saved to: {seasonOutputPath}");
+}
 
 W("");
 W($"Output written to: {outputPath}");
@@ -115,6 +303,18 @@ Console.WriteLine($"\nDone. Results: {outputPath}");
 
 // ── Local functions ──────────────────────────────────────────────────────────
 void W(string s = "") { Console.WriteLine(s); file.WriteLine(s); }
+void Stat(string label, double sim, double target)
+{
+    double delta = sim - target;
+    string flag  = Math.Abs(delta) / target > 0.10 ? " ⚠" : " ✅";
+    W($"  {label,-8} {sim,8:F1} {target,8:F1} {delta,8:+0.0;-0.0}{flag}");
+}
+void StatPct(string label, double sim, double target)
+{
+    double delta = sim - target;
+    string flag  = Math.Abs(delta) > 1.5 ? " ⚠" : " ✅";
+    W($"  {label,-8} {sim,7:F1}% {target,7:F1}% {delta,8:+0.0;-0.0}{flag}");
+}
 void WH(string label) { W(""); W($"{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}"); W($" {label}"); }
 
 Team MT(string name, string abbr, string color, double pace,
@@ -162,6 +362,14 @@ void RunScenario(string title, Team home, Team away, int games = 500)
     W($"   {games} games | Home wins: {homeWins} ({homeWins * 100.0 / games:F1}%)  Avg score: {ha.Pts/(double)games:F1} - {aa.Pts/(double)games:F1}  (diff: {(ha.Pts-aa.Pts)/(double)games:+0.0;-0.0})");
     W($"   HOME: "); ha.Print(s => W("     " + s));
     W($"   AWAY: "); aa.Print(s => W("     " + s));
+}
+
+// ── JsonElement helper (mirrors NbaRosterService's file-scoped extension) ─────
+static class CalibJsonExt
+{
+    public static string? GetString(this System.Text.Json.JsonElement el, string prop) =>
+        el.TryGetProperty(prop, out var v) && v.ValueKind == System.Text.Json.JsonValueKind.String
+            ? v.GetString() : null;
 }
 
 // ── Accum class (must be after top-level statements) ─────────────────────────

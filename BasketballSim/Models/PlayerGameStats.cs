@@ -14,6 +14,7 @@ public class PlayerGameStats
     public int    Steals       { get; set; }
     public int    Blocks       { get; set; }
     public int    Turnovers    { get; set; }
+    public int    Fouls        { get; set; }
     public int    FGMade       { get; set; }
     public int    FGAttempts   { get; set; }
     public int    ThreeMade    { get; set; }
@@ -23,9 +24,31 @@ public class PlayerGameStats
     public double MinutesPlayed { get; set; }
     public int    PlusMinus    { get; set; }
 
+    // Player tracking stats
+    public int    TouchesTotal       { get; set; }   // times this player had the ball
+    public int    ShotAttempts       { get; set; }   // FGA + pre-shot fouls (shots that drew FTs without a FGA)
+    public int    TeamTouchesOnCourt { get; set; }   // total touches by any player while this player is on court
+    public int    TeamFGAOnCourt     { get; set; }   // total team FGA while this player is on court
+
+    // Shot-type breakdown (only final FGA, consistent with FGAttempts after FT conversions)
+    public int InsideMade   { get; set; }
+    public int InsideAtt    { get; set; }
+    public int MidRangeMade { get; set; }
+    public int MidRangeAtt  { get; set; }
+
+    // Defensive: shots attempted and made against this player's primary coverage
+    public int DefFGMade     { get; set; }
+    public int DefFGAttempts { get; set; }
+
     public string FGDisplay    => $"{FGMade}/{FGAttempts}";
     public string ThreeDisplay => $"{ThreeMade}/{ThreeAttempts}";
     public string FTDisplay    => $"{FTMade}/{FTAttempts}";
-    public double FGPct        => FGAttempts > 0 ? (double)FGMade / FGAttempts : 0;
-    public double ThreePct     => ThreeAttempts > 0 ? (double)ThreeMade / ThreeAttempts : 0;
+    public double FGPct           => FGAttempts > 0 ? (double)FGMade / FGAttempts : 0;
+    public double ThreePct        => ThreeAttempts > 0 ? (double)ThreeMade / ThreeAttempts : 0;
+    public double InsidePct       => InsideAtt > 0 ? (double)InsideMade / InsideAtt : 0;
+    public double MidRangePct     => MidRangeAtt > 0 ? (double)MidRangeMade / MidRangeAtt : 0;
+    public double DefFgPct        => DefFGAttempts > 0 ? (double)DefFGMade / DefFGAttempts : 0;
+    public double TouchPct        => TeamTouchesOnCourt > 0 ? (double)TouchesTotal / TeamTouchesOnCourt : 0;
+    public double ShotSharePct    => TeamFGAOnCourt > 0 ? (double)FGAttempts / TeamFGAOnCourt : 0;
+    public double ShotAttemptRate => TouchesTotal > 0 ? (double)ShotAttempts / TouchesTotal : 0;
 }

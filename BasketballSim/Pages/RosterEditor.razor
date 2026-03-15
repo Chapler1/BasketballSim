@@ -1,0 +1,328 @@
+@page "/roster"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@using BasketballSim.Models
+@using BasketballSim.Services
+@using Microsoft.AspNetCore.Components.Web
+@inject PlayerDataService PlayerSvc
+
+<PageTitle>Roster Editor</PageTitle>
+
+@if (_players.Count == 0)
+{
+    <div class="p-4">
+        <div class="alert alert-warning">
+            <strong>No player data found.</strong>
+            Go to <a href="/season">Season Sim</a> and fetch ESPN rosters first.
+        </div>
+    </div>
+    return;
+}
+
+<div class="re-page">
+
+    @* ── Controls ───────────────────────────────────────────────────────── *@
+    <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+        <select class="re-select" @bind="_selectedTeam">
+            <option value="">All Teams</option>
+            @foreach (var t in _teams)
+            {
+                <option value="@t.Name">@t.Name (@t.Abbr)</option>
+            }
+        </select>
+
+        <button class="re-tab @(_tab=="attrs"?"active":"")" @onclick='()=>{ _tab="attrs"; _editingPlayer=null; }'>Attributes</button>
+        <button class="re-tab @(_tab=="tends"?"active":"")" @onclick='()=>{ _tab="tends"; _editingPlayer=null; }'>Tendencies</button>
+
+        @if (!string.IsNullOrEmpty(_selectedTeam))
+        {
+            <button class="re-btn" @onclick="()=>BumpAll(+1)">All +1</button>
+            <button class="re-btn" @onclick="()=>BumpAll(-1)">All −1</button>
+        }
+
+        <button class="re-btn @(_savedMsg?"saved":_dirtyCount>0?"dirty":"")"
+                @onclick="SaveAsync" disabled="@(_dirtyCount==0&&!_savedMsg)">
+            @(_savedMsg ? "✓ Saved" : $"Save ({_dirtyCount})")
+        </button>
+
+        <span class="re-hint">Double-click a row to edit</span>
+    </div>
+
+    @* ── Distribution graph ─────────────────────────────────────────────── *@
+    <div class="dist-wrap mb-2">
+        <span class="dist-label">@_distAttr &nbsp;
+            <span style="color:#f5a623">— fit</span>
+            <span style="color:#6ab0f5"> · players</span>
+        </span>
+        @((MarkupString)BuildDistSvg(_distAttr, _tab))
+    </div>
+
+    @* ── Table ──────────────────────────────────────────────────────────── *@
+    @{
+        var rawList = string.IsNullOrEmpty(_selectedTeam)
+            ? _players
+            : _players.Where(p => p.Team.Equals(_selectedTeam, StringComparison.OrdinalIgnoreCase)).ToList();
+        var visible = Sorted(rawList);
+        var cols    = _tab == "attrs" ? AttrCols : TendCols;
+    }
+    <div class="grid-wrap">
+        <table class="re-table">
+            <thead>
+                <tr>
+                    <th colspan="2" class="group-th"></th>
+                    @if (_tab == "attrs")
+                    {
+                        <th colspan="5" class="group-th">Physical</th>
+                        <th colspan="5" class="group-th">Shooting</th>
+                        <th colspan="5" class="group-th">Skill</th>
+                        <th colspan="3" class="group-th">Defense</th>
+                    }
+                    else
+                    {
+                        <th colspan="9"  class="group-th">Offense</th>
+                        <th colspan="2"  class="group-th">Defense</th>
+                    }
+                    <th class="group-th"></th>
+                </tr>
+                <tr>
+                    <th class="th-name sort-th" @onclick='()=>SetSort("Name")'>Player @SI("Name")</th>
+                    <th class="th-pos  sort-th" @onclick='()=>SetSort("Position")'>Pos @SI("Position")</th>
+                    @foreach (var col in cols)
+                    {
+                        <th class="@(_distAttr==col.Key?"th-sel":"")" @onclick="()=>SetSort(col.Key)">
+                            @col.Label @SI(col.Key)
+                            @if (!string.IsNullOrEmpty(_selectedTeam))
+                            {
+                                <div class="bumps">
+                                    <button @onclick:stopPropagation="true" @onclick="()=>BumpCol(col.Key,+1)">+</button>
+                                    <button @onclick:stopPropagation="true" @onclick="()=>BumpCol(col.Key,-1)">−</button>
+                                </div>
+                            }
+                        </th>
+                    }
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var player in visible)
+                {
+                    bool editing = _editingPlayer == player.Name;
+                    <tr @key="player.Name"
+                        class="@(editing?"tr-edit":_dirty.Contains(player.Name)?"tr-dirty":"")"
+                        @ondblclick="()=>{ _editingPlayer = player.Name; }">
+                        <td class="td-name">@player.Name</td>
+                        <td class="td-pos">@player.PrimaryPosition</td>
+                        @foreach (var col in cols)
+                        {
+                            var dict = _tab == "attrs" ? player.Attrs : player.Tends;
+                            int val  = DictVal(dict, col.Key);
+                            <td style="color:@ValColor(val)">
+                                @if (editing)
+                                {
+                                    <input type="number"
+                                           @bind:get="DictVal(dict,col.Key)"
+                                           @bind:set="v=>SetVal(player,dict,col.Key,v)"
+                                           @bind:event="onchange" />
+                                }
+                                else
+                                {
+                                    @val
+                                }
+                            </td>
+                        }
+                        <td class="td-done">
+                            @if (editing)
+                            {
+                                <button class="done-btn" @onclick="()=>_editingPlayer=null">✓</button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@code {
+    private record ColDef(string Key, string Label);
+
+    private static readonly ColDef[] AttrCols =
+    [
+        new("Height","Ht"),    new("Strength","Str"), new("Speed","Spd"),
+        new("Jumping","Jmp"),  new("Endurance","End"),
+        new("Inside","In"),    new("Dunks","Dunk"),   new("FreeThrow","FT"),
+        new("MidRange","Mid"), new("ThreePoint","3PT"),
+        new("BasketballIQ","IQ"), new("Dribbling","Drbl"), new("Passing","Pass"),
+        new("RebOff","ORb"),   new("RebDef","DRb"),
+        new("PerimDef","PDf"), new("IntDef","IDf"),   new("FoulTend","Foul"),
+    ];
+    private static readonly ColDef[] TendCols =
+    [
+        new("Touches","Tch"),  new("Drive","Drv"),   new("ThreePt","3PT"),
+        new("MidRange","Mid"), new("PostUp","Post"),  new("Iso","Iso"),
+        new("PullUp","Pull"),  new("Cut","Cut"),      new("OffReb","ORb"),
+        new("Steal","Stl"),    new("Block","Blk"),
+    ];
+
+    private List<PlayerRecord> _players      = [];
+    private List<TeamMeta>     _teams        = [];
+    private string             _selectedTeam = "";
+    private string             _tab          = "attrs";
+    private string             _distAttr     = "ThreePoint";
+    private string?            _editingPlayer = null;
+    private string             _sortKey      = "";
+    private bool               _sortAsc      = false;
+    private HashSet<string>    _dirty        = new(StringComparer.OrdinalIgnoreCase);
+    private int                _dirtyCount   => _dirty.Count;
+    private bool               _savedMsg     = false;
+
+    protected override void OnInitialized()
+    {
+        _players = PlayerSvc.GetPlayers().ToList();
+        _teams   = PlayerSvc.GetTeams().ToList();
+    }
+
+    // ── Sort ───────────────────────────────────────────────────────────────
+    private void SetSort(string key)
+    {
+        if (_sortKey == key) _sortAsc = !_sortAsc;
+        else { _sortKey = key; _sortAsc = false; }
+        if (key != "Name" && key != "Position") _distAttr = key;
+        _editingPlayer = null;
+    }
+
+    private string SI(string key) => _sortKey == key ? (_sortAsc ? " ▲" : " ▼") : "";
+
+    private List<PlayerRecord> Sorted(IEnumerable<PlayerRecord> src) =>
+        (string.IsNullOrEmpty(_sortKey) ? src :
+            _sortKey switch
+            {
+                "Name"     => _sortAsc ? src.OrderBy(p=>p.Name)           : src.OrderByDescending(p=>p.Name),
+                "Position" => _sortAsc ? src.OrderBy(p=>p.PrimaryPosition) : src.OrderByDescending(p=>p.PrimaryPosition),
+                _          => _sortAsc ? src.OrderBy(p=>GetVal(p,_sortKey)) : src.OrderByDescending(p=>GetVal(p,_sortKey))
+            }).ToList();
+
+    private int GetVal(PlayerRecord p, string key)
+    {
+        var d = _tab == "attrs" ? p.Attrs : p.Tends;
+        return d.TryGetValue(key, out int v) ? v : 0;
+    }
+
+    // ── Edit helpers ───────────────────────────────────────────────────────
+    private static int DictVal(Dictionary<string, int> d, string key) =>
+        d.TryGetValue(key, out int v) ? v : 50;
+
+    private void SetVal(PlayerRecord player, Dictionary<string, int> dict, string key, int val)
+    {
+        dict[key] = val; // no enforced cap — let user set what they want
+        _dirty.Add(player.Name);
+        _savedMsg = false;
+    }
+
+    // ── Bumps ──────────────────────────────────────────────────────────────
+    private void BumpCol(string key, int delta)
+    {
+        foreach (var p in FilteredPlayers())
+        {
+            var d = _tab == "attrs" ? p.Attrs : p.Tends;
+            if (d.TryGetValue(key, out int cur)) { d[key] = cur + delta; _dirty.Add(p.Name); }
+        }
+        _savedMsg = false;
+    }
+
+    private void BumpAll(int delta)
+    {
+        var cols = _tab == "attrs" ? AttrCols : TendCols;
+        foreach (var p in FilteredPlayers())
+        {
+            var d = _tab == "attrs" ? p.Attrs : p.Tends;
+            foreach (var col in cols)
+                if (d.TryGetValue(col.Key, out int cur)) d[col.Key] = cur + delta;
+            _dirty.Add(p.Name);
+        }
+        _savedMsg = false;
+    }
+
+    private IEnumerable<PlayerRecord> FilteredPlayers() =>
+        string.IsNullOrEmpty(_selectedTeam)
+            ? _players
+            : _players.Where(p => p.Team.Equals(_selectedTeam, StringComparison.OrdinalIgnoreCase));
+
+    // ── Save ───────────────────────────────────────────────────────────────
+    private async Task SaveAsync()
+    {
+        await PlayerSvc.SaveAsync();
+        _dirty.Clear();
+        _savedMsg = true;
+        StateHasChanged();
+        await Task.Delay(2000);
+        _savedMsg = false;
+        StateHasChanged();
+    }
+
+    // ── Colors ─────────────────────────────────────────────────────────────
+    private static string ValColor(int v) =>
+        v >= 80 ? "#4af080" :
+        v >= 65 ? "#a8d060" :
+        v >= 50 ? "#c8d8ea" :
+        v >= 35 ? "#e09050" :
+                  "#e05858";
+
+    // ── Distribution SVG ───────────────────────────────────────────────────
+    private string BuildDistSvg(string key, string tab)
+    {
+        var allVals = _players
+            .Select(p => (p, val: (tab=="attrs"?p.Attrs:p.Tends).TryGetValue(key, out int v) ? v : 50))
+            .ToList();
+        if (allVals.Count == 0) return "<svg width=\"580\" height=\"155\"></svg>";
+
+        var counts = new int[10];
+        foreach (var (_, v) in allVals)
+            counts[Math.Clamp((v - 5) / 10, 0, 9)]++;
+        int maxCount = Math.Max(counts.Max(), 1);
+
+        const double SvgW=580, SvgH=155, LP=6, BW=55, BG=2.2;
+        const double CT=14, CB=108, CH=CB-CT, LY=122, RY=132, RH=13;
+
+        double X(double v) => LP + (v-5.0)/90.0*(10*BW+9*BG);
+
+        var vals = allVals.Select(x=>(double)x.val).ToList();
+        double mu = vals.Average();
+        double sd = Math.Sqrt(vals.Sum(v=>(v-mu)*(v-mu))/vals.Count);
+        if (sd < 1.5) sd = 1.5;
+
+        double Pdf(double x) => Math.Exp(-0.5*Math.Pow((x-mu)/sd,2))/(sd*Math.Sqrt(2*Math.PI));
+        double peak = Pdf(mu);
+        double CY(double v) => CB - CH * Pdf(v) * (peak>0?maxCount/peak:1) / maxCount;
+
+        var sb = new System.Text.StringBuilder();
+        sb.Append($"<svg class=\"dist-svg\" width=\"{SvgW}\" height=\"{SvgH}\" viewBox=\"0 0 {SvgW} {SvgH}\">");
+
+        for (int i=0;i<10;i++)
+        {
+            double bx=LP+i*(BW+BG), bh=CH*counts[i]/maxCount, by=CB-bh;
+            sb.Append($"<rect x=\"{bx:F1}\" y=\"{by:F1}\" width=\"{BW:F1}\" height=\"{bh:F1}\" fill=\"#2a5a9a\" opacity=\"0.45\" rx=\"2\"/>");
+            if (counts[i]>0)
+                sb.Append($"<text x=\"{(bx+BW/2):F1}\" y=\"{(by-3):F1}\" text-anchor=\"middle\" font-size=\"10\" fill=\"#c8d8ea\" font-family=\"monospace\">{counts[i]}</text>");
+            int lo=5+i*10;
+            sb.Append($"<text x=\"{(bx+BW/2):F1}\" y=\"{LY:F1}\" text-anchor=\"middle\" font-size=\"9\" fill=\"#5a7a9a\" font-family=\"monospace\">{lo}–{lo+(i==9?10:9)}</text>");
+        }
+
+        sb.Append($"<line x1=\"{LP}\" y1=\"{CB}\" x2=\"{SvgW-LP}\" y2=\"{CB}\" stroke=\"#2a3550\" stroke-width=\"1\"/>");
+
+        foreach (var (p,v) in allVals)
+        {
+            double cx=X(v), cy=RY+(Math.Abs(p.Name.GetHashCode())%(int)RH);
+            sb.Append($"<circle cx=\"{cx:F1}\" cy=\"{cy:F1}\" r=\"1.7\" fill=\"#6ab0f5\" opacity=\"0.5\"/>");
+        }
+
+        var pts = Enumerable.Range(0,181).Select(i=>5+i*0.5).Select(v=>$"{X(v):F1},{CY(v):F1}");
+        sb.Append($"<path d=\"M{string.Join(" L",pts)}\" fill=\"none\" stroke=\"#f5a623\" stroke-width=\"2\"/>");
+
+        double mx=X(mu), lx=mx+3>SvgW-55?mx-55:mx+3;
+        sb.Append($"<line x1=\"{mx:F1}\" y1=\"{CT}\" x2=\"{mx:F1}\" y2=\"{CB}\" stroke=\"#3a5a7a\" stroke-width=\"1\" stroke-dasharray=\"3,3\"/>");
+        sb.Append($"<text x=\"{lx:F1}\" y=\"{(CT+10):F1}\" font-size=\"9\" fill=\"#7a9ab5\" font-family=\"monospace\">μ={mu:F1} σ={sd:F1}</text>");
+
+        sb.Append("</svg>");
+        return sb.ToString();
+    }
+}

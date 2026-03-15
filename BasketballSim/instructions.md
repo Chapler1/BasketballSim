@@ -1,1107 +1,563 @@
-# Basketball Sim — Implementation Instructions
-## Scope: Game Engine Rewrite + Live Box Score UI
-
-> **Read this entire document before writing any code.** These instructions replace the current `GameEngine.cs`, `PossessionResult.cs`, and `GameSim.razor` with a full player-driven possession pipeline and live box score viewer.
-
----
-
-## Project Structure — Files to Create or Replace
-
-```
-BasketballSim/
-├── Models/
-│   ├── Player.cs               ← NEW
-│   ├── Team.cs                 ← NEW
-│   ├── PossessionResult.cs     ← REPLACE (expand existing)
-│   └── PlayerGameStats.cs      ← NEW
-├── Data/
-│   └── RosterData.cs           ← NEW (hardcoded Knicks + Thunder)
-├── Simulation/
-│   └── GameEngine.cs           ← REPLACE (full rewrite)
-└── Components/Pages/
-    └── GameSim.razor           ← REPLACE (add box score panel)
-```
-
----
-
-## Step 1 — Player.cs
-
-Create `Models/Player.cs`. This is the full attribute system.
-
-**Physical attributes** are visible to the GM. **Skill/shooting attributes are hidden** (internal — never serialized to UI). All attributes use the Basketball GM 0–100 scale.
-
-```csharp
-namespace BasketballSim.Models;
-
-public enum Position { PG, SG, SF, PF, C }
-
-public class Player
-{
-    // ── Identity (always visible) ──────────────────────────────────
-    public required string   Name          { get; init; }
-    public required string   Team          { get; init; }
-    public          int      JerseyNumber  { get; init; }
-    public required Position Position      { get; init; }
-    public          int      Age           { get; init; }
-
-    // ── Physical Attributes (VISIBLE to GM) ───────────────────────
-    // Scale: 0–100
-    public int Height     { get; init; }   // in inches (e.g. 79 = 6'7")
-    public int Strength   { get; init; }
-    public int Speed      { get; init; }
-    public int Jumping    { get; init; }
-    public int Endurance  { get; init; }   // affects fatigue rate
-
-    // ── Shooting Attributes (HIDDEN) ──────────────────────────────
-    // These are the TRUE attributes driving simulation math.
-    // NEVER expose these to any UI component or API response.
-    internal int Attr_Inside      { get; init; }  // layups, dunks, post finishing
-    internal int Attr_Dunks       { get; init; }  // dunk tendency + success rate modifier
-    internal int Attr_FreeThrow   { get; init; }
-    internal int Attr_MidRange    { get; init; }
-    internal int Attr_ThreePoint  { get; init; }
-
-    // ── Skill Attributes (HIDDEN) ──────────────────────────────────
-    internal int Attr_BasketballIQ     { get; init; }  // reduces TO, improves shot selection
-    internal int Attr_Dribbling        { get; init; }  // affects steal chance against, ball handling
-    internal int Attr_Passing          { get; init; }  // drives assist probability
-    internal int Attr_Rebounding_Off   { get; init; }  // offensive rebound probability
-    internal int Attr_Rebounding_Def   { get; init; }  // defensive rebound probability
-
-    // ── Defensive Attributes (HIDDEN) ─────────────────────────────
-    internal int Attr_PerimeterDefense { get; init; }  // contests threes + mid-range
-    internal int Attr_InteriorDefense  { get; init; }  // contests inside shots, blocks
-
-    // ── Derived Tendency Properties ───────────────────────────────
-    // These are computed from attributes. Used by the engine.
-    // Still internal — GM cannot see these directly.
-
-    /// Probability this player is selected as ball handler (0–1)
-    internal double USG_Weight =>
-        (Attr_BasketballIQ + Attr_Dribbling + Attr_MidRange + Attr_ThreePoint) / 400.0;
-
-    /// How often this player defers vs. creates (0 = pure creator, 1 = pure role player)
-    internal double DeferralTendency =>
-        1.0 - (Attr_Dribbling + Attr_BasketballIQ) / 200.0;
-
-    /// Tendency to drive to the rim (0–1)
-    internal double DriveGravity =>
-        (Speed + Attr_Dribbling + Attr_Inside) / 300.0;
-
-    /// Three-point threat level (0–1) — affects spacing calculation
-    internal double PerimeterGravity =>
-        Attr_ThreePoint / 100.0;
-
-    /// How aggressively this player attacks early in shot clock (0–1)
-    internal double ShotClockAggressiveness =>
-        (Speed + Attr_BasketballIQ) / 200.0;
-
-    /// Tendency to attempt cuts toward the basket (0–1)
-    internal double CutTendency =>
-        (Speed + Jumping + Attr_BasketballIQ) / 300.0;
-
-    /// Tendency to attempt alley-oops (0–1)
-    internal double AlleyOopTendency =>
-        (Jumping + Attr_Dunks + Speed) / 300.0;
-
-    /// Fatigue multiplier — starts at 0, increases with minutes
-    public double Fatigue { get; set; } = 0.0;
-
-    // ── Make% Converters ──────────────────────────────────────────
-    // Converts 0–100 attribute to a realistic NBA shooting percentage.
-    // These are the ONLY way the engine accesses shooting probability.
-
-    /// Converts Inside attribute (0–100) to a realistic make% (0.45–0.72)
-    internal double InsideMakePct =>
-        0.45 + (Attr_Inside / 100.0) * 0.27;
-
-    /// Converts MidRange attribute (0–100) to a realistic make% (0.30–0.52)
-    internal double MidRangeMakePct =>
-        0.30 + (Attr_MidRange / 100.0) * 0.22;
-
-    /// Converts ThreePoint attribute (0–100) to a realistic make% (0.28–0.45)
-    internal double ThreeMakePct =>
-        0.28 + (Attr_ThreePoint / 100.0) * 0.17;
-
-    /// Converts FreeThrow attribute (0–100) to a realistic make% (0.55–0.95)
-    internal double FTMakePct =>
-        0.55 + (Attr_FreeThrow / 100.0) * 0.40;
-
-    /// Block chance modifier from InteriorDefense (0–0.08)
-    internal double BlockMod =>
-        (Attr_InteriorDefense / 100.0) * 0.08;
-
-    /// Steal modifier from PerimeterDefense + Speed (0–0.03)
-    internal double StealMod =>
-        ((Attr_PerimeterDefense + Speed) / 200.0) * 0.03;
-
-    /// Turnover rate — lower IQ and dribbling = more turnovers (0.06–0.18)
-    internal double TurnoverRate =>
-        0.18 - ((Attr_BasketballIQ + Attr_Dribbling) / 200.0) * 0.12;
-
-    /// Offensive rebound probability weight
-    internal double ORebWeight =>
-        (Attr_Rebounding_Off + Jumping) / 200.0;
-
-    /// Defensive rebound probability weight
-    internal double DRebWeight =>
-        (Attr_Rebounding_Def + Height) / 200.0;
-
-    /// Pass assist probability weight
-    internal double AssistWeight =>
-        (Attr_Passing + Attr_BasketballIQ) / 200.0;
-
-    /// Contest penalty applied to shooter's make% (0–0.09)
-    internal double ContestPenalty(ShotType shot) => shot switch
-    {
-        ShotType.Inside or ShotType.Dunk =>
-            (Attr_InteriorDefense / 100.0) * 0.09,
-        ShotType.MidRange =>
-            (Attr_InteriorDefense * 0.4 + Attr_PerimeterDefense * 0.6) / 100.0 * 0.07,
-        ShotType.ThreePointer =>
-            (Attr_PerimeterDefense / 100.0) * 0.06,
-        _ => 0.04
-    };
-}
-```
-
----
-
-## Step 2 — Team.cs
-
-Create `Models/Team.cs`.
-
-```csharp
-namespace BasketballSim.Models;
-
-public class Team
-{
-    public required string       Name         { get; init; }
-    public required string       Abbreviation { get; init; }
-    public required string       PrimaryColor { get; init; }   // hex e.g. "#006BB6"
-    public required string       SecondaryColor { get; init; }
-    public required List<Player> Roster       { get; init; }   // full 12-man roster
-
-    /// Possessions per 48 minutes (affects game pace)
-    public double Pace { get; init; } = 100.0;
-
-    /// Returns the 5-man starting lineup
-    public List<Player> Starters => Roster.Take(5).ToList();
-
-    /// Returns the bench unit
-    public List<Player> Bench => Roster.Skip(5).ToList();
-
-    /// Spacing level: count of credible three-point threats on the floor (0–5)
-    public int SpacingLevel(List<Player> lineup) =>
-        lineup.Count(p => p.Attr_ThreePoint >= 55);
-}
-```
-
----
-
-## Step 3 — PlayerGameStats.cs
-
-Create `Models/PlayerGameStats.cs`. This is the **only stats object that gets sent to the UI**.
-
-```csharp
-namespace BasketballSim.Models;
-
-public class PlayerGameStats
-{
-    public required string Name     { get; init; }
-    public required string Team     { get; init; }
-    public required Position Position { get; init; }
-
-    // Box score counters — all mutable during simulation
-    public int    Points     { get; set; }
-    public int    Rebounds   { get; set; }
-    public int    OffRebounds { get; set; }
-    public int    DefRebounds { get; set; }
-    public int    Assists    { get; set; }
-    public int    Steals     { get; set; }
-    public int    Blocks     { get; set; }
-    public int    Turnovers  { get; set; }
-    public int    FGMade     { get; set; }
-    public int    FGAttempts { get; set; }
-    public int    ThreeMade  { get; set; }
-    public int    ThreeAttempts { get; set; }
-    public int    FTMade     { get; set; }
-    public int    FTAttempts { get; set; }
-    public double MinutesPlayed { get; set; }
-    public int    PlusMinus  { get; set; }
-
-    // Computed display properties
-    public string FGDisplay  => $"{FGMade}/{FGAttempts}";
-    public string ThreeDisplay => $"{ThreeMade}/{ThreeAttempts}";
-    public string FTDisplay  => $"{FTMade}/{FTAttempts}";
-    public double FGPct      => FGAttempts > 0 ? (double)FGMade / FGAttempts : 0;
-    public double ThreePct   => ThreeAttempts > 0 ? (double)ThreeMade / ThreeAttempts : 0;
-}
-```
-
----
-
-## Step 4 — PossessionResult.cs
-
-**Replace** the existing `PossessionResult.cs` entirely.
-
-```csharp
-namespace BasketballSim.Models;
-
-public enum ShotType    { Inside, Dunk, MidRange, ThreePointer }
-
-public enum ShotContext
-{
-    // Inside / Dunk
-    DrivingLayup, PickAndRollRoll, CutLayup, FastBreakLayup, PostMove, FloaterLayup,
-    AlleyOop, CutDunk, TransitionDunk, PickAndRollDunk,
-    // Mid Range
-    PullUpMidRange, IsolationMidRange, PickAndRollMidRange, FadeawayMidRange,
-    PostMoveMidRange, LateClockMidRange,
-    // Three
-    CatchAndShootCorner, CatchAndShootWing, PullUpThree, StepBackThree,
-    PickAndRollThree, TransitionThree,
-    // Secondary
-    Putback, TipIn,
-    // None (turnovers/FT)
-    None
-}
-
-public enum PossessionEvent
-{
-    ShotMade, ShotMissed, Blocked, TurnoverStolen, TurnoverDeadBall,
-    FreeThrows, OffensiveRebound, DefensiveRebound, GameWinnerMade, GameWinnerMissed
-}
-
-public class PossessionResult
-{
-    public required string          Team          { get; init; }
-    public required string          Narrative     { get; init; }
-    public          int             HomeScore     { get; init; }
-    public          int             AwayScore     { get; init; }
-    public          int             Quarter       { get; init; }
-    public          int             ClockSeconds  { get; init; }
-    public          int             PointsScored  { get; init; }
-    public          PossessionEvent Event         { get; init; }
-
-    // Player attribution (nullable — not all possessions have all actors)
-    public string? Scorer    { get; init; }
-    public string? Assister  { get; init; }
-    public string? Blocker   { get; init; }
-    public string? Rebounder { get; init; }
-    public string? Stealer   { get; init; }
-
-    // Shot detail
-    public ShotType?    Shot    { get; init; }
-    public ShotContext? Context { get; init; }
-    public bool         IsThree { get; init; }
-}
-```
-
----
-
-## Step 5 — RosterData.cs
-
-Create `Data/RosterData.cs`. Hardcode the **2024–25 New York Knicks** and **Oklahoma City Thunder** starting rosters plus key bench players (8 players per team minimum). Use real-life approximate stats converted to the 0–100 Basketball GM scale.
-
-### Attribute Conversion Guide
-Use these benchmarks when hardcoding. Real NBA percentages → 0–100 scale:
-
-| Real Stat             | 0–100 Formula                           |
-|-----------------------|-----------------------------------------|
-| At-rim FG% (inside)   | `(pct - 0.45) / 0.27 * 100`, clamp 0–100 |
-| Mid-range FG%         | `(pct - 0.30) / 0.22 * 100`, clamp 0–100 |
-| Three-point FG%       | `(pct - 0.28) / 0.17 * 100`, clamp 0–100 |
-| Free throw %          | `(pct - 0.55) / 0.40 * 100`, clamp 0–100 |
-
-**Physical scale reference:**
-- Height: actual inches (72 = 6'0", 84 = 7'0")
-- Speed/Jumping/Strength/Endurance: subjective 0–100 based on known player athleticism
-
-### Knicks Roster (hardcode these players)
-
-```
-Starters (indices 0–4):
-  Jalen Brunson      PG  #11  Age 27
-  OG Anunoby         SF  #8   Age 26
-  Mikal Bridges      SG  #25  Age 27
-  Julius Randle      PF  #30  Age 29
-  Karl-Anthony Towns C   #32  Age 28
-
-Bench (indices 5–11):
-  Donte DiVincenzo   SG  #0   Age 27
-  Josh Hart          SF  #3   Age 29
-  Isaiah Hartenstein C   #55  Age 26
-  Miles McBride      PG  #2   Age 23
-  Precious Achiuwa   PF  #5   Age 24
-  Landry Shamet      SG  #14  Age 26
-  Deuce McBride      PG  #8   Age 22
-```
-
-### Thunder Roster (hardcode these players)
-
-```
-Starters (indices 0–4):
-  Shai Gilgeous-Alexander  PG  #2   Age 25
-  Luguentz Dort            SG  #5   Age 25
-  Jalen Williams           SF  #8   Age 22
-  Chet Holmgren            PF  #7   Age 22
-  Isaiah Hartenstein        C  #55  Age 26
-
-Bench (indices 5–11):
-  Aaron Wiggins            SG  #21  Age 24
-  Kenrich Williams         SF  #34  Age 28
-  Ousmane Dieng            SF  #13  Age 21
-  Josh Giddey              PG  #3   Age 21
-  Jaylin Williams          C   #6   Age 22
-  Isaiah Joe               SG  #11  Age 24
-  Tre Mann                 PG  #23  Age 23
-```
-
-### Attribute Values to Hardcode
-
-Use the following **exact values** (already converted to 0–100 scale from 2024–25 real stats):
-
-#### NEW YORK KNICKS
-
-```csharp
-// Jalen Brunson — elite scorer, high IQ, limited athleticism
-new Player {
-    Name="Jalen Brunson", Team="Knicks", JerseyNumber=11, Position=Position.PG, Age=27,
-    Height=74, Strength=68, Speed=72, Jumping=55, Endurance=88,
-    Attr_Inside=72, Attr_Dunks=30, Attr_FreeThrow=87, Attr_MidRange=88, Attr_ThreePoint=74,
-    Attr_BasketballIQ=92, Attr_Dribbling=88, Attr_Passing=78,
-    Attr_Rebounding_Off=22, Attr_Rebounding_Def=28,
-    Attr_PerimeterDefense=52, Attr_InteriorDefense=30
-}
-
-// OG Anunoby — elite defender, developing offense
-new Player {
-    Name="OG Anunoby", Team="Knicks", JerseyNumber=8, Position=Position.SF, Age=26,
-    Height=79, Strength=78, Speed=80, Jumping=74, Endurance=85,
-    Attr_Inside=68, Attr_Dunks=58, Attr_FreeThrow=72, Attr_MidRange=62, Attr_ThreePoint=71,
-    Attr_BasketballIQ=75, Attr_Dribbling=65, Attr_Passing=55,
-    Attr_Rebounding_Off=38, Attr_Rebounding_Def=52,
-    Attr_PerimeterDefense=92, Attr_InteriorDefense=70
-}
-
-// Mikal Bridges — 3-and-D, solid all-around
-new Player {
-    Name="Mikal Bridges", Team="Knicks", JerseyNumber=25, Position=Position.SG, Age=27,
-    Height=78, Strength=72, Speed=78, Jumping=68, Endurance=90,
-    Attr_Inside=65, Attr_Dunks=48, Attr_FreeThrow=78, Attr_MidRange=70, Attr_ThreePoint=68,
-    Attr_BasketballIQ=80, Attr_Dribbling=70, Attr_Passing=60,
-    Attr_Rebounding_Off=32, Attr_Rebounding_Def=48,
-    Attr_PerimeterDefense=88, Attr_InteriorDefense=55
-}
-
-// Julius Randle — post scorer, high usage PF
-new Player {
-    Name="Julius Randle", Team="Knicks", JerseyNumber=30, Position=Position.PF, Age=29,
-    Height=81, Strength=88, Speed=66, Jumping=65, Endurance=82,
-    Attr_Inside=80, Attr_Dunks=62, Attr_FreeThrow=75, Attr_MidRange=78, Attr_ThreePoint=58,
-    Attr_BasketballIQ=74, Attr_Dribbling=72, Attr_Passing=68,
-    Attr_Rebounding_Off=58, Attr_Rebounding_Def=70,
-    Attr_PerimeterDefense=45, Attr_InteriorDefense=62
-}
-
-// Karl-Anthony Towns — shooting big, high inside + three
-new Player {
-    Name="Karl-Anthony Towns", Team="Knicks", JerseyNumber=32, Position=Position.C, Age=28,
-    Height=84, Strength=82, Speed=60, Jumping=68, Endurance=78,
-    Attr_Inside=85, Attr_Dunks=70, Attr_FreeThrow=86, Attr_MidRange=75, Attr_ThreePoint=82,
-    Attr_BasketballIQ=78, Attr_Dribbling=55, Attr_Passing=60,
-    Attr_Rebounding_Off=62, Attr_Rebounding_Def=75,
-    Attr_PerimeterDefense=38, Attr_InteriorDefense=68
-}
-
-// Donte DiVincenzo — shooter, energetic bench scorer
-new Player {
-    Name="Donte DiVincenzo", Team="Knicks", JerseyNumber=0, Position=Position.SG, Age=27,
-    Height=76, Strength=65, Speed=76, Jumping=66, Endurance=82,
-    Attr_Inside=58, Attr_Dunks=38, Attr_FreeThrow=80, Attr_MidRange=64, Attr_ThreePoint=78,
-    Attr_BasketballIQ=72, Attr_Dribbling=65, Attr_Passing=58,
-    Attr_Rebounding_Off=35, Attr_Rebounding_Def=42,
-    Attr_PerimeterDefense=70, Attr_InteriorDefense=38
-}
-
-// Josh Hart — hustle player, rebounding guard
-new Player {
-    Name="Josh Hart", Team="Knicks", JerseyNumber=3, Position=Position.SF, Age=29,
-    Height=77, Strength=75, Speed=74, Jumping=65, Endurance=92,
-    Attr_Inside=65, Attr_Dunks=45, Attr_FreeThrow=65, Attr_MidRange=55, Attr_ThreePoint=55,
-    Attr_BasketballIQ=70, Attr_Dribbling=60, Attr_Passing=58,
-    Attr_Rebounding_Off=62, Attr_Rebounding_Def=68,
-    Attr_PerimeterDefense=72, Attr_InteriorDefense=50
-}
-
-// Isaiah Hartenstein — defensive center, passing big
-new Player {
-    Name="Isaiah Hartenstein", Team="Knicks", JerseyNumber=55, Position=Position.C, Age=26,
-    Height=84, Strength=80, Speed=55, Jumping=60, Endurance=80,
-    Attr_Inside=72, Attr_Dunks=58, Attr_FreeThrow=68, Attr_MidRange=48, Attr_ThreePoint=20,
-    Attr_BasketballIQ=78, Attr_Dribbling=40, Attr_Passing=72,
-    Attr_Rebounding_Off=65, Attr_Rebounding_Def=78,
-    Attr_PerimeterDefense=42, Attr_InteriorDefense=80
-}
-```
-
-#### OKLAHOMA CITY THUNDER
-
-```csharp
-// Shai Gilgeous-Alexander — superstar, elite scorer + handles
-new Player {
-    Name="Shai Gilgeous-Alexander", Team="Thunder", JerseyNumber=2, Position=Position.PG, Age=25,
-    Height=79, Strength=70, Speed=85, Jumping=72, Endurance=92,
-    Attr_Inside=88, Attr_Dunks=55, Attr_FreeThrow=88, Attr_MidRange=90, Attr_ThreePoint=72,
-    Attr_BasketballIQ=94, Attr_Dribbling=95, Attr_Passing=80,
-    Attr_Rebounding_Off=30, Attr_Rebounding_Def=40,
-    Attr_PerimeterDefense=80, Attr_InteriorDefense=42
-}
-
-// Luguentz Dort — lockdown defender, developing offense
-new Player {
-    Name="Luguentz Dort", Team="Thunder", JerseyNumber=5, Position=Position.SG, Age=25,
-    Height=76, Strength=82, Speed=78, Jumping=70, Endurance=88,
-    Attr_Inside=62, Attr_Dunks=50, Attr_FreeThrow=68, Attr_MidRange=60, Attr_ThreePoint=66,
-    Attr_BasketballIQ=72, Attr_Dribbling=65, Attr_Passing=48,
-    Attr_Rebounding_Off=35, Attr_Rebounding_Def=45,
-    Attr_PerimeterDefense=95, Attr_InteriorDefense=60
-}
-
-// Jalen Williams — rising star, versatile scorer
-new Player {
-    Name="Jalen Williams", Team="Thunder", JerseyNumber=8, Position=Position.SF, Age=22,
-    Height=78, Strength=72, Speed=80, Jumping=70, Endurance=86,
-    Attr_Inside=78, Attr_Dunks=58, Attr_FreeThrow=84, Attr_MidRange=80, Attr_ThreePoint=70,
-    Attr_BasketballIQ=85, Attr_Dribbling=80, Attr_Passing=68,
-    Attr_Rebounding_Off=35, Attr_Rebounding_Def=42,
-    Attr_PerimeterDefense=68, Attr_InteriorDefense=45
-}
-
-// Chet Holmgren — mobile shot-blocking big, shooting stretch 5
-new Player {
-    Name="Chet Holmgren", Team="Thunder", JerseyNumber=7, Position=Position.PF, Age=22,
-    Height=84, Strength=55, Speed=68, Jumping=78, Endurance=75,
-    Attr_Inside=70, Attr_Dunks=65, Attr_FreeThrow=80, Attr_MidRange=72, Attr_ThreePoint=76,
-    Attr_BasketballIQ=82, Attr_Dribbling=50, Attr_Passing=62,
-    Attr_Rebounding_Off=48, Attr_Rebounding_Def=68,
-    Attr_PerimeterDefense=55, Attr_InteriorDefense=88
-}
-
-// Isaiah Hartenstein (Thunder) — duplicate but on different team
-new Player {
-    Name="Isaiah Hartenstein", Team="Thunder", JerseyNumber=55, Position=Position.C, Age=26,
-    Height=84, Strength=80, Speed=55, Jumping=60, Endurance=80,
-    Attr_Inside=72, Attr_Dunks=58, Attr_FreeThrow=68, Attr_MidRange=48, Attr_ThreePoint=20,
-    Attr_BasketballIQ=78, Attr_Dribbling=40, Attr_Passing=72,
-    Attr_Rebounding_Off=65, Attr_Rebounding_Def=78,
-    Attr_PerimeterDefense=42, Attr_InteriorDefense=80
-}
-
-// Aaron Wiggins — reliable 3-and-D bench wing
-new Player {
-    Name="Aaron Wiggins", Team="Thunder", JerseyNumber=21, Position=Position.SG, Age=24,
-    Height=77, Strength=68, Speed=76, Jumping=66, Endurance=82,
-    Attr_Inside=60, Attr_Dunks=42, Attr_FreeThrow=74, Attr_MidRange=62, Attr_ThreePoint=72,
-    Attr_BasketballIQ=70, Attr_Dribbling=62, Attr_Passing=52,
-    Attr_Rebounding_Off=30, Attr_Rebounding_Def=42,
-    Attr_PerimeterDefense=74, Attr_InteriorDefense=42
-}
-
-// Kenrich Williams — versatile energy player
-new Player {
-    Name="Kenrich Williams", Team="Thunder", JerseyNumber=34, Position=Position.SF, Age=28,
-    Height=79, Strength=74, Speed=70, Jumping=62, Endurance=85,
-    Attr_Inside=60, Attr_Dunks=40, Attr_FreeThrow=70, Attr_MidRange=58, Attr_ThreePoint=60,
-    Attr_BasketballIQ=75, Attr_Dribbling=58, Attr_Passing=60,
-    Attr_Rebounding_Off=45, Attr_Rebounding_Def=55,
-    Attr_PerimeterDefense=76, Attr_InteriorDefense=52
-}
-
-// Josh Giddey — playmaking big guard
-new Player {
-    Name="Josh Giddey", Team="Thunder", JerseyNumber=3, Position=Position.PG, Age=21,
-    Height=81, Strength=68, Speed=70, Jumping=58, Endurance=80,
-    Attr_Inside=62, Attr_Dunks=38, Attr_FreeThrow=65, Attr_MidRange=58, Attr_ThreePoint=50,
-    Attr_BasketballIQ=80, Attr_Dribbling=70, Attr_Passing=82,
-    Attr_Rebounding_Off=50, Attr_Rebounding_Def=58,
-    Attr_PerimeterDefense=55, Attr_InteriorDefense=40
-}
-```
-
-The `RosterData` class should expose two static properties:
-
-```csharp
-public static class RosterData
-{
-    public static Team Knicks { get; } = new Team {
-        Name = "New York Knicks",
-        Abbreviation = "NYK",
-        PrimaryColor = "#006BB6",
-        SecondaryColor = "#F58426",
-        Pace = 97.4,
-        Roster = [ /* all 8 Knicks players above */ ]
-    };
-
-    public static Team Thunder { get; } = new Team {
-        Name = "Oklahoma City Thunder",
-        Abbreviation = "OKC",
-        PrimaryColor = "#007AC1",
-        SecondaryColor = "#EF3B24",
-        Pace = 100.2,
-        Roster = [ /* all 8 Thunder players above */ ]
-    };
-}
-```
-
----
-
-## Step 6 — GameEngine.cs (Full Rewrite)
-
-**Replace** `GameEngine.cs` entirely. Implement the possession pipeline described below. Do **not** preserve any logic from the old file.
-
-### 6.1 — Enums and Helper Types
-
-At the top of `GameEngine.cs`, define:
-
-```csharp
-public enum ShotClockPhase { Early, Mid, Late, BuzzerBeater }
-public enum PossessionContext { Regular, MustScore, PotentialGameWinner, IntentionalFoul }
-public enum TurnoverType { Stolen, DeadBall }
-```
-
-### 6.2 — GameState struct
-
-```csharp
-public record GameState(
-    int HomeScore, int AwayScore,
-    int Quarter, int ClockSeconds,
-    bool IsHomePossession)
-{
-    public int ScoreDiff => IsHomePossession
-        ? HomeScore - AwayScore
-        : AwayScore - HomeScore;
-
-    public bool IsClutch => Quarter >= 4
-        && ClockSeconds <= 300
-        && Math.Abs(HomeScore - AwayScore) <= 5;
-}
-```
-
-### 6.3 — SimulateGame method
-
-```csharp
-public List<PossessionResult> SimulateGame(Team homeTeam, Team awayTeam)
-```
-
-- Use `homeTeam.Pace` and `awayTeam.Pace` to derive possession count per quarter:
-  `int possessionsPerQuarter = (int)((homeTeam.Pace + awayTeam.Pace) / 2 / 4)`
-- Simulate 4 quarters. Track `homeScore`, `awayScore`, `clockSeconds` (starts at 720 per quarter).
-- Clock consumption per possession: roll between 10–22 seconds based on action player's `ShotClockAggressiveness`.
-- Each possession calls `SimulatePossessionChain(...)`.
-- After Q4, if tied: simulate 5-minute OT periods (300 seconds, same logic).
-
-### 6.4 — The Possession Pipeline
-
-Implement as a private method `SimulatePossessionChain`. Follow these stages **in order**:
-
-#### Stage 1 — Possession Context
-```
-if (ClockSeconds <= 5 && Math.Abs(scoreDiff) <= 3) → PotentialGameWinner
-else if (trailing by 8+ with under 2 minutes in Q4) → IntentionalFoul (bypass pipeline, log foul, return)
-else if (trailing, Q4, under 45 seconds) → MustScore
-else → Regular
-```
-
-#### Stage 2 — Shot Clock Phase
-```
-Roll against actionPlayer.ShotClockAggressiveness:
-  r < aggressiveness        → Early   (18–24s used)
-  r < aggressiveness + 0.55 → Mid     (10–17s used)
-  else                      → Late    (1–9s used)
-  PotentialGameWinner       → BuzzerBeater (always)
-```
-
-#### Stage 3 — Select Action Player
-Weight each player in the 5-man lineup by `USG_Weight * (1 - Fatigue * 0.25)`.
-- If this is an offensive rebound continuation, give the rebounder `3.5x` weight multiplier.
-- Late clock: raise weights to power of 1.4 (highest-usage player dominates more).
-
-Use a weighted random selection helper method.
-
-#### Stage 4 — Turnover Check
-```
-baseTO = actionPlayer.TurnoverRate
-if (phase == Late) baseTO *= 1.3
-
-if (roll < baseTO):
-    // Determine stolen vs. dead ball
-    totalStealThreat = sum of all defenders' StealMod
-    stealShare = totalStealThreat / (totalStealThreat + 0.15)
-    if (roll < stealShare):
-        stealer = WeightedRandom(defenders, d => d.StealMod)
-        → Log TurnoverStolen, attribute stealer, return
-    else:
-        → Log TurnoverDeadBall, return
-```
-
-#### Stage 5 — Shot Type Selection
-Weight the 4 shot types using player tendencies + context:
-
-```
-Base weights:
-  Inside      = actionPlayer.DriveGravity * 100
-  Dunk        = actionPlayer.Attr_Dunks * (actionPlayer.Jumping / 100.0)
-  MidRange    = actionPlayer.Attr_MidRange * 0.6
-  ThreePointer= actionPlayer.Attr_ThreePoint * 0.8
-
-Context modifiers:
-  isOffensiveRebound:
-    Inside   *= 2.5
-    Dunk     *= 2.0
-    Three    *= 0.1
-  phase == Early:
-    Inside   *= 1.4
-    Dunk     *= 1.3
-    MidRange *= 0.7
-  phase == Late:
-    Three    *= 1.3
-    MidRange *= 1.4
-    Dunk     *= 0.3
-  position == C or PF:
-    MidRange *= 1.2  // post players use mid-range slot for post moves
-    Three    *= 0.7  // unless they have high ThreePoint attr
-```
-
-#### Stage 6 — Shot Context Selection
-Given shot type, roll for context using weighted lists. All weights below are **multipliers** — combine with player attribute values as described.
-
-**Inside shot contexts:**
-```
-DrivingLayup:       DriveGravity * 2.0
-PickAndRollRoll:    DriveGravity * spacingLevel * 0.25
-CutLayup:           CutTendency
-FastBreakLayup:     phase == Early ? 1.5 : 0.1
-PostMove:           position is (PF or C) ? Attr_Inside / 100.0 * 1.5 : 0.1
-FloaterLayup:       Speed / 100.0 * Attr_Dribbling / 100.0
-```
-
-**Dunk contexts:**
-```
-AlleyOop:           AlleyOopTendency
-CutDunk:            CutTendency * 0.8
-TransitionDunk:     phase == Early ? 2.0 : 0.15
-PickAndRollDunk:    DriveGravity * 0.5
-```
-
-**MidRange contexts:**
-```
-PullUpMidRange:     DriveGravity * 0.8
-IsolationMidRange:  USG_Weight * (1 - DeferralTendency)
-PickAndRollMidRange:DriveGravity * 0.5
-FadeawayMidRange:   Strength / 100.0 * 0.6
-PostMoveMidRange:   position is (PF or C) ? Attr_MidRange / 100.0 * 1.2 : 0.05
-LateClockMidRange:  phase == Late ? 2.0 : 0.0
-```
-
-**Three contexts:**
-```
-CatchAndShootCorner: PerimeterGravity * spacingLevel * 0.5
-CatchAndShootWing:   PerimeterGravity * 1.2
-PullUpThree:         DriveGravity * Attr_ThreePoint / 100.0
-StepBackThree:       Attr_Dribbling / 100.0 * Attr_ThreePoint / 100.0
-PickAndRollThree:    DriveGravity * 0.6
-TransitionThree:     ShotClockAggressiveness * 0.5
-```
-
-**Putback/TipIn (only after offensive rebound):**
-```
-Putback: 0.6
-TipIn:   0.4
-```
-
-#### Stage 7 — Assist Roll
-Every shot context has a base assist probability. If the roll fires, select assister from teammates weighted by `AssistWeight`.
-
-```
-Assist probability by context:
-  CatchAndShootCorner    → 0.92
-  CatchAndShootWing      → 0.88
-  AlleyOop               → 1.00
-  CutLayup / CutDunk     → 0.90
-  PickAndRollRoll        → 0.75
-  PickAndRollDunk        → 0.72
-  PickAndRollThree       → 0.68
-  PickAndRollMidRange    → 0.60
-  FastBreakLayup         → 0.55
-  TransitionDunk         → 0.50
-  TransitionThree        → 0.40
-  PostMove               → 0.22
-  PostMoveMidRange       → 0.20
-  FadeawayMidRange       → 0.12
-  IsolationMidRange      → 0.08
-  StepBackThree          → 0.10
-  PullUpThree            → 0.15
-  PullUpMidRange         → 0.18
-  DrivingLayup           → 0.30
-  FloaterLayup           → 0.22
-  LateClockMidRange      → 0.05
-  Putback / TipIn        → 0.00
-```
-
-#### Stage 8 — Defense Response
-Assign a primary defender via `GetMatchup(shooter, defenders)`:
-- Match by position first, then find the defender with the highest relevant defense attribute.
-- Calculate contest modifier:
-  ```
-  CatchAndShootCorner/Wing: contestMod = 0.6
-  CutLayup/CutDunk/AlleyOop: contestMod = 0.3
-  BuzzerBeater: contestMod = 0.5
-  All others: contestMod = 1.0
-  ```
-- `contestPenalty = defender.ContestPenalty(shotType) * contestMod`
-- `blockChance = defender.BlockMod * ShotBlockability(shotType) * contestMod`
-
-```
-ShotBlockability:
-  Inside      → 1.0
-  Dunk        → 0.4
-  MidRange    → 0.85
-  ThreePointer→ 0.25
-```
-
-#### Stage 9 — Outcome Roll
-```csharp
-double baseMake = shotType switch {
-    ShotType.Inside      => shooter.InsideMakePct,
-    ShotType.Dunk        => shooter.InsideMakePct * 1.08,
-    ShotType.MidRange    => shooter.MidRangeMakePct,
-    ShotType.ThreePointer=> shooter.ThreeMakePct
-};
-
-// PostMove and PostMoveMidRange use the same make% but from the relevant attribute:
-// PostMove → InsideMakePct
-// PostMoveMidRange → MidRangeMakePct
-
-// Context make% modifier:
-baseMake *= ShotContextMakeModifier(context);
-// Modifiers:
-//   CatchAndShootCorner  → 1.08
-//   CatchAndShootWing    → 1.04
-//   FastBreakLayup       → 1.10
-//   AlleyOop             → 1.12
-//   IsolationMidRange    → 0.94
-//   StepBackThree        → 0.92
-//   LateClockMidRange    → 0.88
-//   FadeawayMidRange     → 0.90
-//   PostMove             → 0.97
-//   BuzzerBeater         → 0.20
-//   All others           → 1.0
-
-// Apply fatigue and contest:
-double adjMake = baseMake * (1 - shooter.Fatigue * 0.12) - contestPenalty;
-
-// Clutch modifier (applied when gameState.IsClutch):
-if (gameState.IsClutch)
-    adjMake *= 1.0 + (shooter.Attr_BasketballIQ - 70) / 100.0 * 0.15;
-
-adjMake = Math.Clamp(adjMake, 0.05, 0.95);
-
-double r = _rng.NextDouble();
-if (r < blockChance)              → Blocked
-else if (r < blockChance + adjMake) → Made
-else                               → Missed
-```
-
-#### Stage 10 — Free Throw Check (on made driving shot or post move)
-If shot was made AND context is `DrivingLayup`, `PickAndRollRoll`, `PostMove`, `PostMoveMidRange`:
-```
-foulDrawChance = 0.20 * (shooter.Attr_Inside / 100.0)
-if roll < foulDrawChance:
-    award 1 bonus free throw
-    roll shooter.FTMakePct
-```
-
-If shot was **missed** AND context is the same set:
-```
-foulDrawChance = 0.12
-if roll < foulDrawChance:
-    void the missed shot → award 2 free throws
-    roll each at shooter.FTMakePct
-```
-
-#### Stage 11 — Secondary Events (Rebound)
-On **missed or blocked** shot:
-```
-// Each player contributes to the rebound race
-offRebWeight = sum of offensive lineup's ORebWeight
-defRebWeight = sum of defensive lineup's DRebWeight
-
-offRebPct = offRebWeight / (offRebWeight + defRebWeight)
-// Clamp between 0.18 and 0.38 (realistic NBA range)
-offRebPct = Math.Clamp(offRebPct, 0.18, 0.38)
-
-if (roll < offRebPct && orbCount < 4):
-    rebounder = WeightedRandom(offensiveLineup, p => p.ORebWeight)
-    orbCount++
-    → Log OffensiveRebound, re-enter pipeline at Stage 3 with prevRebounder = rebounder
-else:
-    rebounder = WeightedRandom(defensiveLineup, p => p.DRebWeight)
-    → Log DefensiveRebound, end possession
-```
-
-### 6.5 — Stats Tracking
-
-Throughout the pipeline, maintain a `Dictionary<string, PlayerGameStats>` keyed by player name. Update it at each event:
-
-```
-ShotMade (Inside/Dunk/MidRange) → scorer: FGMade++, FGAttempts++, Points += 2
-ShotMade (Three)                → scorer: FGMade++, FGAttempts++, ThreeMade++, ThreeAttempts++, Points += 3
-ShotMissed/Blocked              → shooter: FGAttempts++ (and ThreeAttempts++ if three)
-Assisted shot                   → assister: Assists++
-Blocked                         → blocker: Blocks++
-Stolen                          → stealer: Steals++
-TurnoverDeadBall/Stolen         → action player: Turnovers++
-OffensiveRebound                → rebounder: OffRebounds++, Rebounds++
-DefensiveRebound                → rebounder: DefRebounds++, Rebounds++
-FreeThrow made                  → shooter: FTMade++, FTAttempts++, Points++
-FreeThrow missed                → shooter: FTAttempts++
-```
-
-Return both `List<PossessionResult>` and `Dictionary<string, PlayerGameStats>` from `SimulateGame`. Wrap them in a result object:
-
-```csharp
-public record GameResult(
-    List<PossessionResult> Possessions,
-    Dictionary<string, PlayerGameStats> Stats,
-    Team HomeTeam,
-    Team AwayTeam,
-    int FinalHomeScore,
-    int FinalAwayScore
-);
-```
-
-### 6.6 — Narrative Generation
-
-Create a `NarrativeBuilder` helper class or region. Generate narrative strings by combining player name + shot type + context:
-
-```csharp
-// Examples of the pattern — build out all combinations:
-(ShotType.Inside, ShotContext.DrivingLayup, made:true)
-  → "{scorer} drives — lays it in!"
-  → "{scorer} attacks the rim — GOOD!"
-
-(ShotType.Dunk, ShotContext.AlleyOop, made:true)
-  → "LOB to {scorer} — THROWS IT DOWN! (Assist: {assister})"
-
-(ShotType.ThreePointer, ShotContext.CatchAndShootCorner, made:true)
-  → "{scorer} catch-and-shoot from the corner — BANG! (Assist: {assister})"
-
-(ShotType.ThreePointer, ShotContext.StepBackThree, made:false)
-  → "{scorer} step-back three — rattles out"
-
-(ShotType.MidRange, ShotContext.PostMoveMidRange, made:true)
-  → "{scorer} with the post move — mid-range GOOD!"
-
-(ShotType.Inside, ShotContext.PostMove, made:true)
-  → "{scorer} backs down in the post — lays it in!"
-
-// Turnovers
-TurnoverStolen   → "{team} — {actionPlayer} stolen by {stealer}!"
-TurnoverDeadBall → "{team} — {actionPlayer} turnover — out of bounds"
-
-// Rebounds
-OffensiveRebound → "{rebounder} with the offensive rebound — second chance!"
-DefensiveRebound → "{rebounder} with the defensive rebound"
-TipIn            → "{scorer} with the TIP-IN!"
-Putback          → "{scorer} putback — GOOD!"
-```
-
-Build 2–3 variations for each combination and randomly pick between them, same as the existing `Pick()` helper.
-
----
-
-## Step 7 — GameSim.razor (UI Rewrite)
-
-**Replace** `GameSim.razor` with the following layout. Keep all existing animation/timer/pause logic. Add a box score panel.
-
-### Layout
-
-```
-┌─────────────────────────────────────────────────────────┐
-│               SCOREBOARD (existing, keep)               │
-│   Knicks 87  |  Q3  8:42  |  Thunder 82                │
-├─────────────────────────────────────────────────────────┤
-│               PLAY-BY-PLAY LOG (existing, keep)         │
-│   scrollable, monospace, 280px height                   │
-├─────────────────────────────────────────────────────────┤
-│               LIVE BOX SCORE (NEW)                      │
-│   [KNICKS tab] [THUNDER tab]                            │
-│                                                         │
-│   Player       MIN  PTS  REB  AST  STL  BLK  TO  FG    │
-│   J. Brunson   28   24   3    7    1    0    2   9/18   │
-│   OG Anunoby   26   14   6    1    2    1    0   6/11   │
-│   ...                                                   │
-├─────────────────────────────────────────────────────────┤
-│               SPEED SLIDER + CONTROLS (existing, keep)  │
-└─────────────────────────────────────────────────────────┘
-```
-
-### Box Score Component Requirements
-
-- Two tabs: home team and away team names
-- Table columns: `Player | MIN | PTS | REB | AST | STL | BLK | TO | FG | 3PT | FT`
-- Sort rows by PTS descending during live play
-- Highlight the last player to score (bold or background color for 2 seconds) — use a `_lastScorer` string field and reset via a `Task.Delay(2000)` after each scoring event
-- Show team totals row at the bottom: sum all columns
-- FG column shows `made/attempts` format
-- Table has a max height of 220px with vertical scroll
-- Use the team's `PrimaryColor` for the tab header
-
-### Code-behind changes
-
-```csharp
-// Replace string-based team params with Team objects
-private readonly Team _homeTeam = RosterData.Knicks;
-private readonly Team _awayTeam = RosterData.Thunder;
-
-// New fields
-private GameResult? _gameResult;
-private Dictionary<string, PlayerGameStats> _liveStats = new();
-private string _activeBoxScoreTab = "home";
-private string? _lastScorer;
-
-// Update RunReplay to also update _liveStats on each possession
-foreach (var possession in _gameResult.Possessions)
-{
-    // existing score/clock/log update...
-
-    // Update live stats
-    if (_gameResult.Stats.TryGetValue(possession.Scorer ?? "", out var s))
-        _liveStats[possession.Scorer!] = s;
-    // etc — rebuild _liveStats from accumulated stats up to current possession index
-
-    // Highlight last scorer
-    if (possession.PointsScored > 0 && possession.Scorer != null)
-    {
-        _lastScorer = possession.Scorer;
-        _ = Task.Delay(2000).ContinueWith(_ => {
-            _lastScorer = null;
-            InvokeAsync(StateHasChanged);
-        });
-    }
-}
-```
-
-### Box Score Table Razor
-
-```razor
-<div class="mt-3" style="max-width: 700px; margin: 0 auto;">
-    <!-- Tab headers -->
-    <div style="display: flex; gap: 4px; margin-bottom: 4px;">
-        <button style="background: @(_activeBoxScoreTab=="home" ? _homeTeam.PrimaryColor : "#eee"); 
-                       color: @(_activeBoxScoreTab=="home" ? "white" : "#333");
-                       border: none; padding: 4px 16px; border-radius: 4px 4px 0 0; cursor: pointer;"
-                @onclick='() => _activeBoxScoreTab = "home"'>
-            @_homeTeam.Abbreviation
-        </button>
-        <button style="background: @(_activeBoxScoreTab=="away" ? _awayTeam.PrimaryColor : "#eee");
-                       color: @(_activeBoxScoreTab=="away" ? "white" : "#333");
-                       border: none; padding: 4px 16px; border-radius: 4px 4px 0 0; cursor: pointer;"
-                @onclick='() => _activeBoxScoreTab = "away"'>
-            @_awayTeam.Abbreviation
-        </button>
-    </div>
-
-    <!-- Box score table -->
-    <div style="max-height: 220px; overflow-y: auto; border: 1px solid #ddd; border-radius: 0 4px 4px 4px;">
-        <table style="width: 100%; font-size: 0.78rem; border-collapse: collapse; font-family: monospace;">
-            <thead style="position: sticky; top: 0; background: #f5f5f5;">
-                <tr>
-                    <th style="text-align:left; padding: 4px 8px;">Player</th>
-                    <th>PTS</th><th>REB</th><th>AST</th>
-                    <th>STL</th><th>BLK</th><th>TO</th>
-                    <th>FG</th><th>3PT</th><th>FT</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var stat in GetActiveBoxScore())
-                {
-                    bool isScorer = stat.Name == _lastScorer;
-                    <tr style="background: @(isScorer ? "#fffde7" : "white"); 
-                               border-bottom: 1px solid #f0f0f0;
-                               font-weight: @(isScorer ? "700" : "400");">
-                        <td style="padding: 3px 8px; text-align:left;">@ShortName(stat.Name)</td>
-                        <td style="text-align:center;">@stat.Points</td>
-                        <td style="text-align:center;">@stat.Rebounds</td>
-                        <td style="text-align:center;">@stat.Assists</td>
-                        <td style="text-align:center;">@stat.Steals</td>
-                        <td style="text-align:center;">@stat.Blocks</td>
-                        <td style="text-align:center;">@stat.Turnovers</td>
-                        <td style="text-align:center;">@stat.FGDisplay</td>
-                        <td style="text-align:center;">@stat.ThreeDisplay</td>
-                        <td style="text-align:center;">@stat.FTDisplay</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-</div>
-```
-
-Helper methods in `@code`:
-```csharp
-IEnumerable<PlayerGameStats> GetActiveBoxScore()
-{
-    string teamName = _activeBoxScoreTab == "home" ? _homeTeam.Name : _awayTeam.Name;
-    return _liveStats.Values
-        .Where(s => s.Team == teamName)
-        .OrderByDescending(s => s.Points);
-}
-
-static string ShortName(string fullName)
-{
-    var parts = fullName.Split(' ');
-    return parts.Length >= 2 ? $"{parts[0][0]}. {parts[^1]}" : fullName;
-}
-```
-
----
-
-## Implementation Notes & Pitfalls
-
-1. **Never expose `internal` attributes to Razor.** Any property accessed in `.razor` files must be `public`. Verify no `Attr_*` or `True_*` properties are referenced in the UI layer.
-
-2. **WeightedRandom helper** — implement as a private generic method on `GameEngine`:
-   ```csharp
-   private T WeightedRandom<T>(IEnumerable<T> items, Func<T, double> weightFn)
-   {
-       var list = items.ToList();
-       double total = list.Sum(weightFn);
-       double r = _rng.NextDouble() * total;
-       double cumulative = 0;
-       foreach (var item in list)
-       {
-           cumulative += weightFn(item);
-           if (r <= cumulative) return item;
-       }
-       return list.Last();
-   }
-   ```
-
-3. **Clock tracking** — decrement clock by the possession's consumed time. When clock reaches 0 mid-possession, complete the possession but start the next quarter at 720.
-
-4. **Fatigue** — increment each player's `Fatigue` by `0.004` per possession they are the action player. Fatigue resets to half at halftime (between Q2 and Q3).
-
-5. **orbCount cap** — maximum 3 consecutive offensive rebounds per possession chain to avoid infinite loops.
-
-6. **Stats snapshot for live box score** — the `_liveStats` dictionary should be updated every time `StateHasChanged()` is called in `RunReplay`. Rebuild it from `_gameResult.Stats` up to the current possession index, or maintain a live running copy updated possession by possession.
-
-7. **Free throw possession** — after a fouled missed shot, void the shot attempt from FGAttempts. Only add FTAttempts/FTMade for the free throws.
-
-8. **PostMove context for Inside vs. MidRange** — when context is `PostMove`, use `InsideMakePct`. When context is `PostMoveMidRange`, use `MidRangeMakePct`. Both can occur for PF/C players.
-
-9. **Minimum weight guard** — in all weighted random calls, clamp minimum weight to 0.01 to avoid division by zero or zero-weight pools.
-
-10. **GameSim.razor method signature** — update `StartGame()` and `Replay()` to call `_engine.SimulateGame(_homeTeam, _awayTeam)` which now returns `GameResult` instead of `List<PossessionResult>`.
+Technical Specification: Basketball Simulation Engine Refactor
+1. Overview
+
+Goal: Transition from a linear "Attribute-Check" shooting model to a State-Based PPS (Points Per Shot) Threshold model.
+Objective: Solve the "Mid-Range Poison Pill" (where improving mid-range attributes hurts team efficiency) by making shot selection a tactical decision based on expected value, defensive pressure, and shot-clock desperation.
+
+Relevant files:
+- BasketballSim/Simulation/GameEngine.cs — core simulation engine (refactor target)
+- BasketballSim/Models/Player.cs — all player attributes and derived stats
+- BasketballSim/Models/PlayerTendencies.cs — per-player tendency ints (0–100 scale)
+- BasketballSim/Models/CoachingProfile.cs — coaching profile (InsideMod/MidMod/ThreeMod, OffensiveRating, DefensiveRating, DefStyle, OffStyle)
+- BasketballSim/Models/PossessionResult.cs — ShotType, ShotContext enums and result record
+
+2. Core System: The State Machine
+
+The possession context is determined by the result of the previous play.
+
+Previous Play Result       | Possession State  | Initial Menu Weighting           | Shot Clock
+---------------------------|-------------------|----------------------------------|----------
+Made Basket / Dead Ball    | HALF_COURT        | Balanced/Set Plays               | 24s
+Defensive Rebound          | TRANSITION        | Bias: Rim, Transition 3          | 24s
+Steal / Live Turnover      | FAST_BREAK        | Heavy Bias: Rim, Open Corner 3   | 24s
+Offensive Rebound          | SECOND_CHANCE     | Heavy Bias: Putback, Interior    | 14s
+
+Implementation note: Add a new enum `PossessionState { HalfCourt, Transition, FastBreak, SecondChance }` to
+GameEngine.cs. The existing `orbCount`/`prevRebounder` tracking already captures SECOND_CHANCE. Steals
+(PossessionEvent.TurnoverStolen) become FAST_BREAK; DRebs (PossessionEvent.DefensiveRebound) become TRANSITION.
+The existing `ShotClockPhase` (Early/Mid/Late/BuzzerBeater) remains and is set *within* each state.
+
+3. Physical Attribute Impact Map
+
+Physical attributes (Height, Speed, Jumping, Strength, Endurance) must influence both offense and defense
+throughout the engine. These are already in Player.cs as public ints (0–100 scale).
+
+A. OFFENSE
+
+  Driving / Blow-by (DrivingLayup, PickAndRollRoll, FastBreakLayup):
+    - Speed (primary): scales DriveGravity = (Speed + Attr_Dribbling + Attr_Inside) / 300.
+      Higher Speed → DrivingLayup/FastBreakLayup contexts appear more often; higher PPS floor.
+    - Jumping: adds a small PPS bonus for FastBreakLayup and TransitionDunk (better lift = easier finish).
+      Suggested: baseMake += (Jumping - 50) / 500.0 on FastBreakLayup context.
+
+  Dunks (AlleyOop, CutDunk, TransitionDunk, PickAndRollDunk, ContactDunk):
+    - Jumping (primary gating): DunkTendency = (Attr_Dunks + Jumping + Height) / 300.
+      Low Jumping → dunk contexts rarely appear on the menu; threshold naturally not met.
+    - Height: also contributes to DunkTendency; taller players can dunk with less jump.
+    - Strength: gates ContactDunk specifically. ContactDunkMakePct already uses Strength.
+      Additionally lower T for ContactDunk: T_contact × (1 − (Strength − 50) / 150).
+
+  Post Game (PostMove, PostMoveMidRange, FadeawayMidRange):
+    - Strength (primary): scales PostMove context weight and lowers T_post.
+      PostMove weight × (0.7 + Strength / 333.0). At Strength=95: 0.985×; at 20: 0.76×.
+    - Height: a taller player is harder to front/seal; add Height bonus to PostMove base PPS.
+      basePPS_post += (Height - 50) / 600.0.
+    - Jumping: Fadeaway benefits from jump height (harder to contest).
+      FadeawayMidRange blockability += (Jumping - 50) / 400.0 (reduces block probability).
+
+  Floater (FloaterLayup):
+    - Speed + Jumping: FloaterLayup weight = Speed / 100 × Attr_Dribbling / 100.
+      Jumping bonus: baseMake_floater += (Jumping - 50) / 500.0 (higher arc over rim protectors).
+
+  Offensive Rebounds (Putback, TipIn):
+    - Jumping (primary): ORebWeight = Pow((Attr_Rebounding_Off + Jumping) / 200, 1.3).
+      Already implemented. Jumping directly controls how often SECOND_CHANCE state is entered.
+    - Height: contributes to ORebWeight via Attr_Rebounding_Off (which 2K maps partially from height).
+    - Strength: allows player to hold position for box-out → small multiplier on ORebWeight.
+      ORebWeight × (0.9 + Strength / 1000.0). Subtle, not dominant.
+
+B. DEFENSE
+
+  Contest (all shot types):
+    - Height (primary for interior): taller defenders alter release points on Inside shots.
+      ContestPenalty(Inside) += (Height - 50) / 600.0 × EnergyFactor_Physical.
+      This is additive on top of the existing Attr_InteriorDefense-based penalty.
+    - Height for perimeter: modest impact on MidRange only (not 3PT — height doesn't close out faster).
+      ContestPenalty(MidRange) += (Height - 50) / 900.0 × EnergyFactor_Physical.
+    - Jumping: increases block probability for high-leaping defenders regardless of height.
+      BlockMod bonus: += (Jumping - 50) / 600.0 × EnergyFactor_Physical. Additive on base BlockMod.
+
+  Stopping Drives (DrivingLayup, PullUpMidRange, PickAndRollRoll):
+    - Speed (primary): fast defenders can cut off driving lanes.
+      When defender Speed > attacker Speed: apply a DriveContest modifier that reduces DrivingLayup PPS.
+      DriveContest = 1.0 − Clamp((defSpeed − offSpeed) / 100.0, 0, 0.15).
+      This is applied as a multiplier on the base PPS of drive-based contexts.
+    - Attr_PerimeterDefense: already drives ContestPenalty; also gates whether driving contexts appear
+      at "Open" vs "Contested" quality on the menu.
+
+  Stopping Post (PostMove, PostMoveMidRange, ContactDunk):
+    - Strength (primary): physical defenders can wall off post entry and disrupt seals.
+      PostContest = 1.0 − Clamp((defStrength − offStrength) / 100.0, 0, 0.18).
+      Applied to PostMove and PostMoveMidRange Actual_PPS as a multiplier.
+    - Height: taller defenders change post angles. Already partially captured by DRebWeight.
+      Add: PostContest height bonus += (defHeight − offHeight) / 800.0 (small, stacks with Strength).
+    - Attr_InteriorDefense: primary skill driver already in ContestPenalty.
+
+  Blocks (all Inside + some MidRange):
+    - Height + Jumping (both matter): BlockMod = Pow(Attr_InteriorDefense / 100.0, 1.3) × 0.26.
+      Add physical bonus: BlockMod += (Height + Jumping − 100) / 1200.0 × EnergyFactor_Physical.
+      At both 95: +0.075 bonus. At both 50: +0. At both 5: −0.075 (floored at 0).
+    - Jumping addendum: if Jumping > 75, increase TransitionDunk/AlleyOop blockability slightly
+      (elite leapers can still get a hand on high-flying dunks).
+
+  Rebounding (defensive):
+    - Height (primary): DRebWeight = Pow((Attr_Rebounding_Def + Height) / 200, 1.3). Already correct.
+    - Jumping: also contributes via Attr_Rebounding_Def proxy from 2K data.
+    - Strength: allows holding position against offensive rebounders. Small multiplier on DRebWeight.
+      DRebWeight × (0.9 + Strength / 1000.0). Matches the symmetric offensive version.
+    - Position modifiers (new): on Inside misses, C/PF get 1.3× DRebWeight; Guards/Wings 0.8×.
+      On ThreePointer misses, Guards/Wings get 1.2× DRebWeight; C/PF get 0.9×.
+
+  Stealing (all turnovers):
+    - Speed (primary): StealMod = Pow((Attr_PerimeterDefense + Speed) / 200, 1.3) × 0.07.
+      Already implemented. Speed directly reflects anticipation and first-step quickness.
+    - Jumping: no impact on steals (not a physical steal attribute).
+
+C. ATTRIBUTE INTERACTION SUMMARY TABLE
+
+Physical Attr | Offensive Impact                              | Defensive Impact
+--------------|-----------------------------------------------|------------------------------------------
+Height        | DunkTendency, PostMove PPS bonus              | ContestPenalty(Inside/Mid) bonus, BlockMod bonus, DRebWeight
+Speed         | DriveGravity, FastBreakLayup PPS, ShotClockAggressiveness | DriveContest modifier, StealMod
+Jumping       | DunkTendency, ORebWeight, FastBreakLayup/Floater PPS bonus | BlockMod bonus, DRebWeight (via reb attr)
+Strength      | ContactDunkMakePct, PostMove weight/threshold, ORebWeight (minor) | PostContest modifier, DRebWeight (minor)
+Endurance     | All attributes degrade via EnergyFactor curves | Same — fatigue affects physical defense harder
+
+4. The Menu Generation (Availability Logic)
+
+Instead of a player "choosing" a shot, the engine generates a Menu of available ShotContexts for the current
+ball handler. Each ShotContext maps to a ShotType and a base PPS.
+
+A. Influence Hierarchy
+
+    1. Offensive Style Profile (see Section 5): Hard-coded profile boosts/suppresses which ShotContext
+       categories appear and with what frequency. Applied first as a multiplier on context weights.
+
+    2. Coaching Quality (CoachingProfile.OffensiveRating):
+       High OffensiveRating elevates corner-3 and cut contexts; low suppresses them.
+       Applied as a secondary modifier within each context category.
+
+    3. Passer Attribute (Player.Attr_Passing):
+       High Attr_Passing "upgrades" shots to Open/assisted versions (higher PPS contexts:
+       CatchAndShootCorner, CatchAndShootWing, CutLayup, AlleyOop).
+       Low Attr_Passing forces contested/self-created versions (IsolationMidRange, PullUpThree, StepBackThree).
+
+    4. Physical Modifiers (Section 3): Speed affects drive contexts; Jumping affects dunk/OReb contexts;
+       Strength affects post contexts; Height affects interior contests and blocks.
+
+    5. Defensive Suppression:
+       Defender's Attr_PerimeterDefense suppresses high-PPS perimeter contexts from the menu.
+       Defender's Attr_InteriorDefense suppresses At-Rim / Dunk contexts.
+       Speed differential applies DriveContest to driving contexts.
+       Strength differential applies PostContest to post contexts.
+
+    6. Defensive Stance (CoachingProfile.DefStyle):
+       DefensiveStyle.ProtectThePaint — suppresses At-Rim/Dunk PPS; opens corner-3 PPS.
+       DefensiveStyle.StopTheThree   — suppresses perimeter PPS; opens paint PPS.
+       DefensiveStyle.Balanced       — moderate suppression everywhere.
+
+       Sag signal (existing teamSag/teamGravity from lineup Attr_ThreePoint averages):
+       High teamSag  → increases Open Mid / Open Corner 3 availability; decreases At-Rim.
+       High teamGravity → increases At-Rim availability; decreases open perimeter.
+
+5. Offensive Style Profiles (Hard-Coded)
+
+Add `OffensiveStyle` enum to CoachingProfile.cs:
+  `public enum OffensiveStyle { PaceAndSpace, Heliocentric, MotionFlow, GritAndGrind, Balanced }`
+
+Each profile is a set of multipliers applied during GenerateMenu() to context category weights.
+These represent a coach's system, not individual player tendencies — they shape the menu before
+player attributes and tendencies are applied.
+
+── PACE & SPACE ─────────────────────────────────────────────────────────────────────────────────
+
+Philosophy: Mathematical Optimization. Aggressively pursues only the two highest-value shot types
+(rim and 3-point). Maximizes possessions to exploit the law of large numbers.
+
+Menu multipliers:
+  Rim/Dunk contexts (AlleyOop, CutDunk, FastBreakLayup, TransitionDunk, PickAndRollDunk): × 1.4
+  3PT contexts (CatchAndShootCorner, CatchAndShootWing, TransitionThree, PickAndRollThree):  × 1.5
+  Mid-range contexts (all Isolation/PullUp/Fadeaway/PostMove mid):                           × 0.4
+  Post contexts (PostMove, PostMoveMidRange):                                                 × 0.3
+  DrivingLayup / PickAndRollRoll:                                                             × 1.2
+  Pace bonus: Team.Pace += 5 baseline (faster possessions increase scoring ceiling variance).
+
+Emergent behaviors:
+  STRENGTH — Best-fit roster: Elite 3PT shooters + rim-running bigs + fast guards.
+    Corner 3s flood the menu; rim rolls get open looks via gravity. PPS ceiling is the highest
+    of any style when shots are falling.
+  WEAKNESS — High variance: lives and dies by 3PT RNG.
+    Poor transition defense (fast pace leaves D scrambling) → more opponent FAST_BREAK states.
+    Fewer SECOND_CHANCE states (no offensive board emphasis → OrebWeight multiplier: × 0.75).
+    Mid-range specialists become essentially worthless. Teams with poor 3PT shooting will crater.
+
+── HELIOCENTRIC ─────────────────────────────────────────────────────────────────────────────────
+
+Philosophy: Star Power. Guarantees the highest-USG_Weight player initiates every possession loop.
+Minimizes passes to minimize turnover dice rolls.
+
+Menu multipliers:
+  Primary ball handler (highest USG_Weight player) is locked in as the initiator for all checks.
+  Usage selection: instead of weighted random, primary handler is forced as action player 80% of possessions.
+  Iso contexts (IsolationMidRange, StepBackThree, PullUpThree, PullUpMidRange):                × 1.6
+  Catch-and-shoot contexts for non-primary players:                                             × 0.5
+    (teammates rarely see ball → frozen out, almost never get "Open" upgrades)
+  Pass loop: maximum 1 pass per possession before a shot is forced (reduces ball movement).
+  Forced shot boost: primary handler's T is reduced by 0.08 (takes harder shots more willingly).
+
+Emergent behaviors:
+  STRENGTH — Elite primary ball handler dominates. Star's Attr_MidRange, Attr_ThreePoint, and
+    Tendencies.Iso drive everything. Very low turnover rate (fewer pass dice rolls).
+    Stable, predictable output — effective against any defense.
+  WEAKNESS — Predictable: the primary defender's Matchup_Mod is applied with full weight every
+    possession. Elite matchup defenders have outsized impact.
+    Teammates "freeze out" → CatchAndShootCorner/Wing rarely appear (devastating to 3&D players).
+    Average team TS% becomes anchored entirely to the star's hot/cold variance.
+    Very low assist totals; role players lose rhythm and effectiveness.
+
+── MOTION / FLOW ────────────────────────────────────────────────────────────────────────────────
+
+Philosophy: Quality Multiplier. Ball movement constantly upgrades contested shots to open ones.
+Entire defense must rotate, creating cracks in coverage.
+
+Menu multipliers:
+  Catch-and-shoot contexts (CatchAndShootCorner, CatchAndShootWing):                           × 1.8
+  Cut contexts (CutLayup, CutDunk, AlleyOop):                                                  × 1.5
+  Iso/self-creation contexts (IsolationMidRange, StepBackThree, PullUpThree):                  × 0.4
+  Pass loop: 2–4 passes encouraged per possession before shooting (lower T requires higher PPS).
+    Each pass: Attr_Passing of passer upgrades next handler's available contexts by one tier.
+  BBIQ noise: stddev of Perceived_PPS noise is halved (motion offense requires reads → IQ matters more).
+  Team-wide AssistWeight receives × 1.3 multiplier.
+
+Emergent behaviors:
+  STRENGTH — Best PPS per shot when players have high Attr_Passing and Attr_BasketballIQ.
+    High passing frequency degrades defender positioning → more CatchAndShootCorner looks.
+    Most assists of any style; role players get open shots and develop rhythm.
+  WEAKNESS — High risk: every pass is a steal dice roll.
+    Low-Attr_BasketballIQ teams will misread (Perceived_PPS noise spikes) and make bad passes.
+    Requires roster depth: all 5 players must be willing passers — one low-IQ anchor breaks the chain.
+    Slower to develop looks → higher clock consumption per pass cycle.
+
+── GRIT & GRIND ─────────────────────────────────────────────────────────────────────────────────
+
+Philosophy: High Floor. Maximizes physical dominance in the paint. Grinds possessions to minimize
+opponent opportunities. Lives in SECOND_CHANCE states.
+
+Menu multipliers:
+  Post contexts (PostMove, PostMoveMidRange, ContactDunk, PickAndRollRoll):                    × 1.8
+  SECOND_CHANCE emphasis: ORebWeight receives × 1.4 multiplier (aggressive crash).
+  Interior contact contexts (DrivingLayup, ContactDunk):                                        × 1.3
+  Floater:                                                                                       × 0.6
+  3PT contexts (CatchAndShootCorner, CatchAndShootWing, PullUpThree, StepBackThree):           × 0.5
+  Pace penalty: Team.Pace −5 baseline (slower tempo reduces total possessions, limits opponent scoring).
+  PostContest from Strength is increased × 1.2 (physical teams get more from Strength attribute).
+
+Emergent behaviors:
+  STRENGTH — Elite bigs with high Strength, Height, Attr_Inside absolutely dominate.
+    Very high floor — effective even against elite defenses because post game is hard to suppress.
+    Maximizes SECOND_CHANCE possession states → outsized impact from high Jumping/OReb players.
+    Opponent FAST_BREAK chances reduced (slower pace, more controlled resets).
+  WEAKNESS — Spacing death: low 3PT output invites opponent DefensiveStyle.ProtectThePaint.
+    When opponent sags, DrivingLayup PPS drops due to DriveContest from crowded paint.
+    Cannot mount large comebacks (slow pace = fewer possessions when trailing).
+    Perimeter players with high Attr_ThreePoint are essentially wasted.
+
+── BALANCED ─────────────────────────────────────────────────────────────────────────────────────
+
+Philosophy: Ultimate Adaptability. No forced weights. The engine naturally exploits whatever the
+defense's weakest coverage zone is based on raw player attributes and tendencies.
+
+Menu multipliers:
+  All context categories: × 1.0 (no overrides — pure attribute/tendency expression).
+  Pass loop: standard (1–2 passes per possession on average).
+  T (threshold): standard defaults, no profile adjustment.
+  Pace: no modification.
+
+Emergent behaviors:
+  STRENGTH — Roster-reflective: what you build is what you get.
+    Best style for mixed rosters — won't waste a 3PT shooter by suppressing corner looks, and
+    won't waste a post scorer by suppressing interior. Adapts possession-to-possession.
+    No exploitable weakness in style itself (opponents cannot "scheme" against a tendency).
+  WEAKNESS — No specialist boost. A team of 50-rated players in Balanced will simply average out,
+    where a tuned system punches above roster weight.
+    Won't proactively hunt the defense's weakest zone — a team with 4 elite shooters in Pace &
+    Space actively creates and exploits corner 3s; Balanced waits for them to emerge naturally.
+    No identity means no morale/momentum swing mechanic (future feature consideration).
+
+6. The Decision Engine (PPS & Threshold)
+
+Every ShotContext on the menu is assigned an Actual PPS and a Perceived PPS.
+
+A. Actual PPS Formula
+
+  Actual_PPS = (Base_ShotPct × Matchup_Contest × Physical_Modifiers × Coaching_Quality × Clock_Decay) × Point_Value
+
+  - Base_ShotPct: Player's make% for the shot type (Player.InsideMakePct, MidRangeMakePct, ThreeMakePct,
+    DunkMakePct, ContactDunkMakePct). Use the existing fatigue-aware properties.
+  - Matchup_Contest: 1.0 − Player.ContestPenalty(shotType) for the assigned defender (GetMatchup).
+    ContestPenalty now includes both skill (Attr_PerimeterDefense/Attr_InteriorDefense) and physical
+    (Height + Jumping additive bonus per Section 3B). defCoachMod scales total penalty.
+  - Physical_Modifiers: DriveContest and PostContest from Section 3B. Applied per context category.
+  - Coaching_Quality: (OffensiveRating / 100.0); used in context selection (cm variable).
+  - Clock_Decay: linear from 1.0 at 24s to 0.7 at 1s. Smooth replacement for discrete phase bonuses.
+  - Point_Value: 2 for Inside/MidRange, 3 for ThreePointer.
+
+B. Perceived PPS (The BBIQ Filter)
+
+  Perceived_PPS = Actual_PPS + Gaussian_Noise(mean=0, stddev=f(Attr_BasketballIQ))
+
+  - Attr_BasketballIQ (Player.Attr_BasketballIQ, 0–100): high IQ → small noise (accurate read);
+    low IQ → large noise (erratic decisions).
+  - Base stddev: 0.10 × (1 − Attr_BasketballIQ / 100.0). At IQ=95: ±0.005; at IQ=30: ±0.07.
+  - Motion/Flow profile halves stddev for all players (style demands sharper reads).
+
+C. The Threshold (T)
+
+  - Shot Quality Threshold: minimum Perceived PPS a player will accept (default ≈ 0.85 for 2PT,
+    i.e., ~42.5% eFG equivalent; ~0.87 for 3PT due to higher point value).
+  - Tendency Modifier: PlayerTendencies fields lower T for favored shot types:
+      Tendencies.MidRange (0–100) → T_mid  × (1 − (MidRange − 50) / 200)
+      Tendencies.ThreePt  (0–100) → T_3pt  × (1 − (ThreePt  − 50) / 200)
+      Tendencies.Drive    (0–100) → T_rim  × (1 − (Drive     − 50) / 200)
+      Tendencies.Iso      (0–100) → lowers T for IsolationMidRange / StepBackThree contexts
+      Tendencies.PostUp   (0–100) → lowers T for PostMove / PostMoveMidRange contexts
+      Tendencies.PullUp   (0–100) → lowers T for PullUpMidRange / PullUpThree contexts
+  - Heliocentric profile reduces primary handler T by flat 0.08.
+  - Desperation Scaling: T decays exponentially as shot clock approaches 0.
+    At <3s remaining, accept whatever has highest Perceived PPS (no floor).
+
+7. The Execution Loop
+
+Run this loop until a shot is taken or time expires (replaces current SimulatePossessionChain inner while).
+
+  1. Select Ball Handler: Weighted random based on:
+       USG_Weight × Pow(Tendencies.Usage / 50.0, 1.5) × (0.75 + Energy / 400.0)
+     Heliocentric override: primary handler forced 80% of possessions.
+
+  2. Turnover Check:
+       Turnover_Chance = actionPlayer.TurnoverRate (fatigue + IQ + Dribbling composite)
+       Steal share: totalStealThreat / (totalStealThreat + 0.12)
+       where StealMod = Pow((Attr_PerimeterDefense + Speed) / 200.0, 1.3) × 0.07
+       Motion/Flow: each pass cycle adds a small steal roll (risk of ball movement).
+
+  3. Generate Menu: Apply Offensive Style Profile multipliers, then Coaching, Attr_Passing, Physical
+     Modifiers, and Defensive Stance filters to produce (ShotContext, Actual_PPS) pairs.
+
+  4. Threshold Check:
+       If Max(Perceived_PPS across menu) > (T × Desperation_Factor): SHOOT.
+       Else: PASS (Motion/Flow: encouraged; Heliocentric: suppressed after 1 pass).
+
+  5. Pass Outcome: Subtract clock: max(0.5, Gaussian(2.5, 0.8)) seconds.
+     Re-run loop with a new ball handler. Each pass in Motion/Flow upgrades next handler's context tier.
+
+  6. Assist Attribution: Credit passer via AssistProbability(shotContext) × AssistWeight.
+
+8. Resolution & Transition
+
+A. The Block Check
+
+  Block_Chance = (BlockMod + PhysicalBonus) × blockability × contestMod × blockTendFactor
+
+  - BlockMod = Pow(Attr_InteriorDefense / 100.0, 1.3) × 0.26
+  - PhysicalBonus: (Height + Jumping − 100) / 1200.0 × EnergyFactor_Physical (additive, floored at 0)
+  - blockability: Inside non-dunk=1.0, dunk contexts=0.35, MidRange=0.85, ThreePointer=0.25.
+    Fadeaway/floater: reduce blockability by (defHeight − offHeight) / 800.0.
+
+B. The Rebound (The Next State)
+
+  - Short misses (ShotType.Inside): C/PF get 1.3× DRebWeight; Guards/Wings get 0.8×.
+  - Long misses (ShotType.ThreePointer): Guards/Wings get 1.2× DRebWeight; C/PF get 0.9×.
+  - Grit & Grind: ORebWeight × 1.4 → more SECOND_CHANCE transitions.
+  - Pace & Space: ORebWeight × 0.75 → fewer SECOND_CHANCE transitions (sprinting back on defense).
+  - Result: PossessionState → SECOND_CHANCE (offense rebounds) or TRANSITION (defense rebounds).
+
+9. Master Shot Type Registry (ShotContext mapping)
+
+The existing ShotContext enum covers all cases. PPS values are pre-contest, pre-style targets.
+
+ShotContext                | ShotType      | Target PPS | Key Driver Attributes                         | Passer Impact
+---------------------------|---------------|------------|-----------------------------------------------|---------------
+AlleyOop                   | Inside        | 1.30       | AlleyOopTendency, Jumping, Attr_Dunks         | Massive (1.0)
+CutDunk / TransitionDunk   | Inside        | 1.25       | DunkTendency, Speed, Jumping                  | High (0.92)
+CutLayup / FastBreakLayup  | Inside        | 1.20       | CutTendency, Speed, Jumping bonus             | Massive (0.92)
+PickAndRollDunk            | Inside        | 1.18       | DunkTendency, DriveGravity                    | High (0.78)
+PickAndRollRoll            | Inside        | 1.10       | DriveGravity, spacingLevel                    | High (0.80)
+ContactDunk                | Inside        | 1.08       | Strength, Attr_Dunks, Jumping                 | Moderate (0.40)
+DrivingLayup               | Inside        | 1.05       | DriveGravity, Speed; DriveContest reduces PPS | Moderate (0.58)
+Putback / TipIn            | Inside        | 1.00       | ORebWeight, Jumping                           | None (0.00)
+PostMove                   | Inside        | 0.96       | Attr_Inside, Strength, Height; PostContest    | Low (0.32)
+FloaterLayup               | Inside        | 0.95       | Speed, Attr_Dribbling, Jumping bonus          | Low (0.40)
+CatchAndShootCorner        | ThreePointer  | 1.10       | Attr_ThreePoint, PerimGravity                 | Massive (0.95)
+CatchAndShootWing          | ThreePointer  | 1.05       | Attr_ThreePoint, PerimGravity                 | High (0.92)
+TransitionThree            | ThreePointer  | 1.02       | ShotClockAggressiveness, Speed                | Moderate (0.52)
+PickAndRollThree           | ThreePointer  | 0.98       | DriveGravity, Attr_ThreePoint                 | High (0.75)
+PullUpThree                | ThreePointer  | 0.90       | DriveGravity, Tendencies.PullUp               | Low (0.22)
+StepBackThree              | ThreePointer  | 0.88       | Attr_Dribbling, Tendencies.PullUp             | Very Low (0.13)
+PickAndRollMidRange        | MidRange      | 0.92       | DriveGravity, Attr_MidRange                   | Moderate (0.65)
+PostMoveMidRange           | MidRange      | 0.90       | Attr_MidRange, Strength, Height               | Low (0.28)
+FadeawayMidRange           | MidRange      | 0.86       | Strength, Attr_MidRange; Jumping reduces block| Very Low (0.15)
+PullUpMidRange             | MidRange      | 0.86       | DriveGravity, Tendencies.PullUp               | Low (0.28)
+IsolationMidRange          | MidRange      | 0.84       | USG_Weight, Tendencies.Iso                    | Very Low (0.10)
+LateClockMidRange          | MidRange      | 0.80       | (desperation fallback)                        | Very Low (0.08)
+
+Notes:
+- Passer Impact = AssistProbability(context) from existing implementation.
+- PPS targets are pre-contest, pre-style. Actual in-game PPS will vary ±15–25% based on matchup/coaching.
+- No Heave row: handled as a special case before loop runs (< 1.5s remaining).
+
+10. Validation Scenarios (Unit Tests)
+
+All tests run N=5,000 simulations with all-50-rated rosters unless otherwise specified.
+Assertions are on means with ±2 standard errors as tolerance bands.
+Target file: BasketballSim.Calibration/Program.cs (add alongside existing RunScenario calls).
+
+── CORE PPS / ATTRIBUTE SCENARIOS ──────────────────────────────────────────────────────────────
+
+Scenario 1: Mid-Range Specialist Fix
+  Setup:    One player with Attr_MidRange=95, Attr_ThreePoint=35, Tendencies.MidRange=80. Shot clock = 3s.
+  Expected: Player takes IsolationMidRange/PullUpMidRange significantly more than StepBackThree.
+            Mid-range FG% > team-average 3PT% in late-clock situations.
+  Assert:   Player's MidRangeAttempts / (MidRangeAttempts + ThreeAttempts) > 0.65 at <4s clock.
+
+Scenario 2: Elite Passer Impact
+  Setup:    Team A: PG Attr_Passing=90, Attr_BasketballIQ=85. Team B: PG Attr_Passing=40, Attr_BasketballIQ=50.
+  Expected: Team A generates CatchAndShootCorner contexts ≥ 2× more often. Team A assist rate > Team B.
+  Assert:   Team A PG Assists per game > Team B PG × 1.6. Team A TS% > Team B TS% by ≥2 ppts.
+
+Scenario 3: Lockdown Perimeter Defender
+  Setup:    90-rated shooter (Attr_ThreePoint=90) guarded by 95-rated perimeter defender.
+  Expected: Elite defender reduces shooter's 3PT% by at least 5ppts vs. average defender (50-rated).
+  Assert:   Shooter 3PT% vs. 95-defender ≤ Shooter 3PT% vs. 50-defender − 0.05.
+
+Scenario 4: Interior Physical Dominance
+  Setup:    Offense: C with Strength=90, Height=90, Jumping=85, Attr_Inside=85.
+            Defense: C with Strength=40, Height=50, Attr_InteriorDefense=50.
+  Expected: PostContest and HeightContest bonuses are negligible. Offensive big dominates post.
+  Assert:   PostMove PPS ≥ 0.95 effective. Offensive C FG% from post ≥ 55%.
+
+Scenario 5: Shot Clock Panic
+  Setup:    Shot clock = 1.5s. All players 50-rated.
+  Expected: Desperation_Factor floors T. Ball handler takes highest available context.
+  Assert:   Shot attempt rate ≥ 98% of possessions (near-zero violations). LateClockMidRange / StepBackThree
+            frequency spikes vs. normal-clock baseline.
+
+Scenario 6: Speed Differential on Drives
+  Setup:    Attacker Speed=85 vs. Defender Speed=40 (blowby scenario).
+            Attacker Speed=40 vs. Defender Speed=85 (stuffed scenario).
+  Expected: Fast attacker: DrivingLayup context PPS > slow attacker by ≥ 0.08.
+  Assert:   DrivingLayup FG% when Speed_att > Speed_def by 40+ pts is ≥5ppts higher than reverse.
+
+Scenario 7: Block Leaper vs. Flat-Footer
+  Setup:    Defender A: Height=90, Jumping=90, Attr_InteriorDefense=80.
+            Defender B: Height=50, Jumping=40, Attr_InteriorDefense=80 (same skill, different athleticism).
+  Expected: Defender A blocks significantly more shots despite identical Attr_InteriorDefense.
+  Assert:   Defender A Blocks/game > Defender B Blocks/game × 1.4.
+
+── COACHING SCHEME SCENARIOS ───────────────────────────────────────────────────────────────────
+
+All scheme tests use identically-rated all-50 rosters with perfectly matching playstyle attributes
+unless noted. Run 10,000 simulations per matchup. Balance goal: no scheme should win by >7 pts/game
+vs. another on a perfectly matched all-50 roster. "Well-fitting" roster tests check that the right
+team gets a meaningful edge.
+
+Scenario 8: Pace & Space Balance Check
+  8a. Neutral roster (all 50): P&S vs. Balanced.
+      Assert: Point differential < 5 pts/game either direction.
+  8b. Well-fitting roster (Attr_ThreePoint ≥ 75, Jumping ≥ 70 for all players): P&S vs. Balanced.
+      Assert: P&S team wins by ≥ 4 pts/game (demonstrating style synergy).
+  8c. Misfit roster (Attr_ThreePoint ≤ 30, Attr_Inside ≥ 80): P&S vs. Grit & Grind.
+      Assert: Grit & Grind wins by ≥ 5 pts/game (P&S is actively punished for wrong roster).
+  8d. P&S transition defense check: measure opponent FAST_BREAK possession% with P&S team on defense.
+      Assert: Opponent FAST_BREAK rate ≥ 1.15× baseline (Balanced defensive team's rate).
+
+Scenario 9: Heliocentric Balance Check
+  9a. Neutral roster: Heliocentric vs. Balanced.
+      Assert: Point differential < 5 pts/game.
+  9b. Elite star (Attr_MidRange=90, Tendencies.Usage=80, Tendencies.Iso=75): Helio vs. Balanced.
+      Assert: Helio wins ≥ 5 pts/game (star carried by system).
+  9c. Lockdown defense on star: opponent assigns best Attr_PerimeterDefense=95 defender to star.
+      Assert: Helio team's scoring drops ≥ 6 pts/game vs. same team vs. average defender.
+      (Validates "predictability" weakness — elite matchup devastates Helio more than other styles.)
+  9d. Teammate efficiency: measure non-primary-handler CatchAndShootCorner attempts in Helio vs. Balanced.
+      Assert: Helio non-star players get ≤ 60% as many catch-and-shoot corner looks as Balanced.
+
+Scenario 10: Motion / Flow Balance Check
+  10a. Neutral roster: Motion/Flow vs. Balanced.
+       Assert: Point differential < 5 pts/game.
+  10b. High-IQ/passing roster (Attr_Passing ≥ 75, Attr_BasketballIQ ≥ 75): Motion vs. Balanced.
+       Assert: Motion wins ≥ 4 pts/game.
+  10c. Low-IQ roster (Attr_BasketballIQ ≤ 35): Motion/Flow vs. Balanced.
+       Assert: Motion loses by ≥ 4 pts/game (IQ noise spikes cause bad passes/turnovers).
+  10d. Steal pressure: Motion vs. team with all Attr_PerimeterDefense=85, Speed=80.
+       Assert: Motion team's turnovers/game ≥ 1.3× Balanced team's turnovers in same matchup.
+
+Scenario 11: Grit & Grind Balance Check
+  11a. Neutral roster: Grit & Grind vs. Balanced.
+       Assert: Point differential < 5 pts/game.
+  11b. Post-dominant roster (Strength ≥ 80, Height ≥ 80, Attr_Inside ≥ 80): Grit vs. Balanced.
+       Assert: Grit wins ≥ 5 pts/game.
+  11c. Spacing death: Grit & Grind vs. opponent DefensiveStyle.ProtectThePaint.
+       Assert: Grit team's Points in Paint drops ≥ 8% vs. same matchup with DefStyle.Balanced.
+       (Validates that sagging defense has real bite against interior-heavy teams.)
+  11d. SECOND_CHANCE rate: measure Grit possession state distribution.
+       Assert: Grit SECOND_CHANCE state% ≥ 1.3× Balanced team's SECOND_CHANCE rate.
+
+Scenario 12: Cross-Style Rock-Paper-Scissors (Balance Matrix)
+  Run all 10 matchup pairs of the 5 styles on all-50 rosters:
+    P&S vs. Helio, P&S vs. Motion, P&S vs. Grit, P&S vs. Balanced
+    Helio vs. Motion, Helio vs. Grit, Helio vs. Balanced
+    Motion vs. Grit, Motion vs. Balanced
+    Grit vs. Balanced
+  Assert for ALL pairs: |mean point differential| < 7 pts/game.
+  Soft target: no single style wins every matchup (some non-transitivity is acceptable and realistic).
+
+── PHYSICAL ATTRIBUTE ISOLATION SCENARIOS ─────────────────────────────────────────────────────
+
+Scenario 13: Height Impact on Blocks and Contests
+  Setup:    All attributes 50, except vary defender Height: 30, 50, 70, 90.
+  Assert:   Block rate increases monotonically with Height.
+            ContestPenalty(Inside) increases monotonically with Height.
+            Difference between Height=30 and Height=90: ≥ 4 blocks/game per team, ≥ 3ppts inside FG%.
+
+Scenario 14: Strength Impact on Post
+  Setup:    Offensive C Strength=90 vs. Defensive C Strength=30 (and vice versa).
+  Assert:   Offense-favored Strength matchup: PostMove + PostMoveMidRange FG% ≥ 5ppts higher
+            than Strength-neutral (both 50) matchup.
+
+Scenario 15: Speed Impact on Drives and Steals
+  Setup:    Vary PG Speed: 30, 50, 70, 90. All other attributes 50.
+  Assert:   DrivingLayup + PickAndRollRoll attempts increase monotonically with Speed.
+            Steals/game increases monotonically with Speed on defense side.
+            Range of steals: Speed=30 team ≤ Speed=90 team − 1.5 steals/game.
+
+Scenario 16: Jumping Impact on Dunks and Rebounds
+  Setup:    Vary all-team Jumping: 20, 50, 80.
+  Assert:   Dunk context frequency (sum of AlleyOop + CutDunk + TransitionDunk + etc.) increases
+            monotonically. ORebounds/game increases monotonically.
+            Jumping=80 team: ≥ 3 more dunks/game than Jumping=20 team.
+
+11. Implementation Instructions
+
+Target files (in order):
+  1. BasketballSim/Models/CoachingProfile.cs — add OffensiveStyle enum; add OffStyle property to record.
+  2. BasketballSim/Models/Player.cs — add physical modifiers: DriveContest, PostContest, BlockPhysicalBonus,
+     HeightContestBonus, updated ContestPenalty to include Height/Jumping additive terms.
+  3. BasketballSim/Simulation/GameEngine.cs — main refactor:
+       a. Add PossessionState enum and tracking.
+       b. Implement GenerateMenu(player, possState, offProfile, coach, defLineup) → List<(ShotContext, double pps)>.
+       c. Implement ThresholdLoop replacing SimulatePossessionChain's shot-type selection block.
+       d. Apply OffensiveStyle profile multipliers inside GenerateMenu.
+       e. Replace discrete ShotClockPhase bonuses with smooth Clock_Decay.
+       f. Add position-aware rebound modifiers in HandleRebound.
+       g. Apply PhysicalBonus to BlockMod; apply DriveContest/PostContest per context.
+  4. BasketballSim.Calibration/Program.cs — add all scenarios from Section 10.
+
+Preserve all calibrated constants: FT rates (42% inside, 9% three, 6% mid), foul rates, steal share
+formula (stealThreat / (stealThreat + 0.12)), OReb clamp [0.09, 0.35], energy drain/recover values.
+
+Do NOT change: energy system, foul tracking, rotation/substitution logic, quarter/OT structure,
+intentional foul handline, box score stat accumulation.
+
+Add an optional checkbox in the game sim that shows every event in the sim. Every time a player 
+touches a ball, the decision, and if i click on it a table of all the weights of the shot chances,
+expected points, player percieved expected points, and threshold show up.

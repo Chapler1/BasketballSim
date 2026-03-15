@@ -22,7 +22,7 @@
 }
 
 .navbar-brand {
-    font-size: 1.05rem;
+    font-size: 1.25rem;
     font-weight: 600;
     color: #e8e8e8 !important;
     letter-spacing: 0.3px;
@@ -43,7 +43,7 @@
 }
 
 .nav-item {
-    font-size: 0.875rem;
+    font-size: 1.075rem;
     padding-bottom: 0.25rem;
 }
 

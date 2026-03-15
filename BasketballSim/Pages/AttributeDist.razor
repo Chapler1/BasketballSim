@@ -9,7 +9,7 @@
 
 <style>
     .dist-page { background: #0f1117; min-height: 100vh; color: #e0e6f0; padding: 16px; font-family: 'Segoe UI', sans-serif; }
-    .dist-header { font-size: 1.3rem; font-weight: 700; color: #7eb8f7; margin-bottom: 12px; }
+    .dist-header { font-size: 1.5rem; font-weight: 700; color: #7eb8f7; margin-bottom: 12px; }
     .group-btn { background: #1e2535; border: 1px solid #2e3a4e; color: #9ab; padding: 5px 14px; border-radius: 4px; cursor: pointer; font-size: .82rem; margin-right: 6px; margin-bottom: 6px; }
     .group-btn.active { background: #2a3f5f; border-color: #4a8ecf; color: #7eb8f7; }
     .attr-btn { background: #1a2030; border: 1px solid #2a3550; color: #8a9db5; padding: 4px 11px; border-radius: 4px; cursor: pointer; font-size: .78rem; margin-right: 5px; margin-bottom: 5px; }
@@ -17,7 +17,7 @@
     .charts-row { display: flex; gap: 16px; margin-top: 10px; }
     .chart-panel { flex: 1; background: #141926; border: 1px solid #1e2c40; border-radius: 8px; padding: 12px; }
     .panel-label { font-size: .75rem; text-transform: uppercase; letter-spacing: .08em; color: #5a7a9a; margin-bottom: 4px; font-weight: 600; }
-    .panel-title { font-size: 1rem; font-weight: 700; color: #c8d8ea; margin-bottom: 8px; }
+    .panel-title { font-size: 1.2rem; font-weight: 700; color: #c8d8ea; margin-bottom: 8px; }
     .stats-bar { display: flex; gap: 18px; margin-top: 6px; font-size: .75rem; color: #7a9ab5; }
     .stats-bar span b { color: #b0cce8; }
     .chart-wrap { position: relative; }
@@ -27,6 +27,31 @@
         pointer-events: none; white-space: nowrap; z-index: 10;
         transform: translate(-50%, -110%);
     }
+    /* Player grid */
+    .grid-section { margin-top: 24px; }
+    .grid-wrap { overflow-x: auto; border: 1px solid #1e2c40; border-radius: 8px; }
+    .player-grid { border-collapse: collapse; font-size: .76rem; width: 100%; min-width: 1200px; }
+    .player-grid thead { position: sticky; top: 0; z-index: 5; }
+    .player-grid th {
+        background: #141926; color: #5a8ab0; font-weight: 600; text-align: center;
+        padding: 6px 5px; cursor: pointer; white-space: nowrap; user-select: none;
+        border-bottom: 1px solid #1e2c40; border-right: 1px solid #181f2d;
+    }
+    .player-grid th:hover { color: #9ac4e8; background: #1a2235; }
+    .player-grid th.active-sort { color: #7eb8f7; background: #1a2a40; }
+    .player-grid th.name-th { text-align: left; padding-left: 10px; min-width: 150px; }
+    .player-grid td { padding: 4px 5px; text-align: center; border-bottom: 1px solid #141926; border-right: 1px solid #181f2d; }
+    .player-grid td.name-td { text-align: left; padding-left: 10px; color: #c8d8ea; white-space: nowrap; }
+    .player-grid td.team-td { color: #6a8aaa; white-space: nowrap; font-size: .72rem; }
+    .player-grid td.pos-td  { color: #5a7a9a; font-size: .72rem; }
+    .player-grid tr:hover td { background: #161e2e; }
+    .search-box {
+        background: #1a2030; border: 1px solid #2a3550; color: #c0d4e8;
+        padding: 5px 10px; border-radius: 4px; font-size: .82rem; width: 200px;
+        outline: none;
+    }
+    .search-box:focus { border-color: #4a8ecf; }
+    .grid-info { font-size: .75rem; color: #4a6a8a; }
 </style>
 
 <div class="dist-page">
@@ -54,15 +79,14 @@
     {
         <div class="charts-row">
             <div class="chart-panel">
-                <div class="panel-label">Left Panel</div>
+                <div class="panel-label">Raw 2K composite (0–100)</div>
                 <div class="panel-title">2K SOURCE</div>
                 <div class="chart-wrap" style="position:relative;">
-                    @((MarkupString)BuildChartSvg(_dots, _hoveredSrc))
-                    @* Overlay invisible hit areas *@
+                    @((MarkupString)BuildChartSvg(_dots, _sourceValues, _hoveredSrc))
                     <svg viewBox="0 0 @VW @VH" style="position:absolute;top:0;left:0;width:100%;height:100%;">
                         @foreach (var (dot, cx, cy) in _dots)
                         {
-                            <circle cx="@cx" cy="@cy" r="8" fill="transparent"
+                            <circle cx="@cx" cy="@cy" r="5" fill="transparent"
                                     @onmouseenter="() => _hoveredSrc = dot"
                                     @onmouseleave="() => _hoveredSrc = null"/>
                         }
@@ -80,29 +104,72 @@
                 @DrawStatsBar(_sourceValues)
             </div>
             <div class="chart-panel">
-                <div class="panel-label">Right Panel</div>
+                <div class="panel-label">Normalized + skewed (5–95, median=50)</div>
                 <div class="panel-title">SIM ATTRIBUTE</div>
                 <div class="chart-wrap" style="position:relative;">
-                    @((MarkupString)BuildChartSvg(_dots, _hoveredSim))
+                    @((MarkupString)BuildChartSvg(_simDots, _simValues, _hoveredSim))
                     <svg viewBox="0 0 @VW @VH" style="position:absolute;top:0;left:0;width:100%;height:100%;">
-                        @foreach (var (dot, cx, cy) in _dots)
+                        @foreach (var (dot, cx, cy) in _simDots)
                         {
-                            <circle cx="@cx" cy="@cy" r="8" fill="transparent"
+                            <circle cx="@cx" cy="@cy" r="5" fill="transparent"
                                     @onmouseenter="() => _hoveredSim = dot"
                                     @onmouseleave="() => _hoveredSim = null"/>
                         }
                     </svg>
                     @if (_hoveredSim != null)
                     {
-                        var (_, hcx, hcy) = _dots.FirstOrDefault(d => d.dot == _hoveredSim);
+                        var (_, hcx, hcy) = _simDots.FirstOrDefault(d => d.dot == _hoveredSim);
                         <div class="dot-tooltip" style="left:@(hcx / VW * 100)%;top:@(hcy / VH * 100)%;">
                             <b>@_hoveredSim.PlayerName</b><br/>
                             @_hoveredSim.Team — @_hoveredSim.Positions<br/>
-                            OVR @_hoveredSim.Overall &nbsp;|&nbsp; <b style="color:@OverallColor(_hoveredSim.Overall)">@_hoveredSim.Value.ToString("F1")</b>
+                            OVR @_hoveredSim.Overall &nbsp;|&nbsp; <b style="color:@SimOverallColor(_hoveredSim.Overall)">@_hoveredSim.Value.ToString("F1")</b>
                         </div>
                     }
                 </div>
-                @DrawStatsBar(_sourceValues)
+                @DrawStatsBar(_simValues)
+            </div>
+        </div>
+
+        <!-- Player Grid -->
+        <div class="grid-section">
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:10px;">
+                <div class="dist-header" style="margin-bottom:0;">Player Database</div>
+                <input class="search-box" @bind="_search" @bind:event="oninput" placeholder="Search player…" />
+                <span class="grid-info">@SortedPlayers.Count() players &nbsp;|&nbsp; Sim OVR = weighted avg (3PT > JMP etc.)</span>
+            </div>
+            <div class="grid-wrap">
+                <table class="player-grid">
+                    <thead>
+                        <tr>
+                            <th class="name-th @ActiveSort("Name")"    @onclick='() => SortGrid("Name")'>Player @SortArrow("Name")</th>
+                            <th class="@ActiveSort("Team")"             @onclick='() => SortGrid("Team")'>Team @SortArrow("Team")</th>
+                            <th class="@ActiveSort("Pos")"              @onclick='() => SortGrid("Pos")'>Pos @SortArrow("Pos")</th>
+                            <th class="@ActiveSort("2kOvr")"            @onclick='() => SortGrid("2kOvr")'>2K ▾ @SortArrow("2kOvr")</th>
+                            <th class="@ActiveSort("SimOvr")"           @onclick='() => SortGrid("SimOvr")'>SIM @SortArrow("SimOvr")</th>
+                            @foreach (var col in _gridCols)
+                            {
+                                <th class="@ActiveSort(col.Key)" @onclick="() => SortGrid(col.Key)" title="@col.Label">@col.Short @SortArrow(col.Key)</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var p in SortedPlayers)
+                        {
+                            <tr>
+                                <td class="name-td">@p.Name</td>
+                                <td class="team-td">@p.Team</td>
+                                <td class="pos-td">@string.Join("/", p.Positions)</td>
+                                <td style="color:@OverallColor(p.Overall);font-weight:600;">@p.Overall</td>
+                                <td style="color:@SimOverallColor((int)Math.Round(p.SimOverall));font-weight:600;">@p.SimOverall.ToString("F0")</td>
+                                @foreach (var col in _gridCols)
+                                {
+                                    var val = GetColVal(p, col.Key);
+                                    <td style="color:@AttrColor(val)">@val.ToString("F0")</td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
             </div>
         </div>
     }
@@ -115,7 +182,7 @@
     private const double PlotW  = VW - ML - MR;
     private const double PlotH  = VH - MT - MB;
     private const double CenterY = MT + PlotH * 0.62;
-    private const double R = 4.0;
+    private const double R = 2.0;
     private const double BinSize = 2.0;
     private const double Bandwidth = 4.5;
     private const double KdeTop = MT + 8;
@@ -135,7 +202,70 @@
     private record DotInfo(string PlayerName, string Team, string Positions, int Overall, double Value);
 
     private List<DotInfo> _sourceValues = [];
-    private List<(DotInfo dot, double cx, double cy)> _dots = [];
+    private List<DotInfo> _simValues    = [];
+    private List<(DotInfo dot, double cx, double cy)> _dots    = [];
+    private List<(DotInfo dot, double cx, double cy)> _simDots = [];
+
+    // ── Grid state ─────────────────────────────────────────────────────────────
+    private string _gridSort = "SimOvr";
+    private bool   _gridDesc = true;
+    private string _search   = "";
+
+    private record GridCol(string Key, string Short, string Label);
+
+    private static readonly GridCol[] _gridCols =
+    [
+        new("Inside",       "INS",  "Inside Scoring"),
+        new("Dunks",        "DNK",  "Dunks"),
+        new("FreeThrow",    "FT",   "Free Throw"),
+        new("MidRange",     "MID",  "Mid-Range"),
+        new("ThreePoint",   "3PT",  "Three-Point"),
+        new("BasketballIQ", "IQ",   "Basketball IQ"),
+        new("Dribbling",    "HND",  "Dribbling / Ball Handling"),
+        new("Passing",      "PAS",  "Passing"),
+        new("RebOff",       "ORB",  "Offensive Rebounding"),
+        new("RebDef",       "DRB",  "Defensive Rebounding"),
+        new("PerimDef",     "PD",   "Perimeter Defense"),
+        new("IntDef",       "ID",   "Interior Defense"),
+        new("Speed",        "SPD",  "Speed"),
+        new("Strength",     "STR",  "Strength"),
+        new("Jumping",      "JMP",  "Jumping / Vertical"),
+        new("Endurance",    "END",  "Endurance"),
+        new("Height",       "HGT",  "Height"),
+    ];
+
+    private IEnumerable<PlayerData> SortedPlayers
+    {
+        get
+        {
+            IEnumerable<PlayerData> src = string.IsNullOrWhiteSpace(_search)
+                ? _players
+                : _players.Where(p => p.Name.Contains(_search, StringComparison.OrdinalIgnoreCase)
+                                   || p.Team.Contains(_search, StringComparison.OrdinalIgnoreCase));
+
+            return _gridSort switch
+            {
+                "Name"   => _gridDesc ? src.OrderByDescending(p => p.Name)      : src.OrderBy(p => p.Name),
+                "Team"   => _gridDesc ? src.OrderByDescending(p => p.Team)      : src.OrderBy(p => p.Team),
+                "Pos"    => _gridDesc ? src.OrderByDescending(p => p.Positions.FirstOrDefault()) : src.OrderBy(p => p.Positions.FirstOrDefault()),
+                "2kOvr"  => _gridDesc ? src.OrderByDescending(p => p.Overall)   : src.OrderBy(p => p.Overall),
+                "SimOvr" => _gridDesc ? src.OrderByDescending(p => p.SimOverall): src.OrderBy(p => p.SimOverall),
+                var k    => _gridDesc ? src.OrderByDescending(p => GetColVal(p, k)) : src.OrderBy(p => GetColVal(p, k)),
+            };
+        }
+    }
+
+    private static double GetColVal(PlayerData p, string key) =>
+        p.Mapped.TryGetValue(key, out var v) ? v : (p.Source.TryGetValue(key, out var sv) ? sv : 50);
+
+    private void SortGrid(string col)
+    {
+        if (_gridSort == col) _gridDesc = !_gridDesc;
+        else { _gridSort = col; _gridDesc = true; }
+    }
+
+    private string ActiveSort(string col) => _gridSort == col ? "active-sort" : "";
+    private string SortArrow(string col)  => _gridSort != col ? "" : _gridDesc ? "↓" : "↑";
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
     protected override void OnInitialized()
@@ -162,31 +292,38 @@
         _sourceValues = _players
             .Where(p => p.Source.ContainsKey(_activeAttr))
             .Select(p => new DotInfo(
-                p.Name,
-                p.Team,
+                p.Name, p.Team,
                 string.Join("/", p.Positions),
                 p.Overall,
                 p.Source[_activeAttr]))
             .OrderBy(d => d.Value)
             .ToList();
 
-        _dots = ComputeBeeswarm(_sourceValues);
+        _simValues = _players
+            .Where(p => p.Mapped.ContainsKey(_activeAttr))
+            .Select(p => new DotInfo(
+                p.Name, p.Team,
+                string.Join("/", p.Positions),
+                (int)Math.Round(p.SimOverall),
+                p.Mapped[_activeAttr]))
+            .OrderBy(d => d.Value)
+            .ToList();
+
+        _dots    = ComputeBeeswarm(_sourceValues);
+        _simDots = ComputeBeeswarm(_simValues);
         _hoveredSrc = null;
         _hoveredSim = null;
     }
 
-    // ── SVG builder (returns string to avoid <text> Razor conflict) ───────────
-    private string BuildChartSvg(List<(DotInfo dot, double cx, double cy)> beeswarm, DotInfo? hovered)
+    // ── SVG builder ───────────────────────────────────────────────────────────
+    private string BuildChartSvg(List<(DotInfo dot, double cx, double cy)> beeswarm, List<DotInfo> kdeSource, DotInfo? hovered)
     {
-        var kde = ComputeKde(_sourceValues);
+        var kde = ComputeKde(kdeSource);
         var sb  = new System.Text.StringBuilder();
 
         sb.Append($"<svg viewBox=\"0 0 {VW} {VH}\" style=\"width:100%;display:block;\">");
-
-        // Axis
         sb.Append($"<line x1=\"{ML}\" y1=\"{MT+PlotH}\" x2=\"{ML+PlotW}\" y2=\"{MT+PlotH}\" stroke=\"#2a3a52\" stroke-width=\"1\"/>");
 
-        // Tick labels
         for (int t = 0; t <= 100; t += 10)
         {
             double tx = ML + t / 100.0 * PlotW;
@@ -194,20 +331,16 @@
             sb.Append($"<text x=\"{tx:F1}\" y=\"{MT+PlotH+14}\" text-anchor=\"middle\" font-size=\"9\" fill=\"#4a6a8a\">{t}</text>");
         }
 
-        // KDE path
         if (kde.Count > 1)
-        {
             sb.Append($"<path d=\"{KdePath(kde)}\" fill=\"#1e4a7a\" fill-opacity=\"0.4\" stroke=\"#4a8ecf\" stroke-width=\"1.2\"/>");
-        }
 
-        // Dots
         foreach (var (dot, cx, cy) in beeswarm)
         {
-            var fill     = OverallColor(dot.Overall);
-            var isHov    = hovered == dot;
-            var r        = isHov ? R + 1.5 : R;
-            var opacity  = isHov ? "1" : "0.75";
-            var stroke   = isHov ? " stroke=\"#fff\" stroke-width=\"1\"" : "";
+            var fill    = OverallColor(dot.Overall);
+            var isHov   = hovered == dot;
+            var r       = isHov ? R + 1.5 : R;
+            var opacity = isHov ? "1" : "0.75";
+            var stroke  = isHov ? " stroke=\"#fff\" stroke-width=\"1\"" : "";
             sb.Append($"<circle cx=\"{cx:F1}\" cy=\"{cy:F1}\" r=\"{r}\" fill=\"{fill}\" fill-opacity=\"{opacity}\"{stroke}/>");
         }
 
@@ -248,7 +381,7 @@
             for (int i = 0; i < group.Count; i++)
             {
                 int si    = (i % 2 == 0) ? i / 2 : -(i / 2 + 1);
-                double cy = CenterY - si * (R * 2 + 1);
+                double cy = CenterY - si * (R * 2 + 0.5);
                 result.Add((group[i], cx, cy));
             }
         }
@@ -264,7 +397,7 @@
 
         for (int i = 0; i <= 200; i++)
         {
-            double xVal   = i * 0.5;
+            double xVal    = i * 0.5;
             double density = 0;
             foreach (var d in dots)
             {
@@ -295,7 +428,7 @@
         return sb.ToString();
     }
 
-    // ── Color by overall ─────────────────────────────────────────────────────
+    // ── Color helpers ─────────────────────────────────────────────────────────
     private static string OverallColor(int ovr) => ovr switch
     {
         >= 95 => "#f5c518",
@@ -304,6 +437,29 @@
         >= 80 => "#4fc44f",
         >= 75 => "#9ab850",
         >= 70 => "#c8a030",
+        _     => "#7a6060",
+    };
+
+    private static string SimOverallColor(int ovr) => ovr switch
+    {
+        >= 82 => "#f5c518",
+        >= 74 => "#4a9eff",
+        >= 66 => "#2ac9a0",
+        >= 58 => "#4fc44f",
+        >= 50 => "#9ab850",
+        >= 42 => "#c8a030",
+        _     => "#7a6060",
+    };
+
+    // Attribute cell color on 5–95 scale
+    private static string AttrColor(double v) => v switch
+    {
+        >= 80 => "#f5c518",
+        >= 70 => "#4a9eff",
+        >= 60 => "#2ac9a0",
+        >= 50 => "#4fc44f",
+        >= 40 => "#9ab850",
+        >= 30 => "#c8a030",
         _     => "#7a6060",
     };
 }
