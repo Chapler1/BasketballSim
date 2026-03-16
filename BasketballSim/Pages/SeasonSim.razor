@@ -8,6 +8,7 @@
 @inject NbaRosterService RosterSvc
 @inject SeasonScheduleService SeasonSvc
 @inject PlayerDataService PlayerSvc
+@inject HistoricalStatsService HistSvc
 
 <PageTitle>Season Sim</PageTitle>
 
@@ -28,13 +29,17 @@
     .ssim input[type=text]:focus { border-color: #555; }
     .ssim select { background: #1a1a1a; color: #d4d4d4; border: 1px solid #333; padding: 4px 10px; border-radius: 4px; font-family: monospace; font-size: 0.93rem; cursor: pointer; }
     .ssim tr.clickable-row { cursor: pointer; }
-    .pdlg-tab { background:none;border:none;padding:6px 16px;font-family:monospace;font-size: 0.92rem;cursor:pointer;letter-spacing:0.5px;border-bottom:2px solid transparent; }
+    .pdlg-tab { background:none;border:none;padding:6px 16px;font-family:monospace;font-size:0.88rem;cursor:pointer;letter-spacing:0.5px;border-bottom:2px solid transparent; }
     .pdlg-tab.active { color:#fca;border-bottom-color:#fca; }
     .pdlg-tab:not(.active) { color:#555; }
-    .pdlg-attr { display:flex;align-items:center;gap:6px;margin:3px 0; }
-    .pdlg-attr-label { width:92px;color:#555;font-size: 0.88rem;text-align:right; }
-    .pdlg-attr-bar-bg { width:120px;background:#1a1a1a;height:4px;border-radius:2px; }
-    .pdlg-attr-val { width:24px;color:#c8c8c8;font-size: 0.88rem;text-align:right;font-weight:600; }
+    .pdlg-attr { display:flex;align-items:center;gap:6px;margin:2px 0; }
+    .pdlg-attr-label { width:82px;color:#555;font-size:0.82rem;text-align:right; }
+    .pdlg-attr-bar-bg { width:90px;background:#1a1a1a;height:3px;border-radius:2px; }
+    .pdlg-attr-val { width:22px;color:#c8c8c8;font-size:0.84rem;text-align:right;font-weight:600; }
+    .pdlg-qs { flex:1;min-width:44px;text-align:center;padding:5px 3px;border-right:1px solid #1a1a1a; }
+    .pdlg-qs:last-child { border-right:none; }
+    .pdlg-qs-label { font-size:0.68rem;color:#333;letter-spacing:0.5px;margin-bottom:1px; }
+    .pdlg-qs-val { font-size:0.93rem;font-weight:600; }
 </style>
 
 <div class="ssim">
@@ -249,7 +254,6 @@ else if (_phase == Phase.Done && _season is not null)
                         </tr>
                     }
                 </tbody>
-            </table>
                 <tfoot>
                 @{
                     var _ftl = SortedLeaguePlayers().ToList();
@@ -294,7 +298,7 @@ else if (_phase == Phase.Done && _season is not null)
                             ? (_season!.TeamStats.FirstOrDefault(t => t.TeamName == _leagueTeamFilter)?.Abbreviation ?? "FILTER") + " AVG"
                             : "LEAGUE AVG";
                 }
-                <tr style="border-top:2px solid #333;color:#888;background:#0f0f0f;">
+                <tr style="border-top:2px solid #333;color:#888;background:#0f0f0f;position:sticky;bottom:0;z-index:1;">
                     <td style="color:#555;font-weight:600;padding:4px 6px;">@_ftLabel</td>
                     <td></td>
                     <td></td>
@@ -328,6 +332,7 @@ else if (_phase == Phase.Done && _season is not null)
                     <td style="text-align:center;color:@OppFgColor(_ftOppFg);font-weight:600;">@(_ftDFGA > 0 ? _ftOppFg.ToString("P1") : "—")</td>
                 </tr>
                 </tfoot>
+            </table>
             </div>
             <div style="font-size: 0.78rem;color:#333;margin-top:4px;">All stats per game · click headers to sort · selected team highlighted</div>
     </div>
@@ -381,6 +386,41 @@ else if (_phase == Phase.Done && _season is not null)
                         <tr><td style="color:#666;">STL</td><td style="color:#a0e080;text-align:right;">@lgSpg.ToString("F1")</td></tr>
                         <tr><td style="color:#666;">BLK</td><td style="color:#e08060;text-align:right;">@lgBpg.ToString("F1")</td></tr>
                         <tr><td style="color:#666;">TOV</td><td style="color:#f06060;text-align:right;">@lgTov.ToString("F1")</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Home/Away -->
+            <div>
+                <div style="font-size: 0.78rem;color:#444;letter-spacing:1px;margin-bottom:4px;">HOME / AWAY</div>
+                <table style="font-size: 0.9rem;">
+                    <tbody>
+                        @{
+                            int totalHomeWins = _season.TeamStats.Sum(t => t.HomeWins);
+                            int totalHomeLoss = _season.TeamStats.Sum(t => t.HomeLosses);
+                            int totalAwayWins = _season.TeamStats.Sum(t => t.AwayWins);
+                            int totalAwayLoss = _season.TeamStats.Sum(t => t.AwayLosses);
+                            double homeWinPct = (totalHomeWins + totalHomeLoss) > 0
+                                ? (double)totalHomeWins / (totalHomeWins + totalHomeLoss) : 0;
+                            double awayWinPct = (totalAwayWins + totalAwayLoss) > 0
+                                ? (double)totalAwayWins / (totalAwayWins + totalAwayLoss) : 0;
+                        }
+                        <tr>
+                            <td style="color:#666;padding-right:1.5rem;">Home W%</td>
+                            <td style="color:#e8c060;font-weight:600;text-align:right;">@homeWinPct.ToString("P1")</td>
+                        </tr>
+                        <tr>
+                            <td style="color:#666;">Home W-L</td>
+                            <td style="color:#888;text-align:right;">@totalHomeWins–@totalHomeLoss</td>
+                        </tr>
+                        <tr>
+                            <td style="color:#666;">Away W%</td>
+                            <td style="color:#e8e8e8;font-weight:600;text-align:right;">@awayWinPct.ToString("P1")</td>
+                        </tr>
+                        <tr>
+                            <td style="color:#666;">Away W-L</td>
+                            <td style="color:#888;text-align:right;">@totalAwayWins–@totalAwayLoss</td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -439,196 +479,203 @@ else if (_phase == Phase.Done && _season is not null)
 <!-- ═══ PLAYER DETAIL MODAL ═══ -->
 @if (_detailPlayer is not null)
 {
-    <div style="position:fixed;inset:0;background:rgba(0,0,0,0.80);z-index:1000;display:flex;align-items:center;justify-content:center;padding:1rem;"
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:1000;display:flex;align-items:center;justify-content:center;padding:1rem;"
          @onclick="CloseModal">
-        <div style="background:#141414;border:1px solid #2a2a2a;border-radius:6px;width:min(960px,95vw);max-height:94vh;overflow-y:auto;font-family:monospace;color:#d4d4d4;"
+        <div style="background:#141414;border:1px solid #2a2a2a;border-radius:6px;width:min(1060px,95vw);max-height:94vh;overflow-y:auto;font-family:monospace;color:#d4d4d4;"
              @onclick:stopPropagation="true">
 
             <!-- Header -->
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:1rem 1.25rem 0.75rem;border-bottom:1px solid #1e1e1e;">
-                <div>
-                    <div style="font-size: 1.35rem;font-weight:800;color:#e8e8e8;letter-spacing:1px;">@_detailPlayer.Name</div>
-                    <div style="font-size: 0.95rem;color:#666;margin-top:4px;">
-                        @_detailPlayer.TeamAbbr &nbsp;·&nbsp; @_detailPlayer.Position
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:0.85rem 1.25rem;border-bottom:1px solid #1e1e1e;gap:1rem;">
+                <div style="flex:1;">
+                    <div style="font-size:1.3rem;font-weight:800;color:#e8e8e8;letter-spacing:1px;">@_detailPlayer.Name</div>
+                    <div style="font-size:0.88rem;color:#555;margin-top:2px;">
+                        @_detailPlayer.Team
+                        <span style="color:#2a2a2a;">&nbsp;·&nbsp;</span>@_detailPlayer.Position
                         @if (_detailRecord is not null)
                         {
-                            <span>&nbsp;·&nbsp; @_detailRecord.Height</span>
+                            <span style="color:#2a2a2a;">&nbsp;·&nbsp;</span><span>@_detailRecord.Height</span>
+                            @if (_detailRecord.Positions.Count > 1)
+                            {
+                                <span style="color:#3a3a3a;">&nbsp;(@string.Join("/", _detailRecord.Positions))</span>
+                            }
                         }
                     </div>
                 </div>
-                <button @onclick="CloseModal" style="background:none;border:none;color:#444;font-size: 1.3rem;cursor:pointer;line-height:1;padding:0 2px;">✕</button>
+                <button @onclick="CloseModal" style="background:none;border:none;color:#444;font-size:1.3rem;cursor:pointer;line-height:1;padding:0;">✕</button>
+            </div>
+
+            <!-- Tab bar -->
+            <div style="display:flex;border-bottom:1px solid #1e1e1e;padding:0 1rem;">
+                <button class="pdlg-tab @(_detailTab=="career"?"active":"")"   @onclick='() => _detailTab = "career"'>CAREER STATS</button>
+                <button class="pdlg-tab @(_detailTab=="advanced"?"active":"")" @onclick='() => _detailTab = "advanced"'>ADVANCED STATS</button>
+                @if (_detailRecord is not null)
+                {
+                    <button class="pdlg-tab @(_detailTab=="attrs"?"active":"")"  @onclick='() => _detailTab = "attrs"'>ATTRIBUTES</button>
+                    <button class="pdlg-tab @(_detailTab=="tends"?"active":"")"  @onclick='() => _detailTab = "tends"'>TENDENCIES</button>
+                }
             </div>
 
             <div style="padding:0.85rem 1.25rem;">
 
-            <!-- Bio grid -->
-            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px 12px;background:#0d0d0d;border-radius:4px;padding:12px;margin-bottom:1rem;font-size: 0.92rem;">
-                <div><div style="color:#3a3a3a;letter-spacing:0.5px;margin-bottom:3px;">TEAM</div><div style="color:#aaa;">@_detailPlayer.Team</div></div>
-                <div><div style="color:#3a3a3a;letter-spacing:0.5px;margin-bottom:2px;">HEIGHT</div><div style="color:#aaa;">@(_detailRecord?.Height ?? "—")</div></div>
-                <div><div style="color:#3a3a3a;letter-spacing:0.5px;margin-bottom:2px;">WEIGHT</div><div style="color:#555;">—</div></div>
-                <div><div style="color:#3a3a3a;letter-spacing:0.5px;margin-bottom:2px;">AGE</div><div style="color:#555;">—</div></div>
-                <div><div style="color:#3a3a3a;letter-spacing:0.5px;margin-bottom:2px;">COLLEGE</div><div style="color:#555;">—</div></div>
-                <div><div style="color:#3a3a3a;letter-spacing:0.5px;margin-bottom:2px;">FROM</div><div style="color:#555;">—</div></div>
-                <div><div style="color:#3a3a3a;letter-spacing:0.5px;margin-bottom:2px;">BIRTHDATE</div><div style="color:#555;">—</div></div>
-                @if (_detailRecord is not null)
-                {
-                    <div><div style="color:#3a3a3a;letter-spacing:0.5px;margin-bottom:2px;">POSITIONS</div><div style="color:#aaa;">@string.Join(", ", _detailRecord.Positions)</div></div>
-                }
-            </div>
-
-            <!-- Attributes / Tendencies tabs -->
-            @if (_detailRecord is not null)
+            @if (_detailTab == "attrs" && _detailRecord is not null)
             {
-                <div style="display:flex;gap:0;margin-bottom:0.65rem;border-bottom:1px solid #1e1e1e;">
-                    <button class="pdlg-tab @(_detailTab=="attrs"?"active":"")" @onclick='() => _detailTab = "attrs"'>ATTRIBUTES</button>
-                    <button class="pdlg-tab @(_detailTab=="tends"?"active":"")" @onclick='() => _detailTab = "tends"'>TENDENCIES</button>
+                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.75rem 1rem;">
+                    @AttrGroup("PHYSICAL",  new[]{("Height","Height"),("Strength","Strength"),("Speed","Speed"),("Jumping","Jumping"),("Endurance","Endurance")})
+                    @AttrGroup("SHOOTING",  new[]{("Inside","Inside"),("Dunks","Dunks"),("Free Throw","FreeThrow"),("Mid-Range","MidRange"),("3-Point","ThreePoint")})
+                    @AttrGroup("SKILL",     new[]{("Off IQ","oBBIQ"),("Def IQ","dBBIQ"),("Hustle","Hustle"),("Dribbling","Dribbling"),("Passing","Passing"),("Off Reb","RebOff"),("Def Reb","RebDef")})
+                    @AttrGroup("DEFENSE",   new[]{("Perim Def","PerimDef"),("Int Def","IntDef"),("Foul Tend","FoulTend")})
                 </div>
-
-                @if (_detailTab == "attrs")
-                {
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem 1.5rem;margin-bottom:0.85rem;">
-                        @AttrGroup("PHYSICAL",  new[]{("Height","Height"),("Strength","Strength"),("Speed","Speed"),("Jumping","Jumping"),("Endurance","Endurance")})
-                        @AttrGroup("SHOOTING",  new[]{("Inside","Inside"),("Dunks","Dunks"),("Free Throw","FreeThrow"),("Mid-Range","MidRange"),("3-Point","ThreePoint")})
-                        @AttrGroup("SKILL",     new[]{("Basketball IQ","BasketballIQ"),("Dribbling","Dribbling"),("Passing","Passing"),("Off Reb","RebOff"),("Def Reb","RebDef")})
-                        @AttrGroup("DEFENSE",   new[]{("Perim Def","PerimDef"),("Interior Def","IntDef"),("Foul Tend","FoulTend")})
-                    </div>
-                }
-                else
-                {
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem 1.5rem;margin-bottom:0.85rem;">
-                        @TendGroup("OFFENSIVE", new[]{("Touches","Touches"),("Drive","Drive"),("3-Point","ThreePt"),("Mid-Range","MidRange"),("Post-Up","PostUp"),("Isolation","Iso"),("Pull-Up","PullUp"),("Cut","Cut"),("Off Rebound","OffReb")})
-                        @TendGroup("DEFENSIVE", new[]{("Steal","Steal"),("Block","Block")})
-                    </div>
-                }
             }
-
-            <!-- Stats / Advanced tabs -->
-            <div style="display:flex;gap:0;margin-bottom:0.65rem;border-bottom:1px solid #1e1e1e;">
-                <button class="pdlg-tab @(_statsTab=="regular"?"active":"")" @onclick='() => _statsTab = "regular"'>STATS</button>
-                <button class="pdlg-tab @(_statsTab=="advanced"?"active":"")" @onclick='() => _statsTab = "advanced"'>ADVANCED</button>
-            </div>
-
-            @if (_statsTab == "regular")
+            else if (_detailTab == "tends" && _detailRecord is not null)
             {
-                <div class="scroll-x" style="margin-bottom:1rem;">
-                <table style="width:100%;font-size: 0.95rem;border-collapse:collapse;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem 2rem;">
+                    @TendGroup("OFFENSIVE", new[]{("Touches","Touches"),("Drive","Drive"),("3-Point","ThreePt"),("Mid-Range","MidRange"),("Post-Up","PostUp"),("Isolation","Iso"),("Pull-Up","PullUp"),("Cut","Cut"),("Off Rebound","OffReb")})
+                    @TendGroup("DEFENSIVE", new[]{("Steal","Steal"),("Block","Block")})
+                </div>
+            }
+            else if (_detailTab == "career")
+            {
+                <div class="scroll-x">
+                <table style="width:100%;font-size:0.88rem;border-collapse:collapse;">
                     <thead>
-                        <tr style="border-bottom:1px solid #2a2a2a;">
-                            <th style="color:#444;font-weight:600;text-align:left;padding:4px 10px 4px 0;white-space:nowrap;">SEASON</th>
-                            <th style="color:#555;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">GP</th>
-                            <th style="color:#555;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">MIN</th>
-                            <th style="color:#e8c060;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">PTS</th>
-                            <th style="color:#555;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">REB</th>
-                            <th style="color:#555;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">ORB</th>
-                            <th style="color:#555;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">DRB</th>
-                            <th style="color:#60c8e8;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">AST</th>
-                            <th style="color:#a0e080;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">STL</th>
-                            <th style="color:#e08060;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">BLK</th>
-                            <th style="color:#f06060;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">TOV</th>
-                            <th style="color:#555;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">+/-</th>
-                            <th style="color:#555;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">FG%</th>
-                            <th style="color:#555;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">3P%</th>
-                            <th style="color:#555;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">FT%</th>
-                            <th style="color:#555;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">oFG%</th>
-                            <th style="color:#555;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">TOUCH%</th>
+                        <tr style="border-bottom:1px solid #252525;">
+                            <th style="color:#444;font-weight:600;text-align:left;padding:3px 8px 3px 0;white-space:nowrap;min-width:60px;">SEASON</th>
+                            <th style="color:#3a3a3a;font-weight:400;text-align:left;padding:3px 6px;white-space:nowrap;">TEAM</th>
+                            <th style="color:#555;font-weight:400;text-align:center;padding:3px 6px;">GP</th>
+                            <th style="color:#555;font-weight:400;text-align:center;padding:3px 6px;">MIN</th>
+                            <th style="color:#c8a840;font-weight:600;text-align:center;padding:3px 6px;">PTS</th>
+                            <th style="color:#555;font-weight:400;text-align:center;padding:3px 6px;">REB</th>
+                            <th style="color:#4aa8c0;font-weight:400;text-align:center;padding:3px 6px;">AST</th>
+                            <th style="color:#70a860;font-weight:400;text-align:center;padding:3px 6px;">STL</th>
+                            <th style="color:#b06040;font-weight:400;text-align:center;padding:3px 6px;">BLK</th>
+                            <th style="color:#c04040;font-weight:400;text-align:center;padding:3px 6px;">TOV</th>
+                            <th style="color:#555;font-weight:400;text-align:center;padding:3px 6px;">FGM</th>
+                            <th style="color:#444;font-weight:400;text-align:center;padding:3px 6px;">FGA</th>
+                            <th style="color:#555;font-weight:400;text-align:center;padding:3px 6px;">FG%</th>
+                            <th style="color:#555;font-weight:400;text-align:center;padding:3px 6px;">3PM</th>
+                            <th style="color:#444;font-weight:400;text-align:center;padding:3px 6px;">3PA</th>
+                            <th style="color:#555;font-weight:400;text-align:center;padding:3px 6px;">3P%</th>
+                            <th style="color:#555;font-weight:400;text-align:center;padding:3px 6px;">FTM</th>
+                            <th style="color:#444;font-weight:400;text-align:center;padding:3px 6px;">FTA</th>
+                            <th style="color:#555;font-weight:400;text-align:center;padding:3px 6px;">FT%</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td style="color:#aaa;font-weight:600;padding:6px 10px 6px 0;white-space:nowrap;">25/26</td>
-                            <td style="text-align:center;padding:6px 8px;color:#777;">@_detailPlayer.GP</td>
-                            <td style="text-align:center;padding:6px 8px;color:#888;">@_detailPlayer.Mpg.ToString("F1")</td>
-                            <td style="text-align:center;padding:6px 8px;color:#e8c060;font-weight:700;font-size: 1.02rem;">@_detailPlayer.Ppg.ToString("F1")</td>
-                            <td style="text-align:center;padding:6px 8px;color:#c8c8c8;">@_detailPlayer.Rpg.ToString("F1")</td>
-                            <td style="text-align:center;padding:6px 8px;color:#888;">@_detailPlayer.Opg.ToString("F1")</td>
-                            <td style="text-align:center;padding:6px 8px;color:#888;">@_detailPlayer.Dpg.ToString("F1")</td>
-                            <td style="text-align:center;padding:6px 8px;color:#60c8e8;">@_detailPlayer.Apg.ToString("F1")</td>
-                            <td style="text-align:center;padding:6px 8px;color:#a0e080;">@_detailPlayer.Spg.ToString("F1")</td>
-                            <td style="text-align:center;padding:6px 8px;color:#e08060;">@_detailPlayer.Bpg.ToString("F1")</td>
-                            <td style="text-align:center;padding:6px 8px;color:#f06060;">@_detailPlayer.Topg.ToString("F1")</td>
-                            <td style="text-align:center;padding:6px 8px;color:@PmColor(_detailPlayer.AvgPlusMinus);">@_detailPlayer.AvgPlusMinus.ToString("+0.0;-0.0;0.0")</td>
-                            <td style="text-align:center;padding:6px 8px;color:@FgPctColor(_detailPlayer.FgPct);">@_detailPlayer.FgPct.ToString("P1")</td>
-                            <td style="text-align:center;padding:6px 8px;color:@TpPctColor(_detailPlayer.TpPct);">@(_detailPlayer.TotalThreeAtt > 0 ? _detailPlayer.TpPct.ToString("P1") : "—")</td>
-                            <td style="text-align:center;padding:6px 8px;color:@FtPctColor(_detailPlayer.FtPct);">@(_detailPlayer.TotalFTA > 0 ? _detailPlayer.FtPct.ToString("P1") : "—")</td>
-                            <td style="text-align:center;padding:6px 8px;color:@OppFgColor(_detailPlayer.OppFgPct);">@(_detailPlayer.TotalDefFGA > 0 ? _detailPlayer.OppFgPct.ToString("P1") : "—")</td>
-                            <td style="text-align:center;padding:6px 8px;color:#777;">@_detailPlayer.TouchPct.ToString("P1")</td>
-                        </tr>
-                    </tbody>
-                </table>
-                </div>
-            }
-            else
-            {
-                <div class="scroll-x" style="margin-bottom:1rem;">
-                <table style="width:100%;font-size: 0.95rem;border-collapse:collapse;">
-                    <thead>
-                        <tr style="border-bottom:1px solid #2a2a2a;">
-                            <th style="color:#444;font-weight:600;text-align:left;padding:4px 10px 4px 0;white-space:nowrap;">SEASON</th>
-                            <th style="color:#555;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">PER</th>
-                            <th style="color:#555;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">OWS</th>
-                            <th style="color:#555;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">DWS</th>
-                            <th style="color:#c8a840;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">WS</th>
-                            <th style="color:#555;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">WS/48</th>
-                            <th style="color:#555;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">SHOT%</th>
-                            <th style="color:#555;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">SA/TCH</th>
-                            <th style="color:#555;font-weight:400;text-align:center;padding:4px 8px;white-space:nowrap;">TCH/G</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td style="color:#aaa;font-weight:600;padding:6px 10px 6px 0;">25/26</td>
-                            <td style="text-align:center;padding:6px 8px;color:@PerColor(_detailPlayer.PER);font-weight:700;">@_detailPlayer.PER.ToString("F1")</td>
-                            <td style="text-align:center;padding:6px 8px;color:#aaa;">@_detailPlayer.OWS.ToString("F1")</td>
-                            <td style="text-align:center;padding:6px 8px;color:#aaa;">@_detailPlayer.DWS.ToString("F1")</td>
-                            <td style="text-align:center;padding:6px 8px;color:#c8a840;font-weight:700;">@_detailPlayer.WS.ToString("F1")</td>
-                            <td style="text-align:center;padding:6px 8px;color:#888;">@_detailPlayer.WS48.ToString("F3")</td>
-                            <td style="text-align:center;padding:6px 8px;color:#777;">@_detailPlayer.ShotSharePct.ToString("P1")</td>
-                            <td style="text-align:center;padding:6px 8px;color:#777;">@_detailPlayer.ShotAttemptRate.ToString("P1")</td>
-                            <td style="text-align:center;padding:6px 8px;color:#777;">@_detailPlayer.TouchesPg.ToString("F1")</td>
-                        </tr>
-                    </tbody>
-                </table>
-                </div>
-            }
-
-            <!-- Shot Breakdown -->
-            <div style="border-top:1px solid #1e1e1e;padding-top:0.65rem;">
-                <div style="font-size: 0.85rem;color:#444;letter-spacing:1.5px;margin-bottom:8px;">SHOT BREAKDOWN</div>
-                <table style="width:100%;font-size: 0.96rem;border-collapse:collapse;">
-                    <thead>
-                        <tr>
-                            <th style="color:#3a3a3a;font-weight:400;text-align:left;padding:2px 8px 2px 0;width:80px;">TYPE</th>
-                            <th style="color:#444;font-weight:400;text-align:right;padding:2px 10px;">MADE/G</th>
-                            <th style="color:#444;font-weight:400;text-align:right;padding:2px 10px;">ATT/G</th>
-                            <th style="color:#444;font-weight:400;text-align:right;padding:2px 10px;">PCT</th>
-                            <th style="padding:2px 10px;width:120px;"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @ShotRow("Inside",   _detailPlayer.InsidePg,         _detailPlayer.InsideApg,        _detailPlayer.InsidePct,  _detailPlayer.TotalInsideAtt > 0)
-                        @ShotRow("Mid-Range",_detailPlayer.MidPg,            _detailPlayer.MidApg,           _detailPlayer.MidPct,     _detailPlayer.TotalMidAtt > 0)
-                        @ShotRow("3-Point",  _detailPlayer.Tpm,              _detailPlayer.Tpa,              _detailPlayer.TpPct,      _detailPlayer.TotalThreeAtt > 0)
-                        @ShotRow("Free Throw",_detailPlayer.Ftm,             _detailPlayer.Fta,              _detailPlayer.FtPct,      _detailPlayer.TotalFTA > 0)
-                        <tr style="border-top:1px solid #1e1e1e;">
-                            <td style="color:#555;padding:3px 8px 0 0;">Total FG</td>
-                            <td style="text-align:right;padding:3px 10px;color:#888;">@_detailPlayer.Fgm.ToString("F1")</td>
-                            <td style="text-align:right;padding:3px 10px;color:#666;">@_detailPlayer.Fga.ToString("F1")</td>
-                            <td style="text-align:right;padding:3px 10px;color:@FgPctColor(_detailPlayer.FgPct);font-weight:600;">@_detailPlayer.FgPct.ToString("P1")</td>
-                            <td style="padding:3px 10px;">@ShotBar(_detailPlayer.FgPct, "#c8c8c8")</td>
-                        </tr>
-                        @if (_detailPlayer.TotalDefFGA > 0)
+                        @foreach (var s in _careerHistory.OrderBy(s => s.Season))
                         {
-                            <tr>
-                                <td style="color:#555;padding:3px 8px 0 0;">oFG% (def)</td>
-                                <td style="text-align:right;padding:3px 10px;color:#888;">—</td>
-                                <td style="text-align:right;padding:3px 10px;color:#666;">@((_detailPlayer.TotalDefFGA / (double)_detailPlayer.GP).ToString("F1"))</td>
-                                <td style="text-align:right;padding:3px 10px;color:@OppFgColor(_detailPlayer.OppFgPct);font-weight:600;">@_detailPlayer.OppFgPct.ToString("P1")</td>
-                                <td style="padding:3px 10px;">@ShotBar(_detailPlayer.OppFgPct, OppFgColor(_detailPlayer.OppFgPct))</td>
+                            <tr style="border-bottom:1px solid #181818;">
+                                <td style="color:#777;padding:3px 8px 3px 0;font-size:0.83rem;">@s.Season</td>
+                                <td style="color:#444;padding:3px 6px;font-size:0.82rem;">@s.Team</td>
+                                <td style="text-align:center;padding:3px 6px;color:#555;">@s.Gp</td>
+                                <td style="text-align:center;padding:3px 6px;color:#666;">@s.Min.ToString("F1")</td>
+                                <td style="text-align:center;padding:3px 6px;color:#b89840;">@s.Pts.ToString("F1")</td>
+                                <td style="text-align:center;padding:3px 6px;color:#999;">@s.Reb.ToString("F1")</td>
+                                <td style="text-align:center;padding:3px 6px;color:#3a88a0;">@s.Ast.ToString("F1")</td>
+                                <td style="text-align:center;padding:3px 6px;color:#608850;">@s.Stl.ToString("F1")</td>
+                                <td style="text-align:center;padding:3px 6px;color:#905030;">@s.Blk.ToString("F1")</td>
+                                <td style="text-align:center;padding:3px 6px;color:#a03030;">@s.Tov.ToString("F1")</td>
+                                <td style="text-align:center;padding:3px 6px;color:#777;">@s.Fgm.ToString("F1")</td>
+                                <td style="text-align:center;padding:3px 6px;color:#555;">@s.Fga.ToString("F1")</td>
+                                <td style="text-align:center;padding:3px 6px;color:@FgPctColor(s.FgPct);">@s.FgPct.ToString("P1")</td>
+                                <td style="text-align:center;padding:3px 6px;color:#777;">@s.Fg3m.ToString("F1")</td>
+                                <td style="text-align:center;padding:3px 6px;color:#555;">@s.Fg3a.ToString("F1")</td>
+                                <td style="text-align:center;padding:3px 6px;color:@TpPctColor(s.Fg3Pct);">@(s.Fg3a > 0 ? s.Fg3Pct.ToString("P1") : "—")</td>
+                                <td style="text-align:center;padding:3px 6px;color:#777;">@s.Ftm.ToString("F1")</td>
+                                <td style="text-align:center;padding:3px 6px;color:#555;">@s.Fta.ToString("F1")</td>
+                                <td style="text-align:center;padding:3px 6px;color:@FtPctColor(s.FtPct);">@(s.Fta > 0 ? s.FtPct.ToString("P1") : "—")</td>
                             </tr>
                         }
+                        <!-- Current sim season row -->
+                        <tr style="background:#0d1218;border-top:1px solid #252525;">
+                            <td style="color:#b8b8b8;padding:3px 8px 3px 0;font-size:0.83rem;font-weight:600;">2025-26</td>
+                            <td style="color:#444;padding:3px 6px;font-size:0.82rem;">@_detailPlayer.TeamAbbr</td>
+                            <td style="text-align:center;padding:3px 6px;color:#555;">@_detailPlayer.GP</td>
+                            <td style="text-align:center;padding:3px 6px;color:#666;">@_detailPlayer.Mpg.ToString("F1")</td>
+                            <td style="text-align:center;padding:3px 6px;color:#b89840;">@_detailPlayer.Ppg.ToString("F1")</td>
+                            <td style="text-align:center;padding:3px 6px;color:#999;">@_detailPlayer.Rpg.ToString("F1")</td>
+                            <td style="text-align:center;padding:3px 6px;color:#3a88a0;">@_detailPlayer.Apg.ToString("F1")</td>
+                            <td style="text-align:center;padding:3px 6px;color:#608850;">@_detailPlayer.Spg.ToString("F1")</td>
+                            <td style="text-align:center;padding:3px 6px;color:#905030;">@_detailPlayer.Bpg.ToString("F1")</td>
+                            <td style="text-align:center;padding:3px 6px;color:#a03030;">@_detailPlayer.Topg.ToString("F1")</td>
+                            <td style="text-align:center;padding:3px 6px;color:#777;">@_detailPlayer.Fgm.ToString("F1")</td>
+                            <td style="text-align:center;padding:3px 6px;color:#555;">@_detailPlayer.Fga.ToString("F1")</td>
+                            <td style="text-align:center;padding:3px 6px;color:@FgPctColor(_detailPlayer.FgPct);">@_detailPlayer.FgPct.ToString("P1")</td>
+                            <td style="text-align:center;padding:3px 6px;color:#777;">@_detailPlayer.Tpm.ToString("F1")</td>
+                            <td style="text-align:center;padding:3px 6px;color:#555;">@_detailPlayer.Tpa.ToString("F1")</td>
+                            <td style="text-align:center;padding:3px 6px;color:@TpPctColor(_detailPlayer.TpPct);">@(_detailPlayer.TotalThreeAtt > 0 ? _detailPlayer.TpPct.ToString("P1") : "—")</td>
+                            <td style="text-align:center;padding:3px 6px;color:#777;">@_detailPlayer.Ftm.ToString("F1")</td>
+                            <td style="text-align:center;padding:3px 6px;color:#555;">@_detailPlayer.Fta.ToString("F1")</td>
+                            <td style="text-align:center;padding:3px 6px;color:@FtPctColor(_detailPlayer.FtPct);">@(_detailPlayer.TotalFTA > 0 ? _detailPlayer.FtPct.ToString("P1") : "—")</td>
+                        </tr>
                     </tbody>
                 </table>
-            </div>
+                </div>
+                @if (_careerHistory.Count == 0)
+                {
+                    <div style="color:#2a2a2a;font-size:0.82rem;margin-top:6px;">No historical data · run <span style="color:#444;">BasketballSim/Scripts/pull_nba_stats.py</span> to populate</div>
+                }
+            }
+            else if (_detailTab == "advanced")
+            {
+                <div class="scroll-x">
+                <table style="width:100%;font-size:0.88rem;border-collapse:collapse;">
+                    <thead>
+                        <tr style="border-bottom:1px solid #252525;">
+                            <th style="color:#444;font-weight:600;text-align:left;padding:3px 8px 3px 0;white-space:nowrap;min-width:60px;">SEASON</th>
+                            <th style="color:#3a3a3a;font-weight:400;text-align:left;padding:3px 6px;white-space:nowrap;">TEAM</th>
+                            <th style="color:#555;font-weight:400;text-align:center;padding:3px 6px;">TS%</th>
+                            <th style="color:#555;font-weight:400;text-align:center;padding:3px 6px;">EFG%</th>
+                            <th style="color:#555;font-weight:400;text-align:center;padding:3px 6px;">USG%</th>
+                            <th style="color:#4aa8c0;font-weight:400;text-align:center;padding:3px 6px;">AST%</th>
+                            <th style="color:#555;font-weight:400;text-align:center;padding:3px 6px;">OREB%</th>
+                            <th style="color:#555;font-weight:400;text-align:center;padding:3px 6px;">DREB%</th>
+                            <th style="color:#555;font-weight:400;text-align:center;padding:3px 6px;">REB%</th>
+                            <th style="color:#70a860;font-weight:400;text-align:center;padding:3px 6px;">OFF RTG</th>
+                            <th style="color:#c04040;font-weight:400;text-align:center;padding:3px 6px;">DEF RTG</th>
+                            <th style="color:#c8a840;font-weight:600;text-align:center;padding:3px 6px;">NET RTG</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var s in _careerHistory.OrderBy(s => s.Season))
+                        {
+                            <tr style="border-bottom:1px solid #181818;">
+                                <td style="color:#777;padding:3px 8px 3px 0;font-size:0.83rem;">@s.Season</td>
+                                <td style="color:#444;padding:3px 6px;font-size:0.82rem;">@s.Team</td>
+                                <td style="text-align:center;padding:3px 6px;color:#888;">@(s.TsPct.HasValue    ? s.TsPct.Value.ToString("P1")    : "—")</td>
+                                <td style="text-align:center;padding:3px 6px;color:#888;">@(s.EfgPct.HasValue   ? s.EfgPct.Value.ToString("P1")   : "—")</td>
+                                <td style="text-align:center;padding:3px 6px;color:#888;">@(s.UsgPct.HasValue   ? s.UsgPct.Value.ToString("P1")   : "—")</td>
+                                <td style="text-align:center;padding:3px 6px;color:#3a88a0;">@(s.AstPct.HasValue   ? s.AstPct.Value.ToString("P1")   : "—")</td>
+                                <td style="text-align:center;padding:3px 6px;color:#777;">@(s.OrebPct.HasValue  ? s.OrebPct.Value.ToString("P1")  : "—")</td>
+                                <td style="text-align:center;padding:3px 6px;color:#777;">@(s.DrebPct.HasValue  ? s.DrebPct.Value.ToString("P1")  : "—")</td>
+                                <td style="text-align:center;padding:3px 6px;color:#888;">@(s.RebPct.HasValue   ? s.RebPct.Value.ToString("P1")   : "—")</td>
+                                <td style="text-align:center;padding:3px 6px;color:#608850;">@(s.OffRating.HasValue ? s.OffRating.Value.ToString("F1") : "—")</td>
+                                <td style="text-align:center;padding:3px 6px;color:#a03030;">@(s.DefRating.HasValue ? s.DefRating.Value.ToString("F1") : "—")</td>
+                                <td style="text-align:center;padding:3px 6px;color:@PmColor(s.NetRating ?? 0);">@(s.NetRating.HasValue ? s.NetRating.Value.ToString("+0.0;-0.0;0.0") : "—")</td>
+                            </tr>
+                        }
+                        <!-- Sim season row -->
+                        <tr style="background:#0d1218;border-top:1px solid #252525;">
+                            <td style="color:#b8b8b8;padding:3px 8px 3px 0;font-size:0.83rem;font-weight:600;">2025-26</td>
+                            <td style="color:#444;padding:3px 6px;font-size:0.82rem;">@_detailPlayer.TeamAbbr</td>
+                            <td style="text-align:center;padding:3px 6px;color:#888;">@_detailPlayer.TsPct.ToString("P1")</td>
+                            <td style="text-align:center;padding:3px 6px;color:#888;">@_detailPlayer.EfgPct.ToString("P1")</td>
+                            <td style="text-align:center;padding:3px 6px;color:#888;">@_detailPlayer.UsgPct.ToString("P1")</td>
+                            <td style="text-align:center;padding:3px 6px;color:#3a88a0;">@_detailPlayer.AstPct.ToString("P1")</td>
+                            <td style="text-align:center;padding:3px 6px;color:#777;">@_detailPlayer.OrebPct.ToString("P1")</td>
+                            <td style="text-align:center;padding:3px 6px;color:#777;">@_detailPlayer.DrebPct.ToString("P1")</td>
+                            <td style="text-align:center;padding:3px 6px;color:#888;">@_detailPlayer.RebPct.ToString("P1")</td>
+                            <td style="text-align:center;padding:3px 6px;color:#608850;">@_detailPlayer.OffRating.ToString("F1")</td>
+                            <td style="text-align:center;padding:3px 6px;color:#a03030;">@_detailPlayer.DefRating.ToString("F1")</td>
+                            <td style="text-align:center;padding:3px 6px;color:@PmColor(_detailPlayer.NetRating);">@_detailPlayer.NetRating.ToString("+0.0;-0.0;0.0")</td>
+                        </tr>
+                    </tbody>
+                </table>
+                </div>
+                @if (_careerHistory.Count == 0)
+                {
+                    <div style="color:#2a2a2a;font-size:0.82rem;margin-top:6px;">No historical data · run <span style="color:#444;">BasketballSim/Scripts/pull_nba_stats.py</span> to populate</div>
+                }
+            }
 
             </div><!-- end padding div -->
         </div>
@@ -655,10 +702,10 @@ else if (_phase == Phase.Done && _season is not null)
     private Dictionary<string, Team> _teams = [];
 
     // ── Player detail modal ───────────────────────────────────────────────────
-    private PlayerSeasonStats? _detailPlayer;
-    private PlayerRecord?      _detailRecord;
-    private string             _detailTab = "attrs";
-    private string             _statsTab  = "regular";
+    private PlayerSeasonStats?           _detailPlayer;
+    private PlayerRecord?                _detailRecord;
+    private string                       _detailTab     = "career";
+    private List<HistoricalSeasonStats>  _careerHistory = [];
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
     protected override Task OnInitializedAsync()
@@ -706,11 +753,11 @@ else if (_phase == Phase.Done && _season is not null)
     // ── Modal ─────────────────────────────────────────────────────────────────
     private void OpenPlayerModal(PlayerSeasonStats p)
     {
-        _detailPlayer = p;
-        _detailRecord = PlayerSvc.GetPlayers()
+        _detailPlayer  = p;
+        _detailRecord  = PlayerSvc.GetPlayers()
             .FirstOrDefault(r => r.Name.Equals(p.Name, StringComparison.OrdinalIgnoreCase));
-        _detailTab = "attrs";
-        _statsTab  = "regular";
+        _detailTab     = "career";
+        _careerHistory = HistSvc.GetPlayerHistory(p.Name);
     }
 
     private void CloseModal() => _detailPlayer = null;
@@ -724,7 +771,7 @@ else if (_phase == Phase.Done && _season is not null)
 
     private IEnumerable<PlayerSeasonStats> SortedLeaguePlayers()
     {
-        var q = _season!.PlayerStats.AsEnumerable();
+        var q = _season!.PlayerStats.Where(p => p.GP > 0).AsEnumerable();
         if (_leagueSearch.Length > 1)
             q = q.Where(p => p.Name.Contains(_leagueSearch, StringComparison.OrdinalIgnoreCase));
         if (_leagueTeamFilter.Length > 0)

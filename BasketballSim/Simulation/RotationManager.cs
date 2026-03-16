@@ -24,10 +24,10 @@ public static class RotationManager
     // Composite used only for rotation priority. Does NOT affect play-by-play math.
     internal static double ComputeOverall(Player p) =>
         (p.Attr_Inside + p.Attr_MidRange + p.Attr_ThreePoint +
-         p.Attr_BasketballIQ + p.Attr_Passing +
+         p.Attr_oBBIQ + p.Attr_dBBIQ + p.Attr_Hustle + p.Attr_Passing +
          p.Attr_PerimeterDefense + p.Attr_InteriorDefense +
          p.Attr_Rebounding_Off + p.Attr_Rebounding_Def +
-         p.Speed + p.Endurance) / 11.0;
+         p.Speed + p.Endurance) / 13.0;
 
     // ── Target game minutes ───────────────────────────────────────────────────
     /// <summary>

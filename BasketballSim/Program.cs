@@ -11,6 +11,7 @@ builder.Services.AddHttpClient<EspnService>();
 builder.Services.AddSingleton<Nba2kCacheService>();
 builder.Services.AddSingleton<PlayerDataService>();
 builder.Services.AddSingleton<SeasonScheduleService>();
+builder.Services.AddSingleton<HistoricalStatsService>();
 builder.Services.AddScoped<NbaRosterService>();
 builder.Services.AddHostedService<EspnRosterSyncService>();
 

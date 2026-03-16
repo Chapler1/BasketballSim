@@ -30,6 +30,16 @@ public class PlayerGameStats
     public int    TeamTouchesOnCourt { get; set; }   // total touches by any player while this player is on court
     public int    TeamFGAOnCourt     { get; set; }   // total team FGA while this player is on court
 
+    // Advanced on-court tracking
+    public int TeamFGMOnCourt      { get; set; }  // team FGM while on court (for AST%)
+    public int TeamORebOnCourt     { get; set; }  // team OReb while on court (for OREB%)
+    public int TeamDRebOnCourt     { get; set; }  // team DReb while on court (for DREB%)
+    public int OppORebOnCourt      { get; set; }  // opp OReb while on court (for DREB% denom)
+    public int OppDRebOnCourt      { get; set; }  // opp DReb while on court (for OREB% denom)
+    public int TeamPtsOnCourt      { get; set; }  // team pts scored while on court (for OFF_RTG)
+    public int OppPtsOnCourt       { get; set; }  // opp pts scored while on court (for DEF_RTG)
+    public int PossessionsOnCourt  { get; set; }  // off + def possessions while on court
+
     // Shot-type breakdown (only final FGA, consistent with FGAttempts after FT conversions)
     public int InsideMade   { get; set; }
     public int InsideAtt    { get; set; }

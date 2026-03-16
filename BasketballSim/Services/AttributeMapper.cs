@@ -38,8 +38,14 @@ public static class AttributeMapper
         // ThreePoint: VERY left-skewed (median 78), normalization stretches elite shooters dramatically
         ["ThreePoint"]   = new(25.0,  78.0, 99.0,  0.00),
 
-        // BasketballIQ: left-skewed after norm (upper compressed), push slightly right
-        ["BasketballIQ"] = new(42.7,  64.0, 95.0, +0.30),
+        // oBBIQ: shot/pass/offensive consistency — left-skewed after norm, push slightly right
+        ["oBBIQ"]        = new(45.0,  65.0, 96.0, +0.30),
+
+        // dBBIQ: helpDefenseIQ + defensiveConsistency — wider spread, guards lower
+        ["dBBIQ"]        = new(38.0,  58.0, 95.0, +0.30),
+
+        // Hustle: 2K hustle attribute — clusters 65-80, moderate right-skew
+        ["Hustle"]       = new(42.0,  70.0, 96.0, +0.20),
 
         // Dribbling: left-skewed (median 70.5), normalization handles upper separation well
         ["Dribbling"]    = new(30.0,  70.5, 95.5,  0.00),
@@ -87,7 +93,9 @@ public static class AttributeMapper
         ["FreeThrow"]    = 0.5,   // unchanged
         ["MidRange"]     = 1.0,   // was 1.2 — reduce, guards/wings heavy
         ["ThreePoint"]   = 1.1,   // was 1.2 — slight reduce
-        ["BasketballIQ"] = 1.3,   // was 1.5 — still top, more universal now
+        ["oBBIQ"]        = 1.3,   // offensive decision-making — highly universal
+        ["dBBIQ"]        = 0.8,   // defensive IQ — meaningful for defensive rating
+        ["Hustle"]       = 0.6,   // effort attribute — universal but secondary
         ["Dribbling"]    = 0.7,   // was 1.0 — guard-heavy, reduce significantly
         ["Passing"]      = 0.9,   // was 0.8 — slight increase, more universal
         ["RebOff"]       = 0.8,   // was 0.6 — increase, benefits bigs

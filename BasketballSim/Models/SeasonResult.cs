@@ -39,6 +39,19 @@ public class PlayerSeasonStats
     public int    TotalDefFGM      { get; set; }
     public int    TotalDefFGA      { get; set; }
 
+    // Advanced on-court tracking totals
+    public int    TotalTeamFGMOnCourt     { get; set; }
+    public int    TotalTeamORebOnCourt    { get; set; }
+    public int    TotalTeamDRebOnCourt    { get; set; }
+    public int    TotalOppORebOnCourt     { get; set; }
+    public int    TotalOppDRebOnCourt     { get; set; }
+    public int    TotalTeamPtsOnCourt     { get; set; }
+    public int    TotalOppPtsOnCourt      { get; set; }
+    public int    TotalPossessionsOnCourt { get; set; }
+
+    // Populated post-season: team's avg (FGA + 0.44*FTA + TOV) per game, used in USG% formula
+    public double TeamPossEventsPg { get; set; }
+
     public double Ppg  => GP > 0 ? (double)TotalPTS / GP : 0;
     public double Rpg  => GP > 0 ? (double)(TotalOREB + TotalDREB) / GP : 0;
     public double Opg  => GP > 0 ? (double)TotalOREB / GP : 0;
@@ -76,6 +89,29 @@ public class PlayerSeasonStats
 
     // Opponent FG% (shots defended)
     public double OppFgPct  => TotalDefFGA > 0 ? (double)TotalDefFGM / TotalDefFGA : 0;
+
+    // Advanced derived stats (computed from on-court tracking totals)
+    public double TsPct    => (TotalFGA + 0.44 * TotalFTA) > 0
+        ? TotalPTS / (2.0 * (TotalFGA + 0.44 * TotalFTA)) : 0;
+    public double EfgPct   => TotalFGA > 0
+        ? (TotalFGM + 0.5 * TotalThreeMade) / (double)TotalFGA : 0;
+    // NBA formula: 100 * ((FGA + 0.44*FTA + TOV) * (TmMP/5)) / (MP * (TmFGA + 0.44*TmFTA + TmTOV))
+    // TmMP/5 = 48 (constant). TeamPossEventsPg = TmFGA + 0.44*TmFTA + TmTOV per game.
+    public double UsgPct   => TotalMIN > 0 && TeamPossEventsPg > 0
+        ? (TotalFGA + 0.44 * TotalFTA + TotalTOV) * 48.0 / (TotalMIN * TeamPossEventsPg) : 0;
+    public double AstPct   => (TotalTeamFGMOnCourt - TotalFGM) > 0
+        ? (double)TotalAST / (TotalTeamFGMOnCourt - TotalFGM) : 0;
+    public double OrebPct  => (TotalTeamORebOnCourt + TotalOppDRebOnCourt) > 0
+        ? (double)TotalOREB / (TotalTeamORebOnCourt + TotalOppDRebOnCourt) : 0;
+    public double DrebPct  => (TotalTeamDRebOnCourt + TotalOppORebOnCourt) > 0
+        ? (double)TotalDREB / (TotalTeamDRebOnCourt + TotalOppORebOnCourt) : 0;
+    public double RebPct   => (TotalTeamORebOnCourt + TotalTeamDRebOnCourt + TotalOppORebOnCourt + TotalOppDRebOnCourt) > 0
+        ? (double)(TotalOREB + TotalDREB) / (TotalTeamORebOnCourt + TotalTeamDRebOnCourt + TotalOppORebOnCourt + TotalOppDRebOnCourt) : 0;
+    public double OffRating => TotalPossessionsOnCourt > 0
+        ? 200.0 * TotalTeamPtsOnCourt / TotalPossessionsOnCourt : 0;
+    public double DefRating => TotalPossessionsOnCourt > 0
+        ? 200.0 * TotalOppPtsOnCourt / TotalPossessionsOnCourt : 0;
+    public double NetRating => OffRating - DefRating;
 
     // Advanced stats — computed post-season by SeasonScheduleService.ComputeAdvancedStats()
     public double PER  { get; set; }   // Player Efficiency Rating (league avg = 15)

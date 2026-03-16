@@ -366,6 +366,7 @@ public class GameEngine
         {
             foreach (var pl in lineup)    pl.DrainEnergy(isOffense: true);
             foreach (var pl in defLineup) pl.DrainEnergy(isOffense: false);
+            if (orbCount == 0) RecordPossession(lineup, defLineup);
 
             // ── Stage 1: Possession Context ──────────────────────────
 
@@ -396,6 +397,7 @@ public class GameEngine
                     RecordTeamFGA(lineup);
                     if (isThreeAttempt) { if (made) EnsureStats(heaveShooter).ThreeMade++; EnsureStats(heaveShooter).ThreeAttempts++; }
                     if (made) EnsureStats(heaveShooter).Points += pts;
+                    if (made) RecordTeamPts(lineup, defLineup, pts);
 
                     var ctx = isThreeAttempt ? ShotContext.CatchAndShootWing : ShotContext.LateClockMidRange;
                     results.Add(new PossessionResult
@@ -425,7 +427,7 @@ public class GameEngine
                     EnsureStats(heaveShooter).ShotAttempts++;
                     RecordTeamFGA(lineup);
                     EnsureStats(heaveShooter).ThreeAttempts++;
-                    if (made) { EnsureStats(heaveShooter).FGMade++; EnsureStats(heaveShooter).ThreeMade++; EnsureStats(heaveShooter).Points += pts; }
+                    if (made) { EnsureStats(heaveShooter).FGMade++; EnsureStats(heaveShooter).ThreeMade++; EnsureStats(heaveShooter).Points += pts; RecordTeamPts(lineup, defLineup, pts); }
 
                     results.Add(new PossessionResult
                     {
@@ -487,6 +489,7 @@ public class GameEngine
                 EnsureStats(ftShooter).FTAttempts += 2;
                 EnsureStats(ftShooter).FTMade     += pts;
                 EnsureStats(ftShooter).Points     += pts;
+                RecordTeamPts(lineup, defLineup, pts);
 
                 clockSeconds = Math.Max(0, clockSeconds - 3);
 
@@ -620,7 +623,7 @@ public class GameEngine
             if (_rng.NextDouble() < baseTO)
             {
                 double totalStealThreat = defLineup.Sum(d => d.StealMod * (d.Tendencies.Steal / 50.0));
-                double stealShare = totalStealThreat / (totalStealThreat + 0.12);
+                double stealShare = totalStealThreat / (totalStealThreat + 0.18);
 
                 EnsureStats(actionPlayer).Turnovers++;
 
@@ -683,6 +686,7 @@ public class GameEngine
                     EnsureStats(actionPlayer).FTAttempts += 2;
                     EnsureStats(actionPlayer).FTMade     += pts;
                     EnsureStats(actionPlayer).Points     += pts;
+                    RecordTeamPts(lineup, defLineup, pts);
 
                     string bonusNarr = pts switch
                     {
@@ -770,7 +774,7 @@ public class GameEngine
 
                     return GenerateMenu(p, lineup, defLineup, allMatchups, curState, offTeam, defTeam,
                                         spacingLevel, teamSag, teamGravity, clockDecay, phase,
-                                        snapshotClock, snapshotShotClock);
+                                        snapshotClock, snapshotShotClock, scoreDiff, state.IsHomePossession);
                 });
 
             ShotContext shotContext;
@@ -788,7 +792,7 @@ public class GameEngine
             {
                 // Noise floor of 0.08 ensures even elite IQ players occasionally misread a shot;
                 // low-IQ players have much wider error (~0.35 stddev ≈ can confuse .70 for 1.05).
-                double bbiqStddev = 0.08 + 0.27 * (1.0 - ballHandler.Attr_BasketballIQ / 100.0);
+                double bbiqStddev = 0.08 + 0.27 * (1.0 - ballHandler.Attr_oBBIQ / 100.0);
                 if (offTeam.Coach.OffStyle == OffensiveStyle.MotionFlow) bbiqStddev *= 0.6;
 
                 // Own shots — 100% visible, apply BBIQ noise
@@ -846,10 +850,20 @@ public class GameEngine
                     ? 1.45
                     : 1.0;
 
-                // Filter to qualifying options (above context threshold, or desperate clock)
+                // Urgency modifier: trailing teams lower their shot threshold (take the first
+                // decent look rather than cycling for perfect), leading teams raise it (selective,
+                // run clock). Caps at ±20 pts → ±12% on threshold. Cuts both ways: trailing teams
+                // get more attempts but at slightly lower quality; leading teams fewer but better.
+                double urgencyMod = 1.0 + Math.Clamp(scoreDiff, -20, 20) / 20.0 * 0.12;
+
+                // Filter to qualifying options (above context threshold, or desperate clock).
+                // Pass options use the receiver's threshold at a 10% discount — a player can
+                // pass to a teammate with a "good enough" look even if they wouldn't shoot it themselves.
                 var qualifying = desperateClock
                     ? combinedMenu
-                    : combinedMenu.Where(e => e.PerceivedPPS >= e.ContextThreshold * firstTouchMult).ToList();
+                    : combinedMenu.Where(e => e.PerceivedPPS >= e.ContextThreshold * firstTouchMult
+                                                                * urgencyMod
+                                                                * (e.IsPassOption ? 0.9 : 1.0)).ToList();
 
                 // Build debug step (populated after decision below)
                 DecisionStep? dbgStep = dbg != null
@@ -1012,6 +1026,62 @@ public class GameEngine
                     }
                 }
 
+                // 3a. Deflection / loose ball scramble — ~6.7% per pass → ~18 events/team/game.
+                // All 10 on-court players compete; offense gets 1.2× positional bias (anticipating
+                // the ball). Hustle compressed to ±15% boost so best/worst spread ~1.31×.
+                const double DeflectionChance = 0.067;
+                if (_rng.NextDouble() < DeflectionChance)
+                {
+                    double offWeight = lineup.Sum(p  => Math.Max(p.LooseBallWeight * 1.2, 0.01));
+                    double defWeight = defLineup.Sum(p => Math.Max(p.LooseBallWeight,       0.01));
+                    bool   offWins   = _rng.NextDouble() < offWeight / (offWeight + defWeight);
+
+                    if (offWins)
+                    {
+                        var recoverer = WeightedRandom(lineup, p => Math.Max(p.LooseBallWeight, 0.01));
+                        results.Add(new PossessionResult
+                        {
+                            Team         = offTeam.Name,
+                            Narrative    = $"Deflection — {recoverer.Name} recovers for {offTeam.Abbreviation}",
+                            HomeScore    = homeScore, AwayScore = awayScore,
+                            Quarter      = state.Quarter, ClockSeconds = clockSeconds,
+                            PointsScored = 0,
+                            Event        = PossessionEvent.LooseBallRecovered,
+                            Scorer       = recoverer.Name, Context = ShotContext.None,
+                            Debug        = dbg
+                        });
+                        assisterName = null; // reset assist chain — scramble breaks the play
+                        ballHandler  = recoverer;
+                        RecordBallTouch(ballHandler, lineup);
+                        clockDecay = Math.Clamp(0.75 + (shotClockRemaining / 22.0) * 0.25, 0.75, 1.00);
+                        playerMenus[ballHandler] = GenerateMenu(ballHandler, lineup, defLineup,
+                            allMatchups, curState, offTeam, defTeam, spacingLevel, teamSag,
+                            teamGravity, clockDecay, phase, clockSeconds, shotClockRemaining, scoreDiff, state.IsHomePossession);
+                        continue;
+                    }
+                    else
+                    {
+                        var stealer = WeightedRandom(defLineup, p => Math.Max(p.LooseBallWeight, 0.01));
+                        EnsureStats(ballHandler).Turnovers++;
+                        EnsureStats(stealer).Steals++;
+                        possState = PossessionState.FastBreak;
+                        if (dbgStep != null) dbgStep.Action = $"TO: deflection — {stealer.Name}";
+                        results.Add(new PossessionResult
+                        {
+                            Team         = offTeam.Name,
+                            Narrative    = $"Deflection — {stealer.Name} takes it away!",
+                            HomeScore    = homeScore, AwayScore = awayScore,
+                            Quarter      = state.Quarter, ClockSeconds = clockSeconds,
+                            PointsScored = 0,
+                            Event        = PossessionEvent.TurnoverStolen,
+                            Scorer       = ballHandler.Name, Stealer = stealer.Name,
+                            Context      = ShotContext.None,
+                            Debug        = dbg
+                        });
+                        return;
+                    }
+                }
+
                 // 3. Universal pass turnover check (2–8% based on Passing attribute)
                 if (_rng.NextDouble() < actualPassTO)
                 {
@@ -1026,7 +1096,7 @@ public class GameEngine
                         .Sum(d => d.StealMod * (d.Tendencies.Steal / 50.0) * 0.3);
 
                     double totalPassThreat = recipientDefThreat + passerDefThreat + otherThreat;
-                    double stealShare      = totalPassThreat / (totalPassThreat + 0.12);
+                    double stealShare      = totalPassThreat / (totalPassThreat + 0.18);
 
                     EnsureStats(ballHandler).Turnovers++;
 
@@ -1087,7 +1157,7 @@ public class GameEngine
                 {
                     playerMenus[p] = GenerateMenu(p, lineup, defLineup, allMatchups, curState,
                         offTeam, defTeam, spacingLevel, teamSag, teamGravity,
-                        clockDecay, phase, clockSeconds, shotClockRemaining);
+                        clockDecay, phase, clockSeconds, shotClockRemaining, scoreDiff, state.IsHomePossession);
                 }
 
                 ballHandler = passReceiver;
@@ -1210,6 +1280,7 @@ public class GameEngine
                 baseMake = actionPlayer.ContactDunkMakePct;
 
             baseMake *= ShotContextMakeModifier(shotContext, phase);
+            baseMake *= state.IsHomePossession ? 1.018 : 0.982;
 
             // Sag/gravity: perimeter shooting affects how open inside shots are
             if (shotType == ShotType.Inside)
@@ -1221,7 +1292,7 @@ public class GameEngine
             double adjMake = baseMake - contestPenalty;
 
             if (state.IsClutch)
-                adjMake *= 1.0 + (actionPlayer.Attr_BasketballIQ - 70) / 100.0 * 0.15;
+                adjMake *= 1.0 + (actionPlayer.Attr_oBBIQ - 70) / 100.0 * 0.15;
 
             adjMake += (offTeam.Coach.OffensiveRating - 50.0) / 50.0 * 0.013;
 
@@ -1269,6 +1340,7 @@ public class GameEngine
                 psStats.FTAttempts += numFTs;
                 psStats.FTMade     += ftPts;
                 psStats.Points     += ftPts;
+                RecordTeamPts(lineup, defLineup, ftPts);
 
                 string preFoulNarr = ftPts switch
                 {
@@ -1368,6 +1440,7 @@ public class GameEngine
                 shooterStats.FGAttempts++;
                 shooterStats.ShotAttempts++;
                 RecordTeamFGA(lineup);
+                RecordTeamFGM(lineup);
                 int pts = isThree ? 3 : 2;
                 if (isThree) { shooterStats.ThreeMade++; shooterStats.ThreeAttempts++; }
                 if      (shotType == ShotType.Inside)   { shooterStats.InsideMade++;   shooterStats.InsideAtt++; }
@@ -1375,6 +1448,7 @@ public class GameEngine
                 EnsureStats(defender).DefFGMade++;
                 EnsureStats(defender).DefFGAttempts++;
                 shooterStats.Points += pts;
+                RecordTeamPts(lineup, defLineup, pts);
 
                 if (assisterName != null) EnsureStats(assisterName).Assists++;
 
@@ -1413,6 +1487,7 @@ public class GameEngine
                         shooterStats.FTAttempts++;
                         shooterStats.FTMade   += ftPts;
                         shooterStats.Points   += ftPts;
+                        RecordTeamPts(lineup, defLineup, ftPts);
                         results.Add(new PossessionResult
                         {
                             Team         = offTeam.Name,
@@ -1483,6 +1558,7 @@ public class GameEngine
                         shooterStats.FTAttempts += 2;
                         shooterStats.FTMade     += pts;
                         shooterStats.Points     += pts;
+                        RecordTeamPts(lineup, defLineup, pts);
 
                         string ftNarr = pts switch
                         {
@@ -1524,6 +1600,7 @@ public class GameEngine
                     shooterStats.FTAttempts += 3;
                     shooterStats.FTMade     += pts;
                     shooterStats.Points     += pts;
+                    RecordTeamPts(lineup, defLineup, pts);
 
                     string ftNarr3 = pts switch
                     {
@@ -1565,6 +1642,7 @@ public class GameEngine
                     shooterStats.FTAttempts += 2;
                     shooterStats.FTMade     += pts;
                     shooterStats.Points     += pts;
+                    RecordTeamPts(lineup, defLineup, pts);
 
                     string ftNarrMid = pts switch
                     {
@@ -1625,6 +1703,25 @@ public class GameEngine
         ShotType lastShotType,
         ref PossessionState possState)
     {
+        // Out-of-bounds on shot: ~6/game total (3/team). Fires before any rebound contest.
+        // Ball caroms off the rim/backboard and goes OOB — dead ball, defense inbounds.
+        const double OobShotChance = 0.062;
+        if (_rng.NextDouble() < OobShotChance)
+        {
+            results.Add(new PossessionResult
+            {
+                Team         = defTeam.Name,
+                Narrative    = $"Ball out of bounds off the rim — {defTeam.Abbreviation} ball",
+                HomeScore    = homeScore, AwayScore = awayScore,
+                Quarter      = state.Quarter, ClockSeconds = clockSeconds,
+                PointsScored = 0,
+                Event        = PossessionEvent.ShotOutOfBounds,
+                Context      = ShotContext.None
+            });
+            possState = PossessionState.HalfCourt;
+            return false;
+        }
+
         // GritAndGrind OReb bonus; PaceAndSpace fewer crashes
         double offRebBias = offTeam.Coach.OffStyle == OffensiveStyle.GritAndGrind ? 1.4 :
                             offTeam.Coach.OffStyle == OffensiveStyle.PaceAndSpace  ? 0.75 : 1.0;
@@ -1649,6 +1746,8 @@ public class GameEngine
             prevRebounder = rebounder;
             EnsureStats(rebounder).OffRebounds++;
             EnsureStats(rebounder).Rebounds++;
+            foreach (var p in lineup)    EnsureStats(p).TeamORebOnCourt++;
+            foreach (var p in defLineup) EnsureStats(p).OppORebOnCourt++;
 
             results.Add(new PossessionResult
             {
@@ -1676,6 +1775,8 @@ public class GameEngine
             });
             EnsureStats(rebounder).DefRebounds++;
             EnsureStats(rebounder).Rebounds++;
+            foreach (var p in defLineup) EnsureStats(p).TeamDRebOnCourt++;
+            foreach (var p in lineup)    EnsureStats(p).OppDRebOnCourt++;
 
             results.Add(new PossessionResult
             {
@@ -1813,7 +1914,8 @@ public class GameEngine
         PossessionState possState, Team offTeam, Team defTeam,
         int spacingLevel, double teamSag, double teamGravity,
         double clockDecay, ShotClockPhase phase,
-        int clockSeconds, int shotClockRemaining)
+        int clockSeconds, int shotClockRemaining,
+        int scoreDiff = 0, bool isHome = false)
     {
         var coach    = offTeam.Coach;
         var style    = coach.OffStyle;
@@ -1821,6 +1923,12 @@ public class GameEngine
         var defender = matchups[player];
         double defCoachMod  = 0.80 + defTeam.Coach.DefensiveRating / 100.0 * 0.40;
         double coachQualMod = 0.90 + cm * 0.10;
+
+        // Rubber-band via defensive intensity: leading defense coasts, trailing defense fights harder.
+        // scoreDiff > 0 = offense leading → defense (trailing) more desperate → tighter contests.
+        // scoreDiff < 0 = offense trailing → defense (leading) relaxes → easier contests.
+        // Caps at ±20 pts → ±3.5% on defCoachMod.
+        defCoachMod *= 1.0 + Math.Clamp(scoreDiff, -20, 20) / 20.0 * 0.035;
 
         // Defensive suppression of shot availability
         double intDefSup   = Math.Clamp(1.0 - (defender.Attr_InteriorDefense - 50) / 100.0 * 0.35, 0.3, 1.3);
@@ -1869,6 +1977,10 @@ public class GameEngine
 
             baseMake = Math.Clamp(baseMake, 0.05, 0.95);
 
+            // Home court: familiar court + crowd lifts home offense, suppresses away.
+            baseMake *= isHome ? 1.012 : 0.988;
+            baseMake = Math.Clamp(baseMake, 0.05, 0.95);
+
             double ctxMod   = ShotContextMakeModifier(ctx, phase);
             double contest  = defender.ContestPenalty(st);
             double physMod  = GetPhysicalMod(player, defender, ctx);
@@ -1889,6 +2001,37 @@ public class GameEngine
                 (DefensiveStyle.StopTheThree,    ShotType.Inside)        => 1.10,
                 _ => 1.0
             };
+
+            // ── Screen resolution ─────────────────────────────────────────────
+            // PnR contexts always involve a screen. Off-ball cuts/CaS/pull-ups sometimes do.
+            // Screener selected by ScreenAbility^3 weight from the other 4 offensive players.
+            // Offense score (bh IQ + screener ability) vs defense score (dbh dBBIQ + mobility + dscreener dBBIQ).
+            // Both sides are normalized to ~150 at average; the noisy difference scales down the raw contest penalty.
+            double screenProb = ctx switch
+            {
+                ShotContext.PickAndRollRoll    or ShotContext.PickAndRollDunk or
+                ShotContext.PickAndRollMidRange or ShotContext.PickAndRollThree  => 1.00,
+                ShotContext.PullUpMidRange     or ShotContext.PullUpThree        => 0.27,
+                ShotContext.CatchAndShootCorner or ShotContext.CatchAndShootWing => 0.22,
+                ShotContext.CutLayup           or ShotContext.CutDunk            => 0.17,
+                _                                                                => 0.0
+            };
+            if (screenProb > 0.0 && _rng.NextDouble() < screenProb)
+            {
+                var others   = lineup.Where(p2 => p2 != player).ToList();
+                var screener = WeightedRandom(others, p2 => Math.Pow(p2.ScreenAbility, 3.0));
+                var dscreener = matchups[screener];
+
+                double offScore = player.Attr_oBBIQ + screener.ScreenAbility;
+                double defScore = defender.Attr_dBBIQ
+                                  + Math.Max(defender.Speed, defender.Strength)
+                                  + dscreener.Attr_dBBIQ;
+                double noisyDiff = (offScore - defScore) / 150.0 + NextGaussian(0.0, 0.20);
+                // screenFactor < 1 → offense won, reduced contest; > 1 → defense won, more contest.
+                // Clamped at 0 so a dominant screen can only reduce penalty to zero, not invert it.
+                double screenFactor = Math.Max(0.0, 1.0 - noisyDiff * 0.65);
+                contest *= screenFactor;
+            }
 
             // First of two contest dice — player sees this roll when deciding whether to shoot.
             // Simulates the "read": is the defender in position or closing out late?
@@ -2207,6 +2350,25 @@ public class GameEngine
     {
         foreach (var p in lineup)
             EnsureStats(p).TeamFGAOnCourt++;
+    }
+
+    private void RecordTeamFGM(List<Player> lineup)
+    {
+        foreach (var p in lineup)
+            EnsureStats(p).TeamFGMOnCourt++;
+    }
+
+    private void RecordTeamPts(List<Player> lineup, List<Player> defLineup, int pts)
+    {
+        if (pts <= 0) return;
+        foreach (var p in lineup)    EnsureStats(p).TeamPtsOnCourt += pts;
+        foreach (var p in defLineup) EnsureStats(p).OppPtsOnCourt  += pts;
+    }
+
+    private void RecordPossession(List<Player> lineup, List<Player> defLineup)
+    {
+        foreach (var p in lineup)    EnsureStats(p).PossessionsOnCourt++;
+        foreach (var p in defLineup) EnsureStats(p).PossessionsOnCourt++;
     }
 
     // ── Foul helpers ───────────────────────────────────────────────────────

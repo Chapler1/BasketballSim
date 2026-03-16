@@ -17,7 +17,7 @@ public class PlayerDataService(IWebHostEnvironment env, Nba2kCacheService nba2k)
     private static readonly string[] AttrKeys = [
         "Height","Strength","Speed","Jumping","Endurance",
         "Inside","Dunks","FreeThrow","MidRange","ThreePoint",
-        "BasketballIQ","Dribbling","Passing","RebOff","RebDef",
+        "oBBIQ","dBBIQ","Hustle","Dribbling","Passing","RebOff","RebDef",
         "PerimDef","IntDef","FoulTend",
     ];
     private static readonly string[] TendKeys = [
@@ -31,6 +31,147 @@ public class PlayerDataService(IWebHostEnvironment env, Nba2kCacheService nba2k)
     public IReadOnlyList<PlayerRecord> GetPlayers() => GetDb().Players;
     public IReadOnlyList<TeamMeta>     GetTeams()   => GetDb().Teams;
     public void Invalidate() => _db = null;
+
+    /// <summary>
+    /// Re-maps only the specified attribute keys from 2K source data for every player,
+    /// leaving all other manually-edited attributes untouched.
+    ///
+    /// Normalization per key: piecewise linear so that
+    ///   min player    →  5
+    ///   median player → 50
+    ///   max player    → 95
+    /// computed from the matched population, then rounded and clamped.
+    /// </summary>
+    public async Task<int> RefreshAttrsAsync(string[] keys)
+    {
+        var db     = GetDb();
+        var lookup = nba2k.GetPlayers()
+            .ToDictionary(p => EspnTeamFactory.NormalizeName(p.Name), p => p);
+
+        // Build (record, PlayerData) pairs for all matched players.
+        var matched = db.Players
+            .Select(r => (record: r, data: lookup.GetValueOrDefault(EspnTeamFactory.NormalizeName(r.Name))))
+            .Where(x => x.data is not null)
+            .ToList();
+
+        foreach (var key in keys)
+        {
+            // Collect raw source values for this key across all matched players.
+            var rawValues = matched
+                .Select(x => x.data!.Source.TryGetValue(key, out double v) ? v : 50.0)
+                .ToList();
+
+            var sorted = rawValues.Order().ToList();
+            double median = sorted.Count % 2 == 1
+                ? sorted[sorted.Count / 2]
+                : (sorted[sorted.Count / 2 - 1] + sorted[sorted.Count / 2]) / 2.0;
+            double min  = sorted[0];
+            double max  = sorted[^1];
+
+            for (int i = 0; i < matched.Count; i++)
+            {
+                double raw = rawValues[i];
+                double mapped = raw <= median
+                    ? (median > min  ? 5.0  + (raw - min)    / (median - min)  * 45.0 : 50.0)
+                    : (max  > median ? 50.0 + (raw - median) / (max - median)  * 45.0 : 50.0);
+
+                matched[i].record.Attrs[key] = Math.Clamp((int)Math.Round(mapped), 5, 95);
+            }
+        }
+
+        await SaveAsync();
+        return matched.Count;
+    }
+
+    /// <summary>
+    /// Detects unmatched players via Height == 50 (Height is pulled directly from 2K;
+    /// any properly-matched player will have a real height value, not exactly 50).
+    ///   - If the player now matches a 2K entry (e.g. apostrophe name fix): remap all attributes.
+    ///   - If still unmatched (G-League callup / not in 2K): set all attributes to 10.
+    /// Also migrates legacy "BasketballIQ" key → "oBBIQ" for all players.
+    /// Returns (remapped, setToTen).
+    /// </summary>
+    public async Task<(int remapped, int setToTen)> FixDefaultPlayersAsync()
+    {
+        var db     = GetDb();
+        var lookup = nba2k.GetPlayers()
+            .ToDictionary(p => EspnTeamFactory.NormalizeName(p.Name), p => p);
+
+        // Migrate legacy BasketballIQ key → oBBIQ for all players that still have it
+        foreach (var record in db.Players)
+        {
+            if (record.Attrs.TryGetValue("BasketballIQ", out int biq) && !record.Attrs.ContainsKey("oBBIQ"))
+            {
+                record.Attrs["oBBIQ"] = biq;
+                record.Attrs.Remove("BasketballIQ");
+            }
+            else if (record.Attrs.ContainsKey("BasketballIQ"))
+            {
+                record.Attrs.Remove("BasketballIQ"); // oBBIQ already set by Re-map button
+            }
+            if (!record.Attrs.ContainsKey("dBBIQ"))  record.Attrs["dBBIQ"]  = 50;
+            if (!record.Attrs.ContainsKey("Hustle"))  record.Attrs["Hustle"] = 50;
+        }
+
+        // Build per-key normalization parameters from all matched players
+        var allMatched = db.Players
+            .Select(r => (record: r, data: lookup.GetValueOrDefault(EspnTeamFactory.NormalizeName(r.Name))))
+            .Where(x => x.data is not null)
+            .ToList();
+
+        var normParams = new Dictionary<string, (double min, double median, double max)>();
+        foreach (var key in AttrKeys.Where(k => k != "Height"))
+        {
+            var rawValues = allMatched
+                .Select(x => x.data!.Source.TryGetValue(key, out double v) ? v : 50.0)
+                .Order().ToList();
+            if (rawValues.Count == 0) continue;
+            double median = rawValues.Count % 2 == 1
+                ? rawValues[rawValues.Count / 2]
+                : (rawValues[rawValues.Count / 2 - 1] + rawValues[rawValues.Count / 2]) / 2.0;
+            normParams[key] = (rawValues[0], median, rawValues[^1]);
+        }
+
+        int remapped = 0, setToTen = 0;
+
+        foreach (var record in db.Players)
+        {
+            // Height == 50 is the reliable signal for "never matched 2K data"
+            if (!record.Attrs.TryGetValue("Height", out int h) || h != 50) continue;
+
+            var key2k = EspnTeamFactory.NormalizeName(record.Name);
+            if (lookup.TryGetValue(key2k, out var d))
+            {
+                // Now matches (e.g. apostrophe fix) — remap all attributes from 2K
+                record.Attrs["Height"] = d.Source.TryGetValue("Height", out double hv)
+                    ? Math.Clamp((int)Math.Round(hv), 5, 100) : 50;
+
+                foreach (var key in AttrKeys.Where(k => k != "Height"))
+                {
+                    if (!normParams.TryGetValue(key, out var np)) continue;
+                    double raw    = d.Source.TryGetValue(key, out double rv) ? rv : 50.0;
+                    double mapped = raw <= np.median
+                        ? (np.median > np.min  ? 5.0  + (raw - np.min)    / (np.median - np.min)  * 45.0 : 50.0)
+                        : (np.max  > np.median ? 50.0 + (raw - np.median) / (np.max - np.median)  * 45.0 : 50.0);
+                    record.Attrs[key] = Math.Clamp((int)Math.Round(mapped), 5, 95);
+                }
+                foreach (var (k, v) in d.Tendencies) record.Tends[k] = v;
+                foreach (var tk in TendKeys)
+                    if (!record.Tends.ContainsKey(tk)) record.Tends[tk] = 50;
+                remapped++;
+            }
+            else
+            {
+                // Genuinely not in 2K — set to 10 across the board
+                foreach (var key in AttrKeys) record.Attrs[key] = 10;
+                foreach (var tk in TendKeys)  record.Tends[tk]  = 25;
+                setToTen++;
+            }
+        }
+
+        await SaveAsync();
+        return (remapped, setToTen);
+    }
 
     public async Task SaveAsync()
     {

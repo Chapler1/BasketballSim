@@ -21,7 +21,9 @@ public class PlayerConfig
     public int ThreePoint { get; set; } = 50;
 
     // Skill
-    public int BasketballIQ  { get; set; } = 50;
+    public int oBBIQ         { get; set; } = 50;  // Offensive Basketball IQ
+    public int dBBIQ         { get; set; } = 50;  // Defensive Basketball IQ
+    public int Hustle        { get; set; } = 50;
     public int Dribbling     { get; set; } = 50;
     public int Passing       { get; set; } = 50;
     public int ReboundingOff { get; set; } = 50;
@@ -55,7 +57,8 @@ public class PlayerConfig
         Jumping = Jumping, Endurance = Endurance,
         Attr_Inside = Inside, Attr_Dunks = Dunks, Attr_FreeThrow = FreeThrow,
         Attr_MidRange = MidRange, Attr_ThreePoint = ThreePoint,
-        Attr_BasketballIQ = BasketballIQ, Attr_Dribbling = Dribbling,
+        Attr_oBBIQ = oBBIQ, Attr_dBBIQ = dBBIQ, Attr_Hustle = Hustle,
+        Attr_Dribbling = Dribbling,
         Attr_Passing = Passing,
         Attr_Rebounding_Off = ReboundingOff, Attr_Rebounding_Def = ReboundingDef,
         Attr_PerimeterDefense = PerimeterDefense, Attr_InteriorDefense = InteriorDefense,

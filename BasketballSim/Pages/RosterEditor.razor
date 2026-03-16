@@ -39,6 +39,16 @@
             <button class="re-btn" @onclick="()=>BumpAll(-1)">All −1</button>
         }
 
+        <button class="re-btn" @onclick="RefreshIqHustleAsync" disabled="@_refreshing"
+                title="Re-map oBBIQ, dBBIQ, Hustle from 2K source for all players">
+            @(_refreshMsg ?? "Re-map IQ/Hustle")
+        </button>
+
+        <button class="re-btn" @onclick="FixDefaultPlayersAsync" disabled="@_refreshing"
+                title="Re-map apostrophe-broken players from 2K; set genuinely unmatched players (G-League etc.) to 10">
+            @(_fixMsg ?? "Fix Defaults")
+        </button>
+
         <button class="re-btn @(_savedMsg?"saved":_dirtyCount>0?"dirty":"")"
                 @onclick="SaveAsync" disabled="@(_dirtyCount==0&&!_savedMsg)">
             @(_savedMsg ? "✓ Saved" : $"Save ({_dirtyCount})")
@@ -151,7 +161,8 @@
         new("Jumping","Jmp"),  new("Endurance","End"),
         new("Inside","In"),    new("Dunks","Dunk"),   new("FreeThrow","FT"),
         new("MidRange","Mid"), new("ThreePoint","3PT"),
-        new("BasketballIQ","IQ"), new("Dribbling","Drbl"), new("Passing","Pass"),
+        new("oBBIQ","oIQ"), new("dBBIQ","dIQ"), new("Hustle","HST"),
+        new("Dribbling","Drbl"), new("Passing","Pass"),
         new("RebOff","ORb"),   new("RebDef","DRb"),
         new("PerimDef","PDf"), new("IntDef","IDf"),   new("FoulTend","Foul"),
     ];
@@ -246,6 +257,47 @@
         string.IsNullOrEmpty(_selectedTeam)
             ? _players
             : _players.Where(p => p.Team.Equals(_selectedTeam, StringComparison.OrdinalIgnoreCase));
+
+    // ── Selective 2K re-map ────────────────────────────────────────────────
+    private bool   _refreshing;
+    private string? _refreshMsg;
+    private string? _fixMsg;
+
+    private async Task FixDefaultPlayersAsync()
+    {
+        _refreshing = true;
+        _fixMsg = "Fixing…";
+        StateHasChanged();
+
+        var (remapped, setToTen) = await PlayerSvc.FixDefaultPlayersAsync();
+        _players = [.. PlayerSvc.GetPlayers()];
+        _dirty.Clear();
+
+        _fixMsg = $"✓ {remapped} mapped, {setToTen} set to 10";
+        _refreshing = false;
+        StateHasChanged();
+        await Task.Delay(3000);
+        _fixMsg = null;
+        StateHasChanged();
+    }
+
+    private async Task RefreshIqHustleAsync()
+    {
+        _refreshing = true;
+        _refreshMsg = "Refreshing…";
+        StateHasChanged();
+
+        int n = await PlayerSvc.RefreshAttrsAsync(["oBBIQ", "dBBIQ", "Hustle"]);
+        _players = [.. PlayerSvc.GetPlayers()];
+        _dirty.Clear();
+
+        _refreshMsg = $"✓ {n} players updated";
+        _refreshing = false;
+        StateHasChanged();
+        await Task.Delay(2500);
+        _refreshMsg = null;
+        StateHasChanged();
+    }
 
     // ── Save ───────────────────────────────────────────────────────────────
     private async Task SaveAsync()

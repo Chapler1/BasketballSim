@@ -1,0 +1,2995 @@
+{
+  "fetched_at": "2026-03-14 22:00:05",
+  "teams": [
+    {
+      "name": "Boston Celtics",
+      "abbreviation": "BOS",
+      "primaryColor": "#008348",
+      "secondaryColor": "#ffffff",
+      "division": "Atlantic",
+      "conference": "Eastern",
+      "players": [
+        {
+          "name": "Jaylen Brown",
+          "espnPosition": "G",
+          "heightRating": 50
+        },
+        {
+          "name": "Hugo Gonzalez",
+          "espnPosition": "G",
+          "heightRating": 50
+        },
+        {
+          "name": "Ron Harper Jr.",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Payton Pritchard",
+          "espnPosition": "G",
+          "heightRating": 25
+        },
+        {
+          "name": "Baylor Scheierman",
+          "espnPosition": "G",
+          "heightRating": 50
+        },
+        {
+          "name": "Max Shulga",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "John Tonje",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "Jordan Walsh",
+          "espnPosition": "G",
+          "heightRating": 50
+        },
+        {
+          "name": "Derrick White",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "Sam Hauser",
+          "espnPosition": "F",
+          "heightRating": 55
+        },
+        {
+          "name": "Jayson Tatum",
+          "espnPosition": "F",
+          "heightRating": 60
+        },
+        {
+          "name": "Amari Williams",
+          "espnPosition": "F",
+          "heightRating": 75
+        },
+        {
+          "name": "Luka Garza",
+          "espnPosition": "C",
+          "heightRating": 70
+        },
+        {
+          "name": "Neemias Queta",
+          "espnPosition": "C",
+          "heightRating": 80
+        },
+        {
+          "name": "Nikola Vucevic",
+          "espnPosition": "C",
+          "heightRating": 65
+        }
+      ]
+    },
+    {
+      "name": "Brooklyn Nets",
+      "abbreviation": "BKN",
+      "primaryColor": "#000000",
+      "secondaryColor": "#ffffff",
+      "division": "Atlantic",
+      "conference": "Eastern",
+      "players": [
+        {
+          "name": "Ochai Agbaji",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Egor Demin",
+          "espnPosition": "G",
+          "heightRating": 60
+        },
+        {
+          "name": "Tyson Etienne",
+          "espnPosition": "G",
+          "heightRating": 20
+        },
+        {
+          "name": "Terance Mann",
+          "espnPosition": "G",
+          "heightRating": 50
+        },
+        {
+          "name": "Drake Powell",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Ben Saraf",
+          "espnPosition": "G",
+          "heightRating": 50
+        },
+        {
+          "name": "Malachi Smith",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "Nolan Traore",
+          "espnPosition": "G",
+          "heightRating": 35
+        },
+        {
+          "name": "Noah Clowney",
+          "espnPosition": "F",
+          "heightRating": 70
+        },
+        {
+          "name": "Chaney Johnson",
+          "espnPosition": "F",
+          "heightRating": 60
+        },
+        {
+          "name": "E.J. Liddell",
+          "espnPosition": "F",
+          "heightRating": 50
+        },
+        {
+          "name": "Josh Minott",
+          "espnPosition": "F",
+          "heightRating": 60
+        },
+        {
+          "name": "Michael Porter Jr.",
+          "espnPosition": "F",
+          "heightRating": 70
+        },
+        {
+          "name": "Ziaire Williams",
+          "espnPosition": "F",
+          "heightRating": 65
+        },
+        {
+          "name": "Jalen Wilson",
+          "espnPosition": "F",
+          "heightRating": 50
+        },
+        {
+          "name": "Danny Wolf",
+          "espnPosition": "F",
+          "heightRating": 75
+        },
+        {
+          "name": "Nic Claxton",
+          "espnPosition": "C",
+          "heightRating": 75
+        },
+        {
+          "name": "Day\u0027Ron Sharpe",
+          "espnPosition": "C",
+          "heightRating": 70
+        }
+      ]
+    },
+    {
+      "name": "New York Knicks",
+      "abbreviation": "NY",
+      "primaryColor": "#1d428a",
+      "secondaryColor": "#f58426",
+      "division": "Atlantic",
+      "conference": "Eastern",
+      "players": [
+        {
+          "name": "Jose Alvarado",
+          "espnPosition": "G",
+          "heightRating": 20
+        },
+        {
+          "name": "Mikal Bridges",
+          "espnPosition": "G",
+          "heightRating": 50
+        },
+        {
+          "name": "Jalen Brunson",
+          "espnPosition": "G",
+          "heightRating": 30
+        },
+        {
+          "name": "Jordan Clarkson",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Josh Hart",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Tyler Kolek",
+          "espnPosition": "G",
+          "heightRating": 30
+        },
+        {
+          "name": "Miles McBride",
+          "espnPosition": "G",
+          "heightRating": 30
+        },
+        {
+          "name": "Kevin McCullar Jr.",
+          "espnPosition": "G",
+          "heightRating": 50
+        },
+        {
+          "name": "Landry Shamet",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "OG Anunoby",
+          "espnPosition": "F",
+          "heightRating": 55
+        },
+        {
+          "name": "Pacome Dadiet",
+          "espnPosition": "F",
+          "heightRating": 65
+        },
+        {
+          "name": "Mohamed Diawara",
+          "espnPosition": "F",
+          "heightRating": 65
+        },
+        {
+          "name": "Trey Jemison III",
+          "espnPosition": "F",
+          "heightRating": 70
+        },
+        {
+          "name": "Dillon Jones",
+          "espnPosition": "F",
+          "heightRating": 45
+        },
+        {
+          "name": "Jeremy Sochan",
+          "espnPosition": "F",
+          "heightRating": 60
+        },
+        {
+          "name": "Ariel Hukporti",
+          "espnPosition": "C",
+          "heightRating": 80
+        },
+        {
+          "name": "Mitchell Robinson",
+          "espnPosition": "C",
+          "heightRating": 80
+        },
+        {
+          "name": "Karl-Anthony Towns",
+          "espnPosition": "C",
+          "heightRating": 80
+        }
+      ]
+    },
+    {
+      "name": "Philadelphia 76ers",
+      "abbreviation": "PHI",
+      "primaryColor": "#1d428a",
+      "secondaryColor": "#e01234",
+      "division": "Atlantic",
+      "conference": "Eastern",
+      "players": [
+        {
+          "name": "VJ Edgecombe",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "Quentin Grimes",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "Kyle Lowry",
+          "espnPosition": "G",
+          "heightRating": 20
+        },
+        {
+          "name": "Tyrese Martin",
+          "espnPosition": "G",
+          "heightRating": 50
+        },
+        {
+          "name": "Tyrese Maxey",
+          "espnPosition": "G",
+          "heightRating": 30
+        },
+        {
+          "name": "Kelly Oubre Jr.",
+          "espnPosition": "G",
+          "heightRating": 60
+        },
+        {
+          "name": "Cameron Payne",
+          "espnPosition": "G",
+          "heightRating": 35
+        },
+        {
+          "name": "Dominick Barlow",
+          "espnPosition": "F",
+          "heightRating": 65
+        },
+        {
+          "name": "MarJon Beauchamp",
+          "espnPosition": "F",
+          "heightRating": 55
+        },
+        {
+          "name": "Johni Broome",
+          "espnPosition": "F",
+          "heightRating": 70
+        },
+        {
+          "name": "Justin Edwards",
+          "espnPosition": "F",
+          "heightRating": 55
+        },
+        {
+          "name": "Paul George",
+          "espnPosition": "F",
+          "heightRating": 60
+        },
+        {
+          "name": "Dalen Terry",
+          "espnPosition": "F",
+          "heightRating": 50
+        },
+        {
+          "name": "Jabari Walker",
+          "espnPosition": "F",
+          "heightRating": 55
+        },
+        {
+          "name": "Trendon Watford",
+          "espnPosition": "F",
+          "heightRating": 60
+        },
+        {
+          "name": "Adem Bona",
+          "espnPosition": "C",
+          "heightRating": 70
+        },
+        {
+          "name": "Andre Drummond",
+          "espnPosition": "C",
+          "heightRating": 75
+        },
+        {
+          "name": "Joel Embiid",
+          "espnPosition": "C",
+          "heightRating": 80
+        }
+      ]
+    },
+    {
+      "name": "Toronto Raptors",
+      "abbreviation": "TOR",
+      "primaryColor": "#d91244",
+      "secondaryColor": "#000000",
+      "division": "Atlantic",
+      "conference": "Eastern",
+      "players": [
+        {
+          "name": "Gradey Dick",
+          "espnPosition": "G",
+          "heightRating": 55
+        },
+        {
+          "name": "Chucky Hepburn",
+          "espnPosition": "G",
+          "heightRating": 20
+        },
+        {
+          "name": "A.J. Lawson",
+          "espnPosition": "G",
+          "heightRating": 50
+        },
+        {
+          "name": "Alijah Martin",
+          "espnPosition": "G",
+          "heightRating": 30
+        },
+        {
+          "name": "Immanuel Quickley",
+          "espnPosition": "G",
+          "heightRating": 30
+        },
+        {
+          "name": "Jamal Shead",
+          "espnPosition": "G",
+          "heightRating": 25
+        },
+        {
+          "name": "Garrett Temple",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Ja\u0027Kobe Walter",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "Scottie Barnes",
+          "espnPosition": "F",
+          "heightRating": 60
+        },
+        {
+          "name": "RJ Barrett",
+          "espnPosition": "F",
+          "heightRating": 50
+        },
+        {
+          "name": "Jamison Battle",
+          "espnPosition": "F",
+          "heightRating": 55
+        },
+        {
+          "name": "Brandon Ingram",
+          "espnPosition": "F",
+          "heightRating": 60
+        },
+        {
+          "name": "Trayce Jackson-Davis",
+          "espnPosition": "F",
+          "heightRating": 65
+        },
+        {
+          "name": "Sandro Mamukelashvili",
+          "espnPosition": "F",
+          "heightRating": 65
+        },
+        {
+          "name": "Jonathan Mogbo",
+          "espnPosition": "F",
+          "heightRating": 65
+        },
+        {
+          "name": "Collin Murray-Boyles",
+          "espnPosition": "F",
+          "heightRating": 55
+        },
+        {
+          "name": "Jakob Poeltl",
+          "espnPosition": "C",
+          "heightRating": 80
+        }
+      ]
+    },
+    {
+      "name": "Chicago Bulls",
+      "abbreviation": "CHI",
+      "primaryColor": "#ce1141",
+      "secondaryColor": "#000000",
+      "division": "Central",
+      "conference": "Eastern",
+      "players": [
+        {
+          "name": "Rob Dillingham",
+          "espnPosition": "G",
+          "heightRating": 30
+        },
+        {
+          "name": "Josh Giddey",
+          "espnPosition": "G",
+          "heightRating": 55
+        },
+        {
+          "name": "Jaden Ivey",
+          "espnPosition": "G",
+          "heightRating": 35
+        },
+        {
+          "name": "Tre Jones",
+          "espnPosition": "G",
+          "heightRating": 25
+        },
+        {
+          "name": "Yuki Kawamura",
+          "espnPosition": "G",
+          "heightRating": 5
+        },
+        {
+          "name": "Mac McClung",
+          "espnPosition": "G",
+          "heightRating": 30
+        },
+        {
+          "name": "Collin Sexton",
+          "espnPosition": "G",
+          "heightRating": 35
+        },
+        {
+          "name": "Anfernee Simons",
+          "espnPosition": "G",
+          "heightRating": 35
+        },
+        {
+          "name": "Matas Buzelis",
+          "espnPosition": "F",
+          "heightRating": 60
+        },
+        {
+          "name": "Zach Collins",
+          "espnPosition": "F",
+          "heightRating": 65
+        },
+        {
+          "name": "Noa Essengue",
+          "espnPosition": "F",
+          "heightRating": 60
+        },
+        {
+          "name": "Leonard Miller",
+          "espnPosition": "F",
+          "heightRating": 70
+        },
+        {
+          "name": "Isaac Okoro",
+          "espnPosition": "F",
+          "heightRating": 40
+        },
+        {
+          "name": "Jalen Smith",
+          "espnPosition": "F",
+          "heightRating": 60
+        },
+        {
+          "name": "Patrick Williams",
+          "espnPosition": "F",
+          "heightRating": 50
+        },
+        {
+          "name": "Guerschon Yabusele",
+          "espnPosition": "F",
+          "heightRating": 55
+        },
+        {
+          "name": "Lachlan Olbrich",
+          "espnPosition": "C",
+          "heightRating": 60
+        },
+        {
+          "name": "Nick Richards",
+          "espnPosition": "C",
+          "heightRating": 75
+        }
+      ]
+    },
+    {
+      "name": "Cleveland Cavaliers",
+      "abbreviation": "CLE",
+      "primaryColor": "#860038",
+      "secondaryColor": "#bc945c",
+      "division": "Central",
+      "conference": "Eastern",
+      "players": [
+        {
+          "name": "Keon Ellis",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "James Harden",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Sam Merrill",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "Donovan Mitchell",
+          "espnPosition": "G",
+          "heightRating": 30
+        },
+        {
+          "name": "Craig Porter Jr.",
+          "espnPosition": "G",
+          "heightRating": 25
+        },
+        {
+          "name": "Tyrese Proctor",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "Dennis Schroder",
+          "espnPosition": "G",
+          "heightRating": 25
+        },
+        {
+          "name": "Max Strus",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Jaylon Tyson",
+          "espnPosition": "G",
+          "heightRating": 50
+        },
+        {
+          "name": "Tristan Enaruna",
+          "espnPosition": "F",
+          "heightRating": 55
+        },
+        {
+          "name": "Riley Minix",
+          "espnPosition": "F",
+          "heightRating": 55
+        },
+        {
+          "name": "Larry Nance Jr.",
+          "espnPosition": "F",
+          "heightRating": 50
+        },
+        {
+          "name": "Olivier Sarr",
+          "espnPosition": "F",
+          "heightRating": 70
+        },
+        {
+          "name": "Nae\u0027Qwan Tomlin",
+          "espnPosition": "F",
+          "heightRating": 60
+        },
+        {
+          "name": "Dean Wade",
+          "espnPosition": "F",
+          "heightRating": 65
+        },
+        {
+          "name": "Jarrett Allen",
+          "espnPosition": "C",
+          "heightRating": 65
+        },
+        {
+          "name": "Thomas Bryant",
+          "espnPosition": "C",
+          "heightRating": 65
+        },
+        {
+          "name": "Evan Mobley",
+          "espnPosition": "C",
+          "heightRating": 75
+        }
+      ]
+    },
+    {
+      "name": "Detroit Pistons",
+      "abbreviation": "DET",
+      "primaryColor": "#1d428a",
+      "secondaryColor": "#c8102e",
+      "division": "Central",
+      "conference": "Eastern",
+      "players": [
+        {
+          "name": "Cade Cunningham",
+          "espnPosition": "G",
+          "heightRating": 50
+        },
+        {
+          "name": "Javonte Green",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Kevin Huerter",
+          "espnPosition": "G",
+          "heightRating": 50
+        },
+        {
+          "name": "Daniss Jenkins",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "Chaz Lanier",
+          "espnPosition": "G",
+          "heightRating": 35
+        },
+        {
+          "name": "Caris LeVert",
+          "espnPosition": "G",
+          "heightRating": 55
+        },
+        {
+          "name": "Marcus Sasser",
+          "espnPosition": "G",
+          "heightRating": 25
+        },
+        {
+          "name": "Ausar Thompson",
+          "espnPosition": "G",
+          "heightRating": 55
+        },
+        {
+          "name": "Tobias Harris",
+          "espnPosition": "F",
+          "heightRating": 60
+        },
+        {
+          "name": "Ronald Holland II",
+          "espnPosition": "F",
+          "heightRating": 60
+        },
+        {
+          "name": "Bobi Klintman",
+          "espnPosition": "F",
+          "heightRating": 65
+        },
+        {
+          "name": "Wendell Moore Jr.",
+          "espnPosition": "F",
+          "heightRating": 45
+        },
+        {
+          "name": "Paul Reed",
+          "espnPosition": "F",
+          "heightRating": 65
+        },
+        {
+          "name": "Duncan Robinson",
+          "espnPosition": "F",
+          "heightRating": 55
+        },
+        {
+          "name": "Tolu Smith",
+          "espnPosition": "F",
+          "heightRating": 75
+        },
+        {
+          "name": "Isaiah Stewart",
+          "espnPosition": "F",
+          "heightRating": 60
+        },
+        {
+          "name": "Jalen Duren",
+          "espnPosition": "C",
+          "heightRating": 70
+        },
+        {
+          "name": "Isaac Jones",
+          "espnPosition": "C",
+          "heightRating": 60
+        }
+      ]
+    },
+    {
+      "name": "Indiana Pacers",
+      "abbreviation": "IND",
+      "primaryColor": "#0c2340",
+      "secondaryColor": "#ffd520",
+      "division": "Central",
+      "conference": "Eastern",
+      "players": [
+        {
+          "name": "Kobe Brown",
+          "espnPosition": "G",
+          "heightRating": 55
+        },
+        {
+          "name": "Johnny Furphy",
+          "espnPosition": "G",
+          "heightRating": 60
+        },
+        {
+          "name": "Tyrese Haliburton",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Quenton Jackson",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "Kam Jones",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "T.J. McConnell",
+          "espnPosition": "G",
+          "heightRating": 25
+        },
+        {
+          "name": "Andrew Nembhard",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "Aaron Nesmith",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Taelon Peter",
+          "espnPosition": "G",
+          "heightRating": 35
+        },
+        {
+          "name": "Ben Sheppard",
+          "espnPosition": "G",
+          "heightRating": 50
+        },
+        {
+          "name": "Ethan Thompson",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Pascal Siakam",
+          "espnPosition": "F",
+          "heightRating": 60
+        },
+        {
+          "name": "Jalen Slawson",
+          "espnPosition": "F",
+          "heightRating": 55
+        },
+        {
+          "name": "Obi Toppin",
+          "espnPosition": "F",
+          "heightRating": 65
+        },
+        {
+          "name": "Jarace Walker",
+          "espnPosition": "F",
+          "heightRating": 55
+        },
+        {
+          "name": "Jay Huff",
+          "espnPosition": "C",
+          "heightRating": 85
+        },
+        {
+          "name": "Micah Potter",
+          "espnPosition": "C",
+          "heightRating": 65
+        },
+        {
+          "name": "Ivica Zubac",
+          "espnPosition": "C",
+          "heightRating": 80
+        }
+      ]
+    },
+    {
+      "name": "Milwaukee Bucks",
+      "abbreviation": "MIL",
+      "primaryColor": "#00471b",
+      "secondaryColor": "#eee1c6",
+      "division": "Central",
+      "conference": "Eastern",
+      "players": [
+        {
+          "name": "AJ Green",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "Gary Harris",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "Andre Jackson Jr.",
+          "espnPosition": "G",
+          "heightRating": 50
+        },
+        {
+          "name": "Kevin Porter Jr.",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Ryan Rollins",
+          "espnPosition": "G",
+          "heightRating": 35
+        },
+        {
+          "name": "Cormac Ryan",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Cam Thomas",
+          "espnPosition": "G",
+          "heightRating": 35
+        },
+        {
+          "name": "Gary Trent Jr.",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Alex Antetokounmpo",
+          "espnPosition": "F",
+          "heightRating": 60
+        },
+        {
+          "name": "Giannis Antetokounmpo",
+          "espnPosition": "F",
+          "heightRating": 75
+        },
+        {
+          "name": "Thanasis Antetokounmpo",
+          "espnPosition": "F",
+          "heightRating": 55
+        },
+        {
+          "name": "Ousmane Dieng",
+          "espnPosition": "F",
+          "heightRating": 65
+        },
+        {
+          "name": "Kyle Kuzma",
+          "espnPosition": "F",
+          "heightRating": 60
+        },
+        {
+          "name": "Pete Nance",
+          "espnPosition": "F",
+          "heightRating": 65
+        },
+        {
+          "name": "Bobby Portis",
+          "espnPosition": "F",
+          "heightRating": 65
+        },
+        {
+          "name": "Taurean Prince",
+          "espnPosition": "F",
+          "heightRating": 50
+        },
+        {
+          "name": "Jericho Sims",
+          "espnPosition": "C",
+          "heightRating": 70
+        },
+        {
+          "name": "Myles Turner",
+          "espnPosition": "C",
+          "heightRating": 75
+        }
+      ]
+    },
+    {
+      "name": "Atlanta Hawks",
+      "abbreviation": "ATL",
+      "primaryColor": "#c8102e",
+      "secondaryColor": "#fdb927",
+      "division": "Southeast",
+      "conference": "Eastern",
+      "players": [
+        {
+          "name": "Nickeil Alexander-Walker",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Dyson Daniels",
+          "espnPosition": "G",
+          "heightRating": 55
+        },
+        {
+          "name": "RayJ Dennis",
+          "espnPosition": "G",
+          "heightRating": 30
+        },
+        {
+          "name": "Buddy Hield",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "Caleb Houstan",
+          "espnPosition": "G",
+          "heightRating": 60
+        },
+        {
+          "name": "CJ McCollum",
+          "espnPosition": "G",
+          "heightRating": 35
+        },
+        {
+          "name": "Gabe Vincent",
+          "espnPosition": "G",
+          "heightRating": 30
+        },
+        {
+          "name": "Keaton Wallace",
+          "espnPosition": "G",
+          "heightRating": 35
+        },
+        {
+          "name": "Mouhamed Gueye",
+          "espnPosition": "F",
+          "heightRating": 75
+        },
+        {
+          "name": "Jalen Johnson",
+          "espnPosition": "F",
+          "heightRating": 60
+        },
+        {
+          "name": "Corey Kispert",
+          "espnPosition": "F",
+          "heightRating": 50
+        },
+        {
+          "name": "Jonathan Kuminga",
+          "espnPosition": "F",
+          "heightRating": 55
+        },
+        {
+          "name": "Asa Newell",
+          "espnPosition": "F",
+          "heightRating": 70
+        },
+        {
+          "name": "Onyeka Okongwu",
+          "espnPosition": "F",
+          "heightRating": 70
+        },
+        {
+          "name": "Zaccharie Risacher",
+          "espnPosition": "F",
+          "heightRating": 60
+        },
+        {
+          "name": "Christian Koloko",
+          "espnPosition": "C",
+          "heightRating": 75
+        },
+        {
+          "name": "Jock Landale",
+          "espnPosition": "C",
+          "heightRating": 75
+        }
+      ]
+    },
+    {
+      "name": "Charlotte Hornets",
+      "abbreviation": "CHA",
+      "primaryColor": "#008ca8",
+      "secondaryColor": "#1d1060",
+      "division": "Southeast",
+      "conference": "Eastern",
+      "players": [
+        {
+          "name": "LaMelo Ball",
+          "espnPosition": "G",
+          "heightRating": 55
+        },
+        {
+          "name": "Pat Connaughton",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Josh Green",
+          "espnPosition": "G",
+          "heightRating": 50
+        },
+        {
+          "name": "Sion James",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Kon Knueppel",
+          "espnPosition": "G",
+          "heightRating": 50
+        },
+        {
+          "name": "Tre Mann",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "Liam McNeeley",
+          "espnPosition": "G",
+          "heightRating": 55
+        },
+        {
+          "name": "Antonio Reeves",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Coby White",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "Miles Bridges",
+          "espnPosition": "F",
+          "heightRating": 55
+        },
+        {
+          "name": "Moussa Diabate",
+          "espnPosition": "F",
+          "heightRating": 70
+        },
+        {
+          "name": "Tosan Evbuomwan",
+          "espnPosition": "F",
+          "heightRating": 60
+        },
+        {
+          "name": "Brandon Miller",
+          "espnPosition": "F",
+          "heightRating": 55
+        },
+        {
+          "name": "Tidjane Salaun",
+          "espnPosition": "F",
+          "heightRating": 70
+        },
+        {
+          "name": "Xavier Tillman",
+          "espnPosition": "F",
+          "heightRating": 60
+        },
+        {
+          "name": "Grant Williams",
+          "espnPosition": "F",
+          "heightRating": 55
+        },
+        {
+          "name": "PJ Hall",
+          "espnPosition": "C",
+          "heightRating": 60
+        },
+        {
+          "name": "Ryan Kalkbrenner",
+          "espnPosition": "C",
+          "heightRating": 85
+        }
+      ]
+    },
+    {
+      "name": "Miami Heat",
+      "abbreviation": "MIA",
+      "primaryColor": "#98002e",
+      "secondaryColor": "#000000",
+      "division": "Southeast",
+      "conference": "Eastern",
+      "players": [
+        {
+          "name": "Tyler Herro",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Kasparas Jakucionis",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Trevor Keels",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "Pelle Larsson",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Davion Mitchell",
+          "espnPosition": "G",
+          "heightRating": 20
+        },
+        {
+          "name": "Norman Powell",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "Terry Rozier",
+          "espnPosition": "G",
+          "heightRating": 25
+        },
+        {
+          "name": "Dru Smith",
+          "espnPosition": "G",
+          "heightRating": 30
+        },
+        {
+          "name": "Jahmir Young",
+          "espnPosition": "G",
+          "heightRating": 20
+        },
+        {
+          "name": "Simone Fontecchio",
+          "espnPosition": "F",
+          "heightRating": 55
+        },
+        {
+          "name": "Myron Gardner",
+          "espnPosition": "F",
+          "heightRating": 45
+        },
+        {
+          "name": "Jaime Jaquez Jr.",
+          "espnPosition": "F",
+          "heightRating": 50
+        },
+        {
+          "name": "Keshad Johnson",
+          "espnPosition": "F",
+          "heightRating": 50
+        },
+        {
+          "name": "Nikola Jovic",
+          "espnPosition": "F",
+          "heightRating": 70
+        },
+        {
+          "name": "Andrew Wiggins",
+          "espnPosition": "F",
+          "heightRating": 55
+        },
+        {
+          "name": "Bam Adebayo",
+          "espnPosition": "C",
+          "heightRating": 65
+        },
+        {
+          "name": "Vladislav Goldin",
+          "espnPosition": "C",
+          "heightRating": 80
+        },
+        {
+          "name": "Kel\u0027el Ware",
+          "espnPosition": "C",
+          "heightRating": 80
+        }
+      ]
+    },
+    {
+      "name": "Orlando Magic",
+      "abbreviation": "ORL",
+      "primaryColor": "#0150b5",
+      "secondaryColor": "#9ca0a3",
+      "division": "Southeast",
+      "conference": "Eastern",
+      "players": [
+        {
+          "name": "Desmond Bane",
+          "espnPosition": "G",
+          "heightRating": 50
+        },
+        {
+          "name": "Anthony Black",
+          "espnPosition": "G",
+          "heightRating": 55
+        },
+        {
+          "name": "Jevon Carter",
+          "espnPosition": "G",
+          "heightRating": 20
+        },
+        {
+          "name": "Jett Howard",
+          "espnPosition": "G",
+          "heightRating": 60
+        },
+        {
+          "name": "Alex Morales",
+          "espnPosition": "G",
+          "heightRating": 50
+        },
+        {
+          "name": "Jase Richardson",
+          "espnPosition": "G",
+          "heightRating": 25
+        },
+        {
+          "name": "Jalen Suggs",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Paolo Banchero",
+          "espnPosition": "F",
+          "heightRating": 70
+        },
+        {
+          "name": "Jamal Cain",
+          "espnPosition": "F",
+          "heightRating": 55
+        },
+        {
+          "name": "Tristan da Silva",
+          "espnPosition": "F",
+          "heightRating": 60
+        },
+        {
+          "name": "Jonathan Isaac",
+          "espnPosition": "F",
+          "heightRating": 70
+        },
+        {
+          "name": "Noah Penda",
+          "espnPosition": "F",
+          "heightRating": 55
+        },
+        {
+          "name": "Franz Wagner",
+          "espnPosition": "F",
+          "heightRating": 70
+        },
+        {
+          "name": "Moritz Wagner",
+          "espnPosition": "F",
+          "heightRating": 75
+        },
+        {
+          "name": "Goga Bitadze",
+          "espnPosition": "C",
+          "heightRating": 75
+        },
+        {
+          "name": "Wendell Carter Jr.",
+          "espnPosition": "C",
+          "heightRating": 70
+        },
+        {
+          "name": "Colin Castleton",
+          "espnPosition": "C",
+          "heightRating": 70
+        }
+      ]
+    },
+    {
+      "name": "Washington Wizards",
+      "abbreviation": "WSH",
+      "primaryColor": "#e31837",
+      "secondaryColor": "#002b5c",
+      "division": "Southeast",
+      "conference": "Eastern",
+      "players": [
+        {
+          "name": "Bub Carrington",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "Sharife Cooper",
+          "espnPosition": "G",
+          "heightRating": 20
+        },
+        {
+          "name": "Bilal Coulibaly",
+          "espnPosition": "G",
+          "heightRating": 55
+        },
+        {
+          "name": "Jaden Hardy",
+          "espnPosition": "G",
+          "heightRating": 35
+        },
+        {
+          "name": "Tre Johnson",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Kadary Richmond",
+          "espnPosition": "G",
+          "heightRating": 50
+        },
+        {
+          "name": "Will Riley",
+          "espnPosition": "G",
+          "heightRating": 65
+        },
+        {
+          "name": "D\u0027Angelo Russell",
+          "espnPosition": "G",
+          "heightRating": 35
+        },
+        {
+          "name": "Jamir Watkins",
+          "espnPosition": "G",
+          "heightRating": 50
+        },
+        {
+          "name": "Alondes Williams",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "Trae Young",
+          "espnPosition": "G",
+          "heightRating": 30
+        },
+        {
+          "name": "Leaky Black",
+          "espnPosition": "F",
+          "heightRating": 50
+        },
+        {
+          "name": "Justin Champagnie",
+          "espnPosition": "F",
+          "heightRating": 50
+        },
+        {
+          "name": "Anthony Davis",
+          "espnPosition": "F",
+          "heightRating": 70
+        },
+        {
+          "name": "Kyshawn George",
+          "espnPosition": "F",
+          "heightRating": 60
+        },
+        {
+          "name": "Anthony Gill",
+          "espnPosition": "F",
+          "heightRating": 55
+        },
+        {
+          "name": "Julian Reese",
+          "espnPosition": "F",
+          "heightRating": 65
+        },
+        {
+          "name": "Tristan Vukcevic",
+          "espnPosition": "F",
+          "heightRating": 80
+        },
+        {
+          "name": "Cam Whitmore",
+          "espnPosition": "F",
+          "heightRating": 50
+        },
+        {
+          "name": "Skal Labissiere",
+          "espnPosition": "C",
+          "heightRating": 70
+        },
+        {
+          "name": "Alex Sarr",
+          "espnPosition": "C",
+          "heightRating": 80
+        }
+      ]
+    },
+    {
+      "name": "Denver Nuggets",
+      "abbreviation": "DEN",
+      "primaryColor": "#0e2240",
+      "secondaryColor": "#fec524",
+      "division": "Northwest",
+      "conference": "Western",
+      "players": [
+        {
+          "name": "Christian Braun",
+          "espnPosition": "G",
+          "heightRating": 50
+        },
+        {
+          "name": "Bruce Brown",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "Tim Hardaway Jr.",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Curtis Jones",
+          "espnPosition": "G",
+          "heightRating": 35
+        },
+        {
+          "name": "Tyus Jones",
+          "espnPosition": "G",
+          "heightRating": 20
+        },
+        {
+          "name": "Jamal Murray",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "Jalen Pickett",
+          "espnPosition": "G",
+          "heightRating": 30
+        },
+        {
+          "name": "KJ Simpson",
+          "espnPosition": "G",
+          "heightRating": 30
+        },
+        {
+          "name": "Julian Strawther",
+          "espnPosition": "G",
+          "heightRating": 50
+        },
+        {
+          "name": "Peyton Watson",
+          "espnPosition": "G",
+          "heightRating": 60
+        },
+        {
+          "name": "Aaron Gordon",
+          "espnPosition": "F",
+          "heightRating": 60
+        },
+        {
+          "name": "DaRon Holmes II",
+          "espnPosition": "F",
+          "heightRating": 65
+        },
+        {
+          "name": "Cameron Johnson",
+          "espnPosition": "F",
+          "heightRating": 60
+        },
+        {
+          "name": "Spencer Jones",
+          "espnPosition": "F",
+          "heightRating": 55
+        },
+        {
+          "name": "Zeke Nnaji",
+          "espnPosition": "F",
+          "heightRating": 70
+        },
+        {
+          "name": "David Roddy",
+          "espnPosition": "F",
+          "heightRating": 40
+        },
+        {
+          "name": "Nikola Jokic",
+          "espnPosition": "C",
+          "heightRating": 75
+        },
+        {
+          "name": "Jonas Valanciunas",
+          "espnPosition": "C",
+          "heightRating": 75
+        }
+      ]
+    },
+    {
+      "name": "Minnesota Timberwolves",
+      "abbreviation": "MIN",
+      "primaryColor": "#266092",
+      "secondaryColor": "#79bc43",
+      "division": "Northwest",
+      "conference": "Western",
+      "players": [
+        {
+          "name": "Jaylen Clark",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Mike Conley",
+          "espnPosition": "G",
+          "heightRating": 25
+        },
+        {
+          "name": "Donte DiVincenzo",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "Ayo Dosunmu",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "Anthony Edwards",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "Bones Hyland",
+          "espnPosition": "G",
+          "heightRating": 30
+        },
+        {
+          "name": "Zyon Pullin",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "Terrence Shannon Jr.",
+          "espnPosition": "G",
+          "heightRating": 50
+        },
+        {
+          "name": "Kyle Anderson",
+          "espnPosition": "F",
+          "heightRating": 60
+        },
+        {
+          "name": "Joan Beringer",
+          "espnPosition": "F",
+          "heightRating": 75
+        },
+        {
+          "name": "Enrique Freeman",
+          "espnPosition": "F",
+          "heightRating": 65
+        },
+        {
+          "name": "Joe Ingles",
+          "espnPosition": "F",
+          "heightRating": 60
+        },
+        {
+          "name": "Jaden McDaniels",
+          "espnPosition": "F",
+          "heightRating": 65
+        },
+        {
+          "name": "Julian Phillips",
+          "espnPosition": "F",
+          "heightRating": 50
+        },
+        {
+          "name": "Julius Randle",
+          "espnPosition": "F",
+          "heightRating": 65
+        },
+        {
+          "name": "Rudy Gobert",
+          "espnPosition": "C",
+          "heightRating": 85
+        },
+        {
+          "name": "Naz Reid",
+          "espnPosition": "C",
+          "heightRating": 65
+        },
+        {
+          "name": "Rocco Zikarsky",
+          "espnPosition": "C",
+          "heightRating": 95
+        }
+      ]
+    },
+    {
+      "name": "Oklahoma City Thunder",
+      "abbreviation": "OKC",
+      "primaryColor": "#007ac1",
+      "secondaryColor": "#ef3b24",
+      "division": "Northwest",
+      "conference": "Western",
+      "players": [
+        {
+          "name": "Alex Caruso",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Luguentz Dort",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "Shai Gilgeous-Alexander",
+          "espnPosition": "G",
+          "heightRating": 50
+        },
+        {
+          "name": "Isaiah Joe",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "Jared McCain",
+          "espnPosition": "G",
+          "heightRating": 35
+        },
+        {
+          "name": "Ajay Mitchell",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "Nikola Topic",
+          "espnPosition": "G",
+          "heightRating": 50
+        },
+        {
+          "name": "Cason Wallace",
+          "espnPosition": "G",
+          "heightRating": 35
+        },
+        {
+          "name": "Aaron Wiggins",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Jalen Williams",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Kenrich Williams",
+          "espnPosition": "G",
+          "heightRating": 55
+        },
+        {
+          "name": "Brooks Barnhizer",
+          "espnPosition": "F",
+          "heightRating": 50
+        },
+        {
+          "name": "Payton Sandfort",
+          "espnPosition": "F",
+          "heightRating": 60
+        },
+        {
+          "name": "Jaylin Williams",
+          "espnPosition": "F",
+          "heightRating": 65
+        },
+        {
+          "name": "Branden Carlson",
+          "espnPosition": "C",
+          "heightRating": 80
+        },
+        {
+          "name": "Isaiah Hartenstein",
+          "espnPosition": "C",
+          "heightRating": 80
+        },
+        {
+          "name": "Chet Holmgren",
+          "espnPosition": "C",
+          "heightRating": 85
+        },
+        {
+          "name": "Thomas Sorber",
+          "espnPosition": "C",
+          "heightRating": 65
+        }
+      ]
+    },
+    {
+      "name": "Portland Trail Blazers",
+      "abbreviation": "POR",
+      "primaryColor": "#e03a3e",
+      "secondaryColor": "#000000",
+      "division": "Northwest",
+      "conference": "Western",
+      "players": [
+        {
+          "name": "Sidy Cissoko",
+          "espnPosition": "G",
+          "heightRating": 50
+        },
+        {
+          "name": "Scoot Henderson",
+          "espnPosition": "G",
+          "heightRating": 35
+        },
+        {
+          "name": "Jrue Holiday",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "Jayson Kent",
+          "espnPosition": "G",
+          "heightRating": 60
+        },
+        {
+          "name": "Vit Krejci",
+          "espnPosition": "G",
+          "heightRating": 60
+        },
+        {
+          "name": "Damian Lillard",
+          "espnPosition": "G",
+          "heightRating": 30
+        },
+        {
+          "name": "Caleb Love",
+          "espnPosition": "G",
+          "heightRating": 35
+        },
+        {
+          "name": "Shaedon Sharpe",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Matisse Thybulle",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Blake Wesley",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "Chris Youngblood",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "Deni Avdija",
+          "espnPosition": "F",
+          "heightRating": 60
+        },
+        {
+          "name": "Toumani Camara",
+          "espnPosition": "F",
+          "heightRating": 55
+        },
+        {
+          "name": "Jerami Grant",
+          "espnPosition": "F",
+          "heightRating": 55
+        },
+        {
+          "name": "Kris Murray",
+          "espnPosition": "F",
+          "heightRating": 60
+        },
+        {
+          "name": "Donovan Clingan",
+          "espnPosition": "C",
+          "heightRating": 90
+        },
+        {
+          "name": "Yang Hansen",
+          "espnPosition": "C",
+          "heightRating": 85
+        },
+        {
+          "name": "Robert Williams III",
+          "espnPosition": "C",
+          "heightRating": 65
+        }
+      ]
+    },
+    {
+      "name": "Utah Jazz",
+      "abbreviation": "UTAH",
+      "primaryColor": "#4e008e",
+      "secondaryColor": "#79a3dc",
+      "division": "Northwest",
+      "conference": "Western",
+      "players": [
+        {
+          "name": "Ace Bailey",
+          "espnPosition": "G",
+          "heightRating": 65
+        },
+        {
+          "name": "Isaiah Collier",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "Andersson Garcia",
+          "espnPosition": "G",
+          "heightRating": 55
+        },
+        {
+          "name": "Keyonte George",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "Elijah Harkless",
+          "espnPosition": "G",
+          "heightRating": 35
+        },
+        {
+          "name": "John Konchar",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Bez Mbeng",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "Svi Mykhailiuk",
+          "espnPosition": "G",
+          "heightRating": 55
+        },
+        {
+          "name": "Kyle Filipowski",
+          "espnPosition": "F",
+          "heightRating": 75
+        },
+        {
+          "name": "Blake Hinson",
+          "espnPosition": "F",
+          "heightRating": 60
+        },
+        {
+          "name": "Jaren Jackson Jr.",
+          "espnPosition": "F",
+          "heightRating": 70
+        },
+        {
+          "name": "Kevin Love",
+          "espnPosition": "F",
+          "heightRating": 70
+        },
+        {
+          "name": "Lauri Markkanen",
+          "espnPosition": "F",
+          "heightRating": 85
+        },
+        {
+          "name": "Brice Sensabaugh",
+          "espnPosition": "F",
+          "heightRating": 50
+        },
+        {
+          "name": "Cody Williams",
+          "espnPosition": "F",
+          "heightRating": 60
+        },
+        {
+          "name": "Mo Bamba",
+          "espnPosition": "C",
+          "heightRating": 80
+        },
+        {
+          "name": "Walker Kessler",
+          "espnPosition": "C",
+          "heightRating": 90
+        },
+        {
+          "name": "Jusuf Nurkic",
+          "espnPosition": "C",
+          "heightRating": 75
+        },
+        {
+          "name": "Oscar Tshiebwe",
+          "espnPosition": "C",
+          "heightRating": 60
+        }
+      ]
+    },
+    {
+      "name": "Golden State Warriors",
+      "abbreviation": "GS",
+      "primaryColor": "#fdb927",
+      "secondaryColor": "#1d428a",
+      "division": "Pacific",
+      "conference": "Western",
+      "players": [
+        {
+          "name": "LJ Cryer",
+          "espnPosition": "G",
+          "heightRating": 20
+        },
+        {
+          "name": "Seth Curry",
+          "espnPosition": "G",
+          "heightRating": 25
+        },
+        {
+          "name": "Stephen Curry",
+          "espnPosition": "G",
+          "heightRating": 30
+        },
+        {
+          "name": "De\u0027Anthony Melton",
+          "espnPosition": "G",
+          "heightRating": 30
+        },
+        {
+          "name": "Moses Moody",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Gary Payton II",
+          "espnPosition": "G",
+          "heightRating": 30
+        },
+        {
+          "name": "Brandin Podziemski",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "Will Richard",
+          "espnPosition": "G",
+          "heightRating": 35
+        },
+        {
+          "name": "Pat Spencer",
+          "espnPosition": "G",
+          "heightRating": 30
+        },
+        {
+          "name": "Nate Williams",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Jimmy Butler III",
+          "espnPosition": "F",
+          "heightRating": 50
+        },
+        {
+          "name": "Draymond Green",
+          "espnPosition": "F",
+          "heightRating": 50
+        },
+        {
+          "name": "Malevy Leons",
+          "espnPosition": "F",
+          "heightRating": 65
+        },
+        {
+          "name": "Gui Santos",
+          "espnPosition": "F",
+          "heightRating": 55
+        },
+        {
+          "name": "Al Horford",
+          "espnPosition": "C",
+          "heightRating": 60
+        },
+        {
+          "name": "Kristaps Porzingis",
+          "espnPosition": "C",
+          "heightRating": 90
+        },
+        {
+          "name": "Quinten Post",
+          "espnPosition": "C",
+          "heightRating": 80
+        }
+      ]
+    },
+    {
+      "name": "LA Clippers",
+      "abbreviation": "LAC",
+      "primaryColor": "#12173f",
+      "secondaryColor": "#c8102e",
+      "division": "Pacific",
+      "conference": "Western",
+      "players": [
+        {
+          "name": "Bradley Beal",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "Bogdan Bogdanovic",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Cam Christie",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Kris Dunn",
+          "espnPosition": "G",
+          "heightRating": 35
+        },
+        {
+          "name": "Darius Garland",
+          "espnPosition": "G",
+          "heightRating": 25
+        },
+        {
+          "name": "Bennedict Mathurin",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Jordan Miller",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Sean Pedulla",
+          "espnPosition": "G",
+          "heightRating": 25
+        },
+        {
+          "name": "Kobe Sanders",
+          "espnPosition": "G",
+          "heightRating": 60
+        },
+        {
+          "name": "TyTy Washington Jr.",
+          "espnPosition": "G",
+          "heightRating": 35
+        },
+        {
+          "name": "Nicolas Batum",
+          "espnPosition": "F",
+          "heightRating": 55
+        },
+        {
+          "name": "John Collins",
+          "espnPosition": "F",
+          "heightRating": 65
+        },
+        {
+          "name": "Isaiah Jackson",
+          "espnPosition": "F",
+          "heightRating": 60
+        },
+        {
+          "name": "Derrick Jones Jr.",
+          "espnPosition": "F",
+          "heightRating": 50
+        },
+        {
+          "name": "Kawhi Leonard",
+          "espnPosition": "F",
+          "heightRating": 50
+        },
+        {
+          "name": "Norchad Omier",
+          "espnPosition": "F",
+          "heightRating": 45
+        },
+        {
+          "name": "Brook Lopez",
+          "espnPosition": "C",
+          "heightRating": 85
+        },
+        {
+          "name": "Yanic Konan Niederhauser",
+          "espnPosition": "C",
+          "heightRating": 75
+        }
+      ]
+    },
+    {
+      "name": "Los Angeles Lakers",
+      "abbreviation": "LAL",
+      "primaryColor": "#552583",
+      "secondaryColor": "#fdb927",
+      "division": "Pacific",
+      "conference": "Western",
+      "players": [
+        {
+          "name": "Kobe Bufkin",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "Luka Doncic",
+          "espnPosition": "G",
+          "heightRating": 60
+        },
+        {
+          "name": "Bronny James",
+          "espnPosition": "G",
+          "heightRating": 30
+        },
+        {
+          "name": "Luke Kennard",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Chris Manon",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "Austin Reaves",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Marcus Smart",
+          "espnPosition": "G",
+          "heightRating": 35
+        },
+        {
+          "name": "Nick Smith Jr.",
+          "espnPosition": "G",
+          "heightRating": 30
+        },
+        {
+          "name": "Rui Hachimura",
+          "espnPosition": "F",
+          "heightRating": 60
+        },
+        {
+          "name": "LeBron James",
+          "espnPosition": "F",
+          "heightRating": 65
+        },
+        {
+          "name": "Maxi Kleber",
+          "espnPosition": "F",
+          "heightRating": 70
+        },
+        {
+          "name": "Dalton Knecht",
+          "espnPosition": "F",
+          "heightRating": 50
+        },
+        {
+          "name": "Jake LaRavia",
+          "espnPosition": "F",
+          "heightRating": 55
+        },
+        {
+          "name": "Adou Thiero",
+          "espnPosition": "F",
+          "heightRating": 60
+        },
+        {
+          "name": "Drew Timme",
+          "espnPosition": "F",
+          "heightRating": 70
+        },
+        {
+          "name": "Jarred Vanderbilt",
+          "espnPosition": "F",
+          "heightRating": 60
+        },
+        {
+          "name": "Deandre Ayton",
+          "espnPosition": "C",
+          "heightRating": 80
+        },
+        {
+          "name": "Jaxson Hayes",
+          "espnPosition": "C",
+          "heightRating": 80
+        }
+      ]
+    },
+    {
+      "name": "Phoenix Suns",
+      "abbreviation": "PHX",
+      "primaryColor": "#29127a",
+      "secondaryColor": "#e56020",
+      "division": "Pacific",
+      "conference": "Western",
+      "players": [
+        {
+          "name": "Grayson Allen",
+          "espnPosition": "G",
+          "heightRating": 35
+        },
+        {
+          "name": "Devin Booker",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Jamaree Bouyea",
+          "espnPosition": "G",
+          "heightRating": 30
+        },
+        {
+          "name": "Koby Brea",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Amir Coffey",
+          "espnPosition": "G",
+          "heightRating": 55
+        },
+        {
+          "name": "Collin Gillespie",
+          "espnPosition": "G",
+          "heightRating": 25
+        },
+        {
+          "name": "Jordan Goodwin",
+          "espnPosition": "G",
+          "heightRating": 35
+        },
+        {
+          "name": "Jalen Green",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "Dillon Brooks",
+          "espnPosition": "F",
+          "heightRating": 55
+        },
+        {
+          "name": "Ryan Dunn",
+          "espnPosition": "F",
+          "heightRating": 55
+        },
+        {
+          "name": "Rasheer Fleming",
+          "espnPosition": "F",
+          "heightRating": 65
+        },
+        {
+          "name": "Haywood Highsmith",
+          "espnPosition": "F",
+          "heightRating": 45
+        },
+        {
+          "name": "CJ Huntley",
+          "espnPosition": "F",
+          "heightRating": 65
+        },
+        {
+          "name": "Oso Ighodaro",
+          "espnPosition": "F",
+          "heightRating": 75
+        },
+        {
+          "name": "Isaiah Livers",
+          "espnPosition": "F",
+          "heightRating": 50
+        },
+        {
+          "name": "Royce O\u0027Neale",
+          "espnPosition": "F",
+          "heightRating": 50
+        },
+        {
+          "name": "Khaman Maluach",
+          "espnPosition": "C",
+          "heightRating": 85
+        },
+        {
+          "name": "Mark Williams",
+          "espnPosition": "C",
+          "heightRating": 85
+        }
+      ]
+    },
+    {
+      "name": "Sacramento Kings",
+      "abbreviation": "SAC",
+      "primaryColor": "#5a2d81",
+      "secondaryColor": "#6a7a82",
+      "division": "Pacific",
+      "conference": "Western",
+      "players": [
+        {
+          "name": "Precious Achiuwa",
+          "espnPosition": "G",
+          "heightRating": 60
+        },
+        {
+          "name": "Patrick Baldwin Jr.",
+          "espnPosition": "G",
+          "heightRating": 65
+        },
+        {
+          "name": "Devin Carter",
+          "espnPosition": "G",
+          "heightRating": 30
+        },
+        {
+          "name": "Nique Clifford",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "DeMar DeRozan",
+          "espnPosition": "G",
+          "heightRating": 50
+        },
+        {
+          "name": "Killian Hayes",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "Zach LaVine",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Malik Monk",
+          "espnPosition": "G",
+          "heightRating": 35
+        },
+        {
+          "name": "Daeqwon Plowden",
+          "espnPosition": "G",
+          "heightRating": 50
+        },
+        {
+          "name": "Isaiah Stevens",
+          "espnPosition": "G",
+          "heightRating": 15
+        },
+        {
+          "name": "Russell Westbrook",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "Drew Eubanks",
+          "espnPosition": "F",
+          "heightRating": 70
+        },
+        {
+          "name": "De\u0027Andre Hunter",
+          "espnPosition": "F",
+          "heightRating": 55
+        },
+        {
+          "name": "Doug McDermott",
+          "espnPosition": "F",
+          "heightRating": 55
+        },
+        {
+          "name": "Keegan Murray",
+          "espnPosition": "F",
+          "heightRating": 60
+        },
+        {
+          "name": "Domantas Sabonis",
+          "espnPosition": "F",
+          "heightRating": 70
+        },
+        {
+          "name": "Dylan Cardwell",
+          "espnPosition": "C",
+          "heightRating": 70
+        },
+        {
+          "name": "Maxime Raynaud",
+          "espnPosition": "C",
+          "heightRating": 85
+        }
+      ]
+    },
+    {
+      "name": "Dallas Mavericks",
+      "abbreviation": "DAL",
+      "primaryColor": "#0064b1",
+      "secondaryColor": "#bbc4ca",
+      "division": "Southwest",
+      "conference": "Western",
+      "players": [
+        {
+          "name": "Max Christie",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Kyrie Irving",
+          "espnPosition": "G",
+          "heightRating": 30
+        },
+        {
+          "name": "AJ Johnson",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Ryan Nembhard",
+          "espnPosition": "G",
+          "heightRating": 15
+        },
+        {
+          "name": "John Poulakidas",
+          "espnPosition": "G",
+          "heightRating": 50
+        },
+        {
+          "name": "Klay Thompson",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Brandon Williams",
+          "espnPosition": "G",
+          "heightRating": 25
+        },
+        {
+          "name": "Marvin Bagley III",
+          "espnPosition": "F",
+          "heightRating": 70
+        },
+        {
+          "name": "Cooper Flagg",
+          "espnPosition": "F",
+          "heightRating": 65
+        },
+        {
+          "name": "Daniel Gafford",
+          "espnPosition": "F",
+          "heightRating": 70
+        },
+        {
+          "name": "Naji Marshall",
+          "espnPosition": "F",
+          "heightRating": 50
+        },
+        {
+          "name": "Caleb Martin",
+          "espnPosition": "F",
+          "heightRating": 45
+        },
+        {
+          "name": "Khris Middleton",
+          "espnPosition": "F",
+          "heightRating": 55
+        },
+        {
+          "name": "Dwight Powell",
+          "espnPosition": "F",
+          "heightRating": 70
+        },
+        {
+          "name": "Tyler Smith",
+          "espnPosition": "F",
+          "heightRating": 65
+        },
+        {
+          "name": "P.J. Washington",
+          "espnPosition": "F",
+          "heightRating": 55
+        },
+        {
+          "name": "Moussa Cisse",
+          "espnPosition": "C",
+          "heightRating": 75
+        },
+        {
+          "name": "Dereck Lively II",
+          "espnPosition": "C",
+          "heightRating": 85
+        }
+      ]
+    },
+    {
+      "name": "Houston Rockets",
+      "abbreviation": "HOU",
+      "primaryColor": "#ce1141",
+      "secondaryColor": "#000000",
+      "division": "Southwest",
+      "conference": "Western",
+      "players": [
+        {
+          "name": "JD Davison",
+          "espnPosition": "G",
+          "heightRating": 25
+        },
+        {
+          "name": "Aaron Holiday",
+          "espnPosition": "G",
+          "heightRating": 20
+        },
+        {
+          "name": "Tristen Newton",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Josh Okogie",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "Reed Sheppard",
+          "espnPosition": "G",
+          "heightRating": 30
+        },
+        {
+          "name": "Amen Thompson",
+          "espnPosition": "G",
+          "heightRating": 55
+        },
+        {
+          "name": "Fred VanVleet",
+          "espnPosition": "G",
+          "heightRating": 20
+        },
+        {
+          "name": "Isaiah Crawford",
+          "espnPosition": "F",
+          "heightRating": 50
+        },
+        {
+          "name": "Kevin Durant",
+          "espnPosition": "F",
+          "heightRating": 75
+        },
+        {
+          "name": "Tari Eason",
+          "espnPosition": "F",
+          "heightRating": 60
+        },
+        {
+          "name": "Dorian Finney-Smith",
+          "espnPosition": "F",
+          "heightRating": 55
+        },
+        {
+          "name": "Jeff Green",
+          "espnPosition": "F",
+          "heightRating": 60
+        },
+        {
+          "name": "Jabari Smith Jr.",
+          "espnPosition": "F",
+          "heightRating": 75
+        },
+        {
+          "name": "Jae\u0027Sean Tate",
+          "espnPosition": "F",
+          "heightRating": 40
+        },
+        {
+          "name": "Steven Adams",
+          "espnPosition": "C",
+          "heightRating": 75
+        },
+        {
+          "name": "Clint Capela",
+          "espnPosition": "C",
+          "heightRating": 70
+        },
+        {
+          "name": "Alperen Sengun",
+          "espnPosition": "C",
+          "heightRating": 75
+        }
+      ]
+    },
+    {
+      "name": "Memphis Grizzlies",
+      "abbreviation": "MEM",
+      "primaryColor": "#5d76a9",
+      "secondaryColor": "#12173f",
+      "division": "Southwest",
+      "conference": "Western",
+      "players": [
+        {
+          "name": "Kentavious Caldwell-Pope",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Walter Clayton Jr.",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "DeJon Jarreau",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Ty Jerome",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Jahmai Mashack",
+          "espnPosition": "G",
+          "heightRating": 35
+        },
+        {
+          "name": "Ja Morant",
+          "espnPosition": "G",
+          "heightRating": 30
+        },
+        {
+          "name": "Scotty Pippen Jr.",
+          "espnPosition": "G",
+          "heightRating": 30
+        },
+        {
+          "name": "Rayan Rupert",
+          "espnPosition": "G",
+          "heightRating": 55
+        },
+        {
+          "name": "Javon Small",
+          "espnPosition": "G",
+          "heightRating": 25
+        },
+        {
+          "name": "Cam Spencer",
+          "espnPosition": "G",
+          "heightRating": 35
+        },
+        {
+          "name": "Santi Aldama",
+          "espnPosition": "F",
+          "heightRating": 80
+        },
+        {
+          "name": "Tyler Burton",
+          "espnPosition": "F",
+          "heightRating": 55
+        },
+        {
+          "name": "Brandon Clarke",
+          "espnPosition": "F",
+          "heightRating": 60
+        },
+        {
+          "name": "Cedric Coward",
+          "espnPosition": "F",
+          "heightRating": 45
+        },
+        {
+          "name": "Taj Gibson",
+          "espnPosition": "F",
+          "heightRating": 65
+        },
+        {
+          "name": "Taylor Hendricks",
+          "espnPosition": "F",
+          "heightRating": 65
+        },
+        {
+          "name": "GG Jackson",
+          "espnPosition": "F",
+          "heightRating": 65
+        },
+        {
+          "name": "Olivier-Maxence Prosper",
+          "espnPosition": "F",
+          "heightRating": 55
+        },
+        {
+          "name": "Jaylen Wells",
+          "espnPosition": "F",
+          "heightRating": 55
+        },
+        {
+          "name": "Zach Edey",
+          "espnPosition": "C",
+          "heightRating": 95
+        }
+      ]
+    },
+    {
+      "name": "New Orleans Pelicans",
+      "abbreviation": "NO",
+      "primaryColor": "#0a2240",
+      "secondaryColor": "#b4975a",
+      "division": "Southwest",
+      "conference": "Western",
+      "players": [
+        {
+          "name": "Trey Alexander",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Saddiq Bey",
+          "espnPosition": "G",
+          "heightRating": 60
+        },
+        {
+          "name": "Jeremiah Fears",
+          "espnPosition": "G",
+          "heightRating": 35
+        },
+        {
+          "name": "Jordan Hawkins",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Bryce McGowens",
+          "espnPosition": "G",
+          "heightRating": 50
+        },
+        {
+          "name": "Dejounte Murray",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "Micah Peavy",
+          "espnPosition": "G",
+          "heightRating": 55
+        },
+        {
+          "name": "Jordan Poole",
+          "espnPosition": "G",
+          "heightRating": 40
+        },
+        {
+          "name": "Herbert Jones",
+          "espnPosition": "F",
+          "heightRating": 55
+        },
+        {
+          "name": "Kevon Looney",
+          "espnPosition": "F",
+          "heightRating": 65
+        },
+        {
+          "name": "Karlo Matkovic",
+          "espnPosition": "F",
+          "heightRating": 70
+        },
+        {
+          "name": "Trey Murphy III",
+          "espnPosition": "F",
+          "heightRating": 60
+        },
+        {
+          "name": "Zion Williamson",
+          "espnPosition": "F",
+          "heightRating": 50
+        },
+        {
+          "name": "Hunter Dickinson",
+          "espnPosition": "C",
+          "heightRating": 85
+        },
+        {
+          "name": "DeAndre Jordan",
+          "espnPosition": "C",
+          "heightRating": 75
+        },
+        {
+          "name": "Yves Missi",
+          "espnPosition": "C",
+          "heightRating": 75
+        },
+        {
+          "name": "Josh Oduro",
+          "espnPosition": "C",
+          "heightRating": 65
+        },
+        {
+          "name": "Derik Queen",
+          "espnPosition": "C",
+          "heightRating": 65
+        }
+      ]
+    },
+    {
+      "name": "San Antonio Spurs",
+      "abbreviation": "SA",
+      "primaryColor": "#000000",
+      "secondaryColor": "#c4ced4",
+      "division": "Southwest",
+      "conference": "Western",
+      "players": [
+        {
+          "name": "Stephon Castle",
+          "espnPosition": "G",
+          "heightRating": 50
+        },
+        {
+          "name": "De'\u0027'Aaron Fox",
+          "espnPosition": "G",
+          "heightRating": 35
+        },
+        {
+          "name": "Dylan Harper",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Jordan McLaughlin",
+          "espnPosition": "G",
+          "heightRating": 20
+        },
+        {
+          "name": "Devin Vassell",
+          "espnPosition": "G",
+          "heightRating": 45
+        },
+        {
+          "name": "Harrison Barnes",
+          "espnPosition": "F",
+          "heightRating": 55
+        },
+        {
+          "name": "Carter Bryant",
+          "espnPosition": "F",
+          "heightRating": 50
+        },
+        {
+          "name": "Julian Champagnie",
+          "espnPosition": "F",
+          "heightRating": 55
+        },
+        {
+          "name": "Harrison Ingram",
+          "espnPosition": "F",
+          "heightRating": 45
+        },
+        {
+          "name": "Keldon Johnson",
+          "espnPosition": "F",
+          "heightRating": 45
+        },
+        {
+          "name": "David Jones Garcia",
+          "espnPosition": "F",
+          "heightRating": 40
+        },
+        {
+          "name": "Emanuel Miller",
+          "espnPosition": "F",
+          "heightRating": 45
+        },
+        {
+          "name": "Kelly Olynyk",
+          "espnPosition": "F",
+          "heightRating": 80
+        },
+        {
+          "name": "Lindy Waters III",
+          "espnPosition": "F",
+          "heightRating": 45
+        },
+        {
+          "name": "Victor Wembanyama",
+          "espnPosition": "F",
+          "heightRating": 95
+        },
+        {
+          "name": "Bismack Biyombo",
+          "espnPosition": "C",
+          "heightRating": 60
+        },
+        {
+          "name": "Luke Kornet",
+          "espnPosition": "C",
+          "heightRating": 85
+        },
+        {
+          "name": "Mason Plumlee",
+          "espnPosition": "C",
+          "heightRating": 80
+        }
+      ]
+    }
+  ]
+}

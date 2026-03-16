@@ -261,7 +261,7 @@ public class SeasonScheduleService
                         Name = ps.Name, Team = ps.Team,
                         TeamAbbr = st.Abbreviation, Position = ps.Position,
                     };
-                pagg.GP++;
+                if (ps.MinutesPlayed > 0) pagg.GP++;
                 pagg.TotalPTS     += ps.Points;
                 pagg.TotalOREB    += ps.OffRebounds;
                 pagg.TotalDREB    += ps.DefRebounds;
@@ -287,6 +287,14 @@ public class SeasonScheduleService
                 pagg.TotalMidAtt             += ps.MidRangeAtt;
                 pagg.TotalDefFGM             += ps.DefFGMade;
                 pagg.TotalDefFGA             += ps.DefFGAttempts;
+                pagg.TotalTeamFGMOnCourt     += ps.TeamFGMOnCourt;
+                pagg.TotalTeamORebOnCourt    += ps.TeamORebOnCourt;
+                pagg.TotalTeamDRebOnCourt    += ps.TeamDRebOnCourt;
+                pagg.TotalOppORebOnCourt     += ps.OppORebOnCourt;
+                pagg.TotalOppDRebOnCourt     += ps.OppDRebOnCourt;
+                pagg.TotalTeamPtsOnCourt     += ps.TeamPtsOnCourt;
+                pagg.TotalOppPtsOnCourt      += ps.OppPtsOnCourt;
+                pagg.TotalPossessionsOnCourt += ps.PossessionsOnCourt;
             }
 
             count++;
@@ -314,6 +322,11 @@ public class SeasonScheduleService
         var teamMap = result.TeamStats.ToDictionary(t => t.TeamName, StringComparer.OrdinalIgnoreCase);
         var players = result.PlayerStats.Where(p => p.TotalMIN > 0 && p.GP > 0).ToList();
         if (players.Count == 0 || teamMap.Count == 0) return;
+
+        // Populate TeamPossEventsPg for USG% formula: TmFGA + 0.44*TmFTA + TmTOV per game
+        foreach (var p in players)
+            if (teamMap.TryGetValue(p.Team, out var tm))
+                p.TeamPossEventsPg = tm.Fga + 0.44 * tm.Fta + tm.Tov;
 
         // ── League averages (per team per game) ───────────────────────────────
         double lgPPG  = result.LeaguePpg;

@@ -42,7 +42,9 @@ public class Nba2kCacheService(IWebHostEnvironment env)
         new("MidRange",     "Mid Range",       "Shooting", r => r.V("midRangeShot")),
         new("ThreePoint",   "Three Point",     "Shooting", r => r.V("threePointShot")),
         // Skill
-        new("BasketballIQ", "Basketball IQ",   "Skill",    r => (r.V("shotIQ")*2 + r.V("passIQ") + r.V("helpDefenseIQ") + r.V("offensiveConsistency") + r.V("defensiveConsistency")) / 6.0),
+        new("oBBIQ",        "Offensive IQ",    "Skill",    r => (r.V("shotIQ")*2 + r.V("passIQ") + r.V("offensiveConsistency")) / 4.0),
+        new("dBBIQ",        "Defensive IQ",    "Skill",    r => (r.V("helpDefenseIQ")*2 + r.V("defensiveConsistency")) / 3.0),
+        new("Hustle",       "Hustle",          "Skill",    r => r.V("hustle")),
         new("Dribbling",    "Dribbling",       "Skill",    r => Avg(r, "ballHandle","speedWithBall")),
         new("Passing",      "Passing",         "Skill",    r => Avg(r, "passAccuracy","passVision","passIQ")),
         new("RebOff",       "Off Rebounding",  "Skill",    r => r.V("offensiveRebound")),
@@ -162,7 +164,7 @@ public class Nba2kCacheService(IWebHostEnvironment env)
         static double M(IReadOnlyDictionary<string, double> m, string k) =>
             m.TryGetValue(k, out double v) ? v : 50.0;
         double touchesProxy = M(mapped, "Dribbling")    * 0.28
-                            + M(mapped, "BasketballIQ") * 0.22
+                            + M(mapped, "oBBIQ")        * 0.22
                             + M(mapped, "MidRange")     * 0.14
                             + M(mapped, "ThreePoint")   * 0.10
                             + M(mapped, "Inside")       * 0.08

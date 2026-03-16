@@ -59,7 +59,8 @@ public enum PossessionEvent
 {
     ShotMade, ShotMissed, Blocked, TurnoverStolen, TurnoverDeadBall,
     FreeThrows, OffensiveRebound, DefensiveRebound, GameWinnerMade, GameWinnerMissed,
-    NonShootingFoul, OffensiveFoul
+    NonShootingFoul, OffensiveFoul,
+    LooseBallRecovered, ShotOutOfBounds
 }
 
 public class PossessionResult

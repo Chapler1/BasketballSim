@@ -26,7 +26,9 @@ public class Player
     internal int Attr_ThreePoint  { get; init; }
 
     // ── Skill Attributes (HIDDEN) ──────────────────────────────────
-    internal int Attr_BasketballIQ     { get; init; }
+    internal int Attr_oBBIQ            { get; init; }  // Offensive Basketball IQ
+    internal int Attr_dBBIQ            { get; init; }  // Defensive Basketball IQ
+    internal int Attr_Hustle           { get; init; }
     internal int Attr_Dribbling        { get; init; }
     internal int Attr_Passing          { get; init; }
     internal int Attr_Rebounding_Off   { get; init; }
@@ -49,10 +51,15 @@ public class Player
         Attr_ThreePoint / 100.0;
 
     internal double ShotClockAggressiveness =>
-        (Speed + Attr_BasketballIQ) / 200.0;
+        (Speed + Attr_oBBIQ) / 200.0;
 
     internal double CutTendency =>
-        (Speed + Jumping + Attr_BasketballIQ) / 300.0;
+        (Speed + Jumping + Attr_oBBIQ) / 300.0;
+
+    // Compressed hustle weight for loose ball scrambles.
+    // At 95: 1.135×, at 50: 1.0×, at 5: 0.865× — best player has ~1.31× edge over worst.
+    internal double LooseBallWeight =>
+        1.0 + (Attr_Hustle - 50) / 50.0 * 0.15;
 
     internal double AlleyOopTendency =>
         (Jumping + Attr_Dunks + Speed) / 300.0;
@@ -60,6 +67,11 @@ public class Player
     // Gates how often inside shots become dunks; driven by jumping, height, dunk rating
     internal double DunkTendency =>
         (Attr_Dunks + Jumping + Height) / 300.0;
+
+    // Composite screening ability — drives both screener selection and screen effectiveness.
+    // At avg (50,50,50): 100. At elite (95,95,95): 190. At floor (5,5,5): 10.
+    internal double ScreenAbility =>
+        (Strength + Attr_oBBIQ + Attr_Hustle) / 1.5;
 
     // ── Fatigue / Energy ──────────────────────────────────────────
     // Energy 0–100. Starts fresh at 100, drains as player runs, recovers at breaks.
@@ -145,14 +157,16 @@ public class Player
          + Math.Max(0.0, (Height + Jumping - 100) / 2800.0))
         * EnergyFactor_Physical;
 
+    // Exponent raised 1.3→1.8: widens elite/poor spread (~4.2× vs ~2.8×).
+    // Scalar trimmed 0.12→0.09: offsets the added deflection-steal volume.
     internal double StealMod =>
-        Math.Pow((Attr_PerimeterDefense + Speed) / 200.0, 1.3) * 0.12 * EnergyFactor_Physical;
+        Math.Pow((Attr_PerimeterDefense + Speed) / 200.0, 1.8) * 0.09 * EnergyFactor_Physical;
 
     // Tired players lose handle and decision-making → more turnovers.
     // EnergyFactor_Mental < 1 → dividing raises the rate.
     // Calibrated to NBA target ~13.9 TOV/game using real rosters.
     internal double TurnoverRate =>
-        (0.060 - ((Attr_BasketballIQ + Attr_Dribbling) / 200.0) * 0.030) / EnergyFactor_Mental;
+        (0.060 - ((Attr_oBBIQ + Attr_Dribbling) / 200.0) * 0.030) / EnergyFactor_Mental;
 
     // Rebounding: power-law spreads elite rebounders further from average.
     internal double ORebWeight =>
@@ -163,7 +177,7 @@ public class Player
 
     // Elite passers/playmakers attract the ball much more than average.
     internal double AssistWeight =>
-        Math.Pow((Attr_Passing + Attr_BasketballIQ) / 200.0, 3.0);
+        Math.Pow((Attr_Passing + Attr_oBBIQ) / 200.0, 3.0);
 
     // Tired defenders can't close out or contest as well.
     // Physical attributes (Height) add a bonus to inside/mid contest.

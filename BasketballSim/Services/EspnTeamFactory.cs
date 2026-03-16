@@ -11,7 +11,11 @@ public static class EspnTeamFactory
     // ── Name / position helpers ───────────────────────────────────────────────
     public static string NormalizeName(string name) =>
         name.ToLowerInvariant().Trim()
-            .Replace(".", "").Replace("'", "").Replace("-", " ");
+            .Replace(".", "")
+            .Replace("\u2019", "")   // curly apostrophe (used in 2K cache)
+            .Replace("\u2018", "")   // left single quote
+            .Replace("'", "")        // straight apostrophe
+            .Replace("-", " ");
 
     public static Position? ParsePosition(string s) => s switch
     {
@@ -159,7 +163,9 @@ public static class EspnTeamFactory
         cfg.FreeThrow        = Sim(m, "FreeThrow");
         cfg.MidRange         = Sim(m, "MidRange");
         cfg.ThreePoint       = Sim(m, "ThreePoint");
-        cfg.BasketballIQ     = Sim(m, "BasketballIQ");
+        cfg.oBBIQ            = Sim(m, "oBBIQ");
+        cfg.dBBIQ            = Sim(m, "dBBIQ");
+        cfg.Hustle           = Sim(m, "Hustle");
         cfg.Dribbling        = Sim(m, "Dribbling");
         cfg.Passing          = Sim(m, "Passing");
         cfg.ReboundingOff    = Sim(m, "RebOff");
@@ -313,7 +319,9 @@ public static class EspnTeamFactory
             FreeThrow        = A(r.Attrs, "FreeThrow"),
             MidRange         = A(r.Attrs, "MidRange"),
             ThreePoint       = A(r.Attrs, "ThreePoint"),
-            BasketballIQ     = A(r.Attrs, "BasketballIQ"),
+            oBBIQ            = A(r.Attrs, "oBBIQ"),
+            dBBIQ            = A(r.Attrs, "dBBIQ"),
+            Hustle           = A(r.Attrs, "Hustle"),
             Dribbling        = A(r.Attrs, "Dribbling"),
             Passing          = A(r.Attrs, "Passing"),
             ReboundingOff    = A(r.Attrs, "RebOff"),
