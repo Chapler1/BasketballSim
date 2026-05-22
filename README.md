@@ -1,6 +1,6 @@
 # BasketballSim — Full Technical Walkthrough
 
-A possession-by-possession NBA simulator built with Blazor (.NET 10, Interactive Server). Every game plays out one possession at a time, with individual player attributes, tendencies, fatigue, injuries, and coaching style driving every decision. Statistics are calibrated to **NBA 2023-24 league averages**.
+A possession-by-possession NBA simulator built with Blazor (.NET 10, Interactive Server). Every game plays out one possession at a time, with individual player attributes, tendencies, fatigue, injuries, and coaching style driving every decision. Statistics are calibrated to **real NBA averages**.
 
 ---
 
