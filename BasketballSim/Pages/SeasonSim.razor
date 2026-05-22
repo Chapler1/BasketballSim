@@ -5,6 +5,7 @@
 @using System.Text.Json
 @using Microsoft.AspNetCore.Components.Web
 @using static Microsoft.AspNetCore.Components.Web.RenderMode
+@implements IAsyncDisposable
 @inject NbaRosterService RosterSvc
 @inject SeasonScheduleService SeasonSvc
 @inject PlayerDataService PlayerSvc
@@ -40,6 +41,19 @@
     .pdlg-qs:last-child { border-right:none; }
     .pdlg-qs-label { font-size:0.68rem;color:#333;letter-spacing:0.5px;margin-bottom:1px; }
     .pdlg-qs-val { font-size:0.93rem;font-weight:600; }
+    .glog-row { display:grid;grid-template-columns:72px 22px 44px 1fr 36px;gap:0 6px;align-items:center;padding:3px 0;border-bottom:1px solid #181818;font-size:0.88rem; }
+    .glog-row:hover { background:#1e1e1e; }
+    .glog-w { color:#4af080;font-weight:700; }
+    .glog-l { color:#f06060;font-weight:700; }
+    .hiw-section { border:1px solid #1e1e1e;border-radius:4px;margin-bottom:6px;overflow:hidden; }
+    .hiw-header { width:100%;background:#111;border:none;color:#aaa;font-family:monospace;font-size:0.88rem;font-weight:700;letter-spacing:1px;text-align:left;padding:9px 14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center; }
+    .hiw-header:hover { background:#161616; }
+    .hiw-body { padding:12px 16px;background:#0d0d0d;font-size:0.84rem;line-height:1.65;color:#888; }
+    .hiw-body strong { color:#c8c8c8; }
+    .hiw-body .kv { display:flex;gap:0.5rem;margin:2px 0; }
+    .hiw-body .kv-label { color:#555;min-width:130px;flex-shrink:0; }
+    .hiw-body .kv-val { color:#aaa; }
+    .hiw-chip { display:inline-block;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:3px;padding:1px 7px;font-size:0.78rem;color:#777;margin:1px 2px; }
 </style>
 
 <div class="ssim">
@@ -50,12 +64,27 @@
     @if (_phase == Phase.Done && _season is not null)
     {
         <button @onclick="SimulateSeason" style="margin-left:auto;background:#1a2a1a;color:#4af080;border:1px solid #2a4a2a;padding:4px 16px;border-radius:4px;cursor:pointer;font-size: 0.92rem;font-family:monospace;">↺ Re-simulate</button>
+        <button @onclick="() => _disableInjuries = !_disableInjuries"
+                style="background:@(_disableInjuries?"#2a1a1a":"#1a1a1a");color:@(_disableInjuries?"#f88":"#444");border:1px solid @(_disableInjuries?"#4a2a2a":"#2a2a2a");padding:4px 12px;border-radius:4px;cursor:pointer;font-size:0.82rem;font-family:monospace;">
+            @(_disableInjuries ? "Injuries OFF" : "Injuries ON")
+        </button>
+        @if (_playoffs is null)
+        {
+            <button @onclick="SimulatePlayoffs" style="background:#1a1a2a;color:#cdf;border:1px solid #2a2a4a;padding:4px 16px;border-radius:4px;cursor:pointer;font-size:0.92rem;font-family:monospace;">▶ Simulate Playoffs</button>
+        }
+        @if (_playoffs?.Champion is not null)
+        {
+            <span style="background:#1a0d00;color:#fca;border:1px solid #3a2200;padding:3px 12px;border-radius:4px;font-size:0.92rem;font-weight:700;letter-spacing:1px;">🏆 @_playoffs.ChampionAbbr</span>
+        }
         <span style="color:#444;font-size: 0.82rem;">@_season.SimulatedAt.ToString("yyyy-MM-dd HH:mm")</span>
         @if (_savedPath is not null)
         {
             <span style="color:#333;font-size: 0.8rem;" title="@_savedPath">💾 saved</span>
         }
     }
+    <button @onclick="() => _showHowItWorks = true"
+            style="margin-left:auto;background:none;border:1px solid #222;color:#444;border-radius:50%;width:24px;height:24px;cursor:pointer;font-family:monospace;font-size:0.78rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;"
+            title="How the sim works">?</button>
 </div>
 
 @if (_phase == Phase.NeedFetch)
@@ -75,13 +104,58 @@ else if (_phase == Phase.Fetching)
         </div>
     </div>
 }
+else if (_phase == Phase.Syncing)
+{
+    <div style="text-align:center;padding:4rem 0;color:#555;">
+        <div>Syncing players.json…</div>
+    </div>
+}
 else if (_phase == Phase.Ready)
 {
-    <div style="text-align:center;padding:3rem 0;">
-        <div style="color:#555;font-size: 0.98rem;margin-bottom:1rem;">@_teams.Count teams loaded · 1,230 games to simulate</div>
-        <button @onclick="SimulateSeason" style="background:#1a3a6a;color:#cdf;border:none;padding:12px 48px;border-radius:5px;cursor:pointer;font-weight:700;font-size: 1.15rem;font-family:monospace;">▶ Simulate Season</button>
-        <div style="margin-top:0.75rem;">
-            <button @onclick="FetchRosters" style="background:none;border:none;color:#444;font-size: 0.83rem;cursor:pointer;font-family:monospace;">↺ Re-fetch rosters from ESPN</button>
+    <!-- ═══ LANDING PAGE ═══ -->
+    <div style="padding:1.25rem 0 2rem;">
+        <div style="text-align:center;margin-bottom:1.5rem;">
+            <div style="font-size:1.7rem;font-weight:800;color:#e8e8e8;letter-spacing:3px;">NBA SEASON SIM</div>
+            <div style="font-size:0.82rem;color:#3a3a3a;letter-spacing:2px;margin-top:3px;">2025–26 · 82 GAMES · 30 TEAMS · 1,230 MATCHUPS</div>
+            @if (_syncAdded > 0 || _syncFreed > 0 || _syncUpdated > 0)
+            {
+                <div style="font-size:0.73rem;color:#2a2a2a;margin-top:5px;">Last sync: @_syncUpdated traded · @_syncAdded new · @_syncFreed free agents</div>
+            }
+        </div>
+
+        <!-- Team logo grid -->
+        <div style="text-align:center;font-size:0.7rem;color:#2a2a2a;letter-spacing:2px;margin-bottom:8px;">SELECT A TEAM TO FOLLOW (OPTIONAL)</div>
+        <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:6px;max-width:900px;margin:0 auto 1.75rem;">
+        @foreach (var (name, team) in _teams.OrderBy(t => t.Value.Abbreviation))
+        {
+            bool sel = _selectedTeam == name;
+            <div @onclick="() => { _selectedTeam = sel ? string.Empty : name; }"
+                 style="cursor:pointer;background:@(sel?"#0d1a0d":"#0e0e0e");border:1px solid @(sel?"#2a4a2a":"#1e1e1e");border-radius:5px;padding:5px 6px;width:76px;text-align:center;">
+                <img src="/logos/teams/@(LogoSlug(name)).svg"
+                     style="width:36px;height:36px;object-fit:contain;display:block;margin:0 auto 3px;"
+                     onerror="this.style.display='none'" />
+                <div style="font-size:0.68rem;color:@(sel?"#4af080":"#484848");font-weight:@(sel?"700":"400");letter-spacing:0.5px;">@team.Abbreviation</div>
+            </div>
+        }
+        </div>
+
+        <!-- Controls -->
+        <div style="display:flex;align-items:center;justify-content:center;gap:0.75rem;flex-wrap:wrap;">
+            <button @onclick="() => _disableInjuries = !_disableInjuries"
+                    style="background:@(_disableInjuries?"#2a1a1a":"#141414");color:@(_disableInjuries?"#f88":"#444");border:1px solid @(_disableInjuries?"#4a2a2a":"#242424");padding:7px 14px;border-radius:4px;cursor:pointer;font-family:monospace;font-size:0.83rem;">
+                @(_disableInjuries ? "✕ Injuries OFF" : "✓ Injuries ON")
+            </button>
+            <button @onclick="StartLiveSeason"
+                    style="background:#0d2a0d;color:#4af080;border:1px solid #1a4a1a;padding:10px 36px;border-radius:5px;cursor:pointer;font-weight:700;font-size:1.05rem;font-family:monospace;">
+                ▶ Start Live Season
+            </button>
+            <button @onclick="SimulateSeason"
+                    style="background:#0d0d2a;color:#8ab8ff;border:1px solid #1a1a4a;padding:10px 36px;border-radius:5px;cursor:pointer;font-size:1.0rem;font-family:monospace;">
+                ⚡ Simulate Instantly
+            </button>
+        </div>
+        <div style="text-align:center;margin-top:0.75rem;">
+            <button @onclick="FetchRosters" style="background:none;border:none;color:#2a2a2a;font-size:0.78rem;cursor:pointer;font-family:monospace;">↺ Re-fetch rosters from ESPN</button>
         </div>
     </div>
 }
@@ -94,8 +168,362 @@ else if (_phase == Phase.Simulating)
         </div>
     </div>
 }
+else if (_phase == Phase.Playoffs)
+{
+    <div style="text-align:center;padding:4rem 0;color:#555;">
+        <div style="margin-bottom:0.5rem;">Simulating playoffs… @_playoffGamesPlayed games played</div>
+        <div style="background:#1a1a1a;border-radius:4px;height:6px;width:320px;margin:0 auto;">
+            <div style="background:#fca;height:6px;border-radius:4px;width:@(_playoffGamesTotal > 0 ? Math.Min(_playoffGamesPlayed * 100 / _playoffGamesTotal, 100) : 0)%;transition:width 0.15s;"></div>
+        </div>
+    </div>
+}
+else if (_phase == Phase.LiveSeason && _liveState is not null)
+{
+    bool hasFollowedTeam = !string.IsNullOrEmpty(_liveState.FollowedTeam);
+    var tickerCompleted = hasFollowedTeam
+        ? _liveState.CompletedGames
+            .Where(g => g.HomeTeam.Equals(_liveState.FollowedTeam, StringComparison.OrdinalIgnoreCase)
+                     || g.AwayTeam.Equals(_liveState.FollowedTeam, StringComparison.OrdinalIgnoreCase))
+            .TakeLast(20).ToList()
+        : _liveState.RecentCompleted(20);
+    var tickerUpcoming  = _liveState.IsComplete
+        ? new List<ScheduledGame>()
+        : (hasFollowedTeam
+            ? _liveState.GamesOn(_liveState.CurrentDate)
+                .Where(g => g.HomeTeamId.Equals(_liveState.FollowedTeam, StringComparison.OrdinalIgnoreCase)
+                         || g.AwayTeamId.Equals(_liveState.FollowedTeam, StringComparison.OrdinalIgnoreCase))
+                .ToList()
+            : _liveState.GamesOn(_liveState.CurrentDate).Take(12).ToList());
+    var nextDayGames = _liveState.DateIndex + 1 < _liveState.TotalScheduledDays
+        ? (hasFollowedTeam
+            ? _liveState.GamesOn(_liveState.GameDates[_liveState.DateIndex + 1])
+                .Where(g => g.HomeTeamId.Equals(_liveState.FollowedTeam, StringComparison.OrdinalIgnoreCase)
+                         || g.AwayTeamId.Equals(_liveState.FollowedTeam, StringComparison.OrdinalIgnoreCase))
+                .ToList()
+            : _liveState.GamesOn(_liveState.GameDates[_liveState.DateIndex + 1]).Take(4).ToList())
+        : new List<ScheduledGame>();
+    var liveMyTeam = _liveState.Standings.TryGetValue(_liveState.FollowedTeam, out var _lmt) ? _lmt : null;
+    var livePlayers = _liveState.PlayerAgg.Values.Where(p => p.GP > 0).OrderByDescending(p => p.Ppg).ToList();
+    var liveFiltered = livePlayers.AsEnumerable();
+    if (_leagueSearch.Length > 1) liveFiltered = liveFiltered.Where(p => p.Name.Contains(_leagueSearch, StringComparison.OrdinalIgnoreCase));
+    if (_leagueTeamFilter.Length > 0) liveFiltered = liveFiltered.Where(p => p.Team == _leagueTeamFilter);
+    var liveSorted = ApplySort(liveFiltered, _leagueSort, _leagueSortAsc).ToList();
+    var liveTeamsOrdered = _liveState.Standings.Values.Where(t => t.GP > 0).OrderByDescending(t => t.Wins).ToList();
+    <div style="overflow-x:auto;display:flex;align-items:center;gap:6px;padding:6px 12px;background:#090909;border-bottom:1px solid #181818;position:sticky;top:0;z-index:50;min-height:52px;scrollbar-width:thin;">
+    @foreach (var g in tickerCompleted)
+    {
+        bool hw = g.HomeScore > g.AwayScore;
+        <div @onclick="() => _tickerBoxScore = g"
+             style="flex-shrink:0;cursor:pointer;background:#111;border:1px solid #1e1e1e;border-radius:4px;padding:4px 8px;text-align:center;min-width:96px;">
+            <div style="font-size:0.6rem;color:#2a2a2a;margin-bottom:2px;">@g.Date.ToString("MMM d")</div>
+            <div style="font-size:0.82rem;display:flex;gap:4px;align-items:center;justify-content:center;">
+                <span style="color:@(hw?"#c8c8c8":"#444");">@g.HomeAbbr <span style="font-weight:700;">@g.HomeScore</span></span>
+                <span style="color:#222;">-</span>
+                <span style="color:@(!hw?"#c8c8c8":"#444");"><span style="font-weight:700;">@g.AwayScore</span> @g.AwayAbbr</span>
+            </div>
+        </div>
+    }
+    @if (!_liveState.IsComplete)
+    {
+        <div style="flex-shrink:0;width:1px;background:#222;height:32px;margin:0 2px;"></div>
+        @foreach (var sg in tickerUpcoming)
+        {
+            <div style="flex-shrink:0;background:#0a0f0a;border:1px solid #1a2a1a;border-radius:4px;padding:4px 8px;text-align:center;min-width:88px;">
+                <div style="font-size:0.6rem;color:#2a4a2a;margin-bottom:2px;">@sg.Date.ToString("MMM d") — TODAY</div>
+                <div style="font-size:0.8rem;color:#3a5a3a;">@(_liveState.Teams.TryGetValue(sg.HomeTeamId,out var ht)?ht.Abbreviation:"?") vs @(_liveState.Teams.TryGetValue(sg.AwayTeamId,out var at)?at.Abbreviation:"?")</div>
+            </div>
+        }
+        @foreach (var sg in nextDayGames)
+        {
+            <div style="flex-shrink:0;background:#0a0a0a;border:1px solid #1e1e1e;border-radius:4px;padding:4px 8px;text-align:center;min-width:88px;opacity:0.6;">
+                <div style="font-size:0.6rem;color:#252525;margin-bottom:2px;">@sg.Date.ToString("MMM d")</div>
+                <div style="font-size:0.8rem;color:#333;">@(_liveState.Teams.TryGetValue(sg.HomeTeamId,out var ht2)?ht2.Abbreviation:"?") vs @(_liveState.Teams.TryGetValue(sg.AwayTeamId,out var at2)?at2.Abbreviation:"?")</div>
+            </div>
+        }
+    }
+    @if (_liveState.IsComplete)
+    {
+        <span style="flex-shrink:0;color:#4af080;font-size:0.75rem;font-weight:700;padding:0 8px;">SEASON COMPLETE</span>
+    }
+    </div>
+
+    <!-- ═══ CONTROLS + STATUS BAR ═══ -->
+    <div style="display:flex;align-items:center;gap:0.6rem;padding:6px 0 8px;flex-wrap:wrap;">
+        @if (!_liveState.IsComplete)
+        {
+            <button @onclick="SimOneDayLive"
+                    style="background:#141414;color:#888;border:1px solid #222;padding:5px 14px;border-radius:4px;cursor:pointer;font-family:monospace;font-size:0.82rem;">
+                ▶ Sim Day
+            </button>
+            <button @onclick="ToggleAutoSim"
+                    style="background:@(_isAutoSimming?"#2a1a0a":"#141414");color:@(_isAutoSimming?"#fca":"#888");border:1px solid @(_isAutoSimming?"#4a3a1a":"#222");padding:5px 14px;border-radius:4px;cursor:pointer;font-family:monospace;font-size:0.82rem;">
+                @(_isAutoSimming ? "⏸ Pause" : "▶▶ Auto")
+            </button>
+            <button @onclick="SimRestOfSeasonLive"
+                    style="background:#0d0d2a;color:#8ab8ff;border:1px solid #1a1a4a;padding:5px 14px;border-radius:4px;cursor:pointer;font-family:monospace;font-size:0.82rem;">
+                Sim Rest of Season
+            </button>
+            <span style="color:#1a1a1a;">|</span>
+            <span style="color:#4af080;font-weight:700;font-size:0.78rem;">●</span>
+            <span style="color:#3a6a3a;font-size:0.8rem;">@_liveState.CurrentDate.ToString("MMM d, yyyy")</span>
+            <span style="color:#222;font-size:0.78rem;">Day @(_liveState.DateIndex+1) / @_liveState.TotalScheduledDays</span>
+        }
+        else
+        {
+            <button @onclick="SimulatePlayoffs"
+                    style="background:#1a1a2a;color:#cdf;border:1px solid #2a2a4a;padding:5px 14px;border-radius:4px;cursor:pointer;font-family:monospace;font-size:0.82rem;">
+                ▶ Simulate Playoffs
+            </button>
+            <span style="color:#4af080;font-size:0.8rem;font-weight:700;">Season Complete</span>
+        }
+        @if (!string.IsNullOrEmpty(_liveState.FollowedTeam) && liveMyTeam is not null)
+        {
+            <span style="color:#1a1a1a;">|</span>
+            <span style="color:#888;font-size:0.8rem;font-weight:600;">@liveMyTeam.Abbreviation</span>
+            <span style="color:#4af080;font-size:0.8rem;">@liveMyTeam.Wins–@liveMyTeam.Losses</span>
+        }
+    </div>
+
+    <!-- ═══ TOP TABS: STANDINGS | CALENDAR ═══ -->
+    <div style="display:flex;gap:0;border-bottom:1px solid #1e1e1e;margin-bottom:0.75rem;">
+        <button class="pdlg-tab @(_topTab=="standings"?"active":"")" @onclick='()=>_topTab="standings"'>STANDINGS</button>
+        <button class="pdlg-tab @(_topTab=="calendar"?"active":"")"  @onclick='()=>_topTab="calendar"'>CALENDAR</button>
+    </div>
+
+    @if (_topTab == "standings")
+    {
+        var liveStandings = _liveState.Standings.Values.ToList();
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+        @foreach (var conf in new[] { "Eastern", "Western" })
+        {
+            var ct = liveStandings.Where(t => t.Conference == conf)
+                .OrderByDescending(t => t.Wins).ThenBy(t => t.Losses).ToList();
+            var leader = ct.FirstOrDefault();
+            <div>
+                <div class="section-title">@conf.ToUpper() CONFERENCE</div>
+                <div class="scroll-x">
+                <table style="font-size:0.85rem;">
+                    <thead><tr>
+                        <th style="width:18px;"></th>
+                        <th style="text-align:left;">TEAM</th>
+                        <th style="text-align:center;width:28px;">W</th>
+                        <th style="text-align:center;width:28px;">L</th>
+                        <th style="text-align:center;width:44px;">PCT</th>
+                        <th style="text-align:center;width:34px;">GB</th>
+                        <th style="text-align:center;width:52px;">CONF</th>
+                        <th style="text-align:center;width:38px;">PPG</th>
+                        <th style="text-align:center;width:38px;">OPP</th>
+                        <th style="text-align:center;width:38px;">DIFF</th>
+                    </tr></thead>
+                    <tbody>
+                    @for (int r2 = 0; r2 < ct.Count; r2++)
+                    {
+                        var t = ct[r2];
+                        double gb2 = leader is null ? 0 : ((leader.Wins - t.Wins) + (t.Losses - leader.Losses)) / 2.0;
+                        double diff2 = t.GP > 0 ? t.Ppg - t.Papg : 0;
+                        string rowBg2 = r2 < 6 ? "#0d1a0d" : r2 < 10 ? "#0d0d1a" : "#111";
+                        bool followed = t.TeamName.Equals(_liveState.FollowedTeam, StringComparison.OrdinalIgnoreCase);
+                        <tr style="background:@(followed?"#1a1a0a":rowBg2);" @onclick="() => OpenGameLog(t)">
+                            <td style="color:#3a3a3a;font-size:0.78rem;text-align:right;">@(r2+1)</td>
+                            <td>
+                                <img src="/logos/teams/@(LogoSlug(t.TeamName)).svg" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;object-fit:contain;" onerror="this.style.display='none'" />
+                                <span style="font-weight:@(r2<3?"700":"400");color:@(followed?"#fca":r2==0?"#e8e8e8":"#b8b8b8");">@t.Abbreviation</span>
+                            </td>
+                            <td style="text-align:center;color:#4af080;font-weight:@(r2==0?"700":"400");">@t.Wins</td>
+                            <td style="text-align:center;color:#f06060;">@t.Losses</td>
+                            <td style="text-align:center;">@t.Pct.ToString("F3")</td>
+                            <td style="text-align:center;color:#444;font-size:0.8rem;">@(r2==0?"—":gb2.ToString("F1"))</td>
+                            <td style="text-align:center;color:#555;font-size:0.8rem;">@t.ConfWins-@t.ConfLosses</td>
+                            <td style="text-align:center;">@(t.GP>0?t.Ppg.ToString("F1"):"—")</td>
+                            <td style="text-align:center;color:#666;">@(t.GP>0?t.Papg.ToString("F1"):"—")</td>
+                            <td style="text-align:center;color:@(diff2>=0?"#4af080":"#f06060");">@(t.GP>0?diff2.ToString("+0.0;-0.0;0.0"):"—")</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+                </div>
+            </div>
+        }
+        </div>
+    }
+    else if (_topTab == "calendar")
+    {
+        var followTeamId = string.IsNullOrEmpty(_liveState.FollowedTeam) ? "" : _liveState.FollowedTeam;
+        var upcomingAll  = _liveState.IsComplete
+            ? (List<ScheduledGame>)[]
+            : _liveState.Schedule
+                .Where(g => g.Date.Date >= _liveState.CurrentDate)
+                .OrderBy(g => g.Date)
+                .Take(60)
+                .ToList();
+        var calDates = upcomingAll.Select(g => g.Date.Date).Distinct().Take(14).ToList();
+
+        if (!calDates.Any())
+        {
+            <div style="color:#2a2a2a;padding:2rem 0;text-align:center;">Season complete.</div>
+        }
+        else
+        {
+            <div style="display:flex;flex-wrap:wrap;gap:1rem;">
+            @foreach (var d in calDates)
+            {
+                var dayGames = upcomingAll.Where(g => g.Date.Date == d).ToList();
+                <div style="background:#0e0e0e;border:1px solid #1a1a1a;border-radius:4px;padding:8px 10px;min-width:160px;">
+                    <div style="font-size:0.72rem;color:@(d==_liveState.CurrentDate?"#4af080":"#333");letter-spacing:1px;margin-bottom:6px;font-weight:@(d==_liveState.CurrentDate?"700":"400");">
+                        @(d == _liveState.CurrentDate ? "TODAY — " : "")@d.ToString("ddd MMM d").ToUpper()
+                    </div>
+                    @foreach (var sg in dayGames)
+                    {
+                        bool myGame = sg.HomeTeamId.Equals(followTeamId, StringComparison.OrdinalIgnoreCase)
+                                   || sg.AwayTeamId.Equals(followTeamId, StringComparison.OrdinalIgnoreCase);
+                        string hAbbr = _liveState.Teams.TryGetValue(sg.HomeTeamId, out var hT) ? hT.Abbreviation : "?";
+                        string aAbbr = _liveState.Teams.TryGetValue(sg.AwayTeamId, out var aT) ? aT.Abbreviation : "?";
+                        <div style="font-size:0.82rem;padding:2px 0;color:@(myGame?"#fca":"#555");">
+                            @hAbbr <span style="color:#2a2a2a;">vs</span> @aAbbr
+                        </div>
+                    }
+                </div>
+            }
+            </div>
+        }
+    }
+
+    <div style="display:flex;gap:0;border-bottom:1px solid #1e1e1e;margin:1rem 0 0.75rem;">
+        <button class="pdlg-tab @(_statsTab=="players"?"active":"")" @onclick='()=>_statsTab="players"'>PLAYER STATS</button>
+        <button class="pdlg-tab @(_statsTab=="teams"?"active":"")"   @onclick='()=>_statsTab="teams"'>TEAM STATS</button>
+    </div>
+
+    @if (_statsTab == "players")
+    {
+        <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.5rem;flex-wrap:wrap;">
+            <input type="text" @bind="_leagueSearch" @bind:event="oninput" placeholder="Search player…" style="width:150px;" />
+            <select @bind="_leagueTeamFilter" style="font-size:0.85rem;padding:3px 6px;">
+                <option value="">All Teams</option>
+                @foreach (var t in _liveState.Standings.Values.OrderBy(t => t.Abbreviation))
+                {
+                    <option value="@t.TeamName">@t.Abbreviation</option>
+                }
+            </select>
+            <span style="color:#2a2a2a;font-size:0.78rem;">@livePlayers.Count players</span>
+        </div>
+        <div class="scroll-x" style="max-height:460px;overflow-y:auto;">
+        <table>
+            <thead style="position:sticky;top:0;background:#111;z-index:1;">
+                <tr>
+                    <th style="text-align:left;min-width:110px;">PLAYER</th>
+                    <th style="text-align:left;min-width:34px;">TEAM</th>
+                    <th style="text-align:center;min-width:28px;">POS</th>
+                    <th style="text-align:center;">STATUS</th>
+                    @LeagueTh("gp","GP") @LeagueTh("min","MIN") @LeagueTh("pts","PTS")
+                    @LeagueTh("reb","REB") @LeagueTh("ast","AST") @LeagueTh("stl","STL")
+                    @LeagueTh("blk","BLK") @LeagueTh("tov","TOV") @LeagueTh("fg","FG%")
+                    @LeagueTh("3p","3P%") @LeagueTh("ft","FT%")
+                    @LeagueTh("fga","FGA") @LeagueTh("3pa","3PA") @LeagueTh("fta","FTA")
+                    @LeagueTh("pm","+/-")
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var p in liveSorted)
+            {
+                var rp = GetRosterPlayer(p.Name);
+                bool isOut = rp?.CurrentInjury?.Definition.Grade >= 2;
+                bool isQ   = rp?.CurrentInjury?.Definition.Grade == 1;
+                <tr class="clickable-row" @onclick="() => OpenPlayerModal(p)">
+                    <td style="color:#b8b8b8;">@p.Name</td>
+                    <td style="color:#555;font-size:0.82rem;">@p.TeamAbbr</td>
+                    <td style="text-align:center;color:#444;font-size:0.78rem;">@p.Position</td>
+                    <td style="text-align:center;">
+                        @if (isOut)  { <span style="background:#2a0a0a;color:#f06060;border:1px solid #4a1a1a;border-radius:3px;padding:1px 5px;font-size:0.7rem;letter-spacing:0.5px;">OUT</span> }
+                        @if (isQ)    { <span style="background:#2a1a00;color:#fca;border:1px solid #4a3000;border-radius:3px;padding:1px 5px;font-size:0.7rem;letter-spacing:0.5px;">Q</span> }
+                    </td>
+                    <td style="text-align:center;color:#555;">@p.GP</td>
+                    <td style="text-align:center;color:#666;">@p.Mpg.ToString("F1")</td>
+                    <td style="text-align:center;color:#e8c060;font-weight:600;">@p.Ppg.ToString("F1")</td>
+                    <td style="text-align:center;">@p.Rpg.ToString("F1")</td>
+                    <td style="text-align:center;color:#60c8e8;">@p.Apg.ToString("F1")</td>
+                    <td style="text-align:center;color:#a0e080;">@p.Spg.ToString("F1")</td>
+                    <td style="text-align:center;color:#e08060;">@p.Bpg.ToString("F1")</td>
+                    <td style="text-align:center;color:#f06060;">@p.Topg.ToString("F1")</td>
+                    <td style="text-align:center;color:@FgPctColor(p.FgPct);">@(p.TotalFGA>0?p.FgPct.ToString("P1"):"—")</td>
+                    <td style="text-align:center;color:@TpPctColor(p.TpPct);">@(p.TotalThreeAtt>0?p.TpPct.ToString("P1"):"—")</td>
+                    <td style="text-align:center;color:@FtPctColor(p.FtPct);">@(p.TotalFTA>0?p.FtPct.ToString("P1"):"—")</td>
+                    <td style="text-align:center;color:#666;">@p.Fga.ToString("F1")</td>
+                    <td style="text-align:center;color:#666;">@p.Tpa.ToString("F1")</td>
+                    <td style="text-align:center;color:#666;">@p.Fta.ToString("F1")</td>
+                    <td style="text-align:center;color:@PmColor(p.AvgPlusMinus);">@p.AvgPlusMinus.ToString("+0.0;-0.0;0.0")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+        </div>
+    }
+    else if (_statsTab == "teams")
+    {
+        <div class="scroll-x">
+        <table>
+            <thead><tr>
+                <th style="text-align:left;">TEAM</th>
+                <th style="text-align:center;">W</th><th style="text-align:center;">L</th>
+                <th style="text-align:center;">PCT</th><th style="text-align:center;">PPG</th>
+                <th style="text-align:center;">PA</th><th style="text-align:center;">DIFF</th>
+                <th style="text-align:center;">FG%</th><th style="text-align:center;">3P%</th>
+                <th style="text-align:center;">FT%</th><th style="text-align:center;">AST</th>
+                <th style="text-align:center;">STL</th><th style="text-align:center;">BLK</th>
+                <th style="text-align:center;">TOV</th><th style="text-align:center;">PACE</th>
+            </tr></thead>
+            <tbody>
+            @foreach (var t in liveTeamsOrdered)
+            {
+                double td2 = t.Ppg - t.Papg;
+                <tr>
+                    <td>
+                        <img src="/logos/teams/@(LogoSlug(t.TeamName)).svg" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;object-fit:contain;" onerror="this.style.display='none'" />
+                        <span style="color:#b8b8b8;font-weight:600;">@t.Abbreviation</span>
+                    </td>
+                    <td style="text-align:center;color:#4af080;font-weight:600;">@t.Wins</td>
+                    <td style="text-align:center;color:#f06060;">@t.Losses</td>
+                    <td style="text-align:center;color:#888;">@t.Pct.ToString("F3")</td>
+                    <td style="text-align:center;color:#e8c060;font-weight:600;">@t.Ppg.ToString("F1")</td>
+                    <td style="text-align:center;color:#888;">@t.Papg.ToString("F1")</td>
+                    <td style="text-align:center;color:@(td2>=0?"#4af080":"#f06060");">@td2.ToString("+0.0;-0.0;0.0")</td>
+                    <td style="text-align:center;color:@FgPctColor(t.FgPct);">@t.FgPct.ToString("P1")</td>
+                    <td style="text-align:center;color:@TpPctColor(t.TpPct);">@t.TpPct.ToString("P1")</td>
+                    <td style="text-align:center;color:@FtPctColor(t.FtPct);">@t.FtPct.ToString("P1")</td>
+                    <td style="text-align:center;color:#60c8e8;">@t.Ast.ToString("F1")</td>
+                    <td style="text-align:center;color:#a0e080;">@t.Stl.ToString("F1")</td>
+                    <td style="text-align:center;color:#e08060;">@t.Blk.ToString("F1")</td>
+                    <td style="text-align:center;color:#f06060;">@t.Tov.ToString("F1")</td>
+                    <td style="text-align:center;color:#666;">@t.Pace.ToString("F1")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+        </div>
+    }
+
+}
 else if (_phase == Phase.Done && _season is not null)
 {
+    <!-- ═══ CHAMPION BANNER ═══ -->
+    @if (_playoffs?.Champion is not null)
+    {
+        string _champOpp = "";
+        string _champSeries = "";
+        if (_playoffs.Finals is not null)
+        {
+            _champOpp    = _playoffs.Finals.HighSeedTeam == _playoffs.Champion ? _playoffs.Finals.LowSeedTeam : _playoffs.Finals.HighSeedTeam;
+            _champSeries = _playoffs.Finals.SeriesScore;
+        }
+        <div style="text-align:center;margin-bottom:1.5rem;padding:0.75rem;background:#0d0900;border:1px solid #2a1800;border-radius:6px;">
+            <div style="font-size:0.72rem;color:#665;letter-spacing:3px;margin-bottom:2px;">NBA CHAMPION</div>
+            <div style="font-size:1.6rem;font-weight:800;color:#fca;letter-spacing:2px;">@_playoffs.Champion</div>
+            @if (_champOpp.Length > 0)
+            {
+                <div style="font-size:0.82rem;color:#554;margin-top:2px;">def. @_champOpp — @_champSeries</div>
+            }
+        </div>
+    }
+
     <!-- ═══ STANDINGS ═══ -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.5rem;">
         @foreach (var conf in new[] { "Eastern", "Western" })
@@ -134,7 +562,7 @@ else if (_phase == Phase.Done && _season is not null)
                             double gb = leader is null ? 0 : ((leader.Wins - t.Wins) + (t.Losses - leader.Losses)) / 2.0;
                             double diff = t.Ppg - t.Papg;
                             string rowBg = rank < 6 ? "#0d1a0d" : rank < 10 ? "#0d0d1a" : "#111";
-                            <tr style="background:@rowBg;">
+                            <tr class="clickable-row" style="background:@rowBg;" @onclick="() => OpenGameLog(t)">
                                 <td style="color:#3a3a3a;font-size: 0.8rem;text-align:right;">@(rank+1)</td>
                                 <td>
                                     <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:@t.PrimaryColor;margin-right:4px;vertical-align:middle;"></span>
@@ -164,6 +592,18 @@ else if (_phase == Phase.Done && _season is not null)
         }
     </div>
 
+    <div style="display:flex;gap:0;border-bottom:1px solid #1e1e1e;margin:1.25rem 0 0.75rem;">
+        <button class="pdlg-tab @(_statsTab=="players"?"active":"")" @onclick='()=>_statsTab="players"'>PLAYER STATS</button>
+        <button class="pdlg-tab @(_statsTab=="teams"?"active":"")"   @onclick='()=>_statsTab="teams"'>TEAM STATS</button>
+        @if (_playoffs is not null)
+        {
+            <button class="pdlg-tab @(_statsTab=="playoffs"?"active":"")" @onclick='()=>_statsTab="playoffs"'
+                    style="@(_statsTab=="playoffs"?"color:#fca;border-bottom-color:#fca;":"")">🏆 PLAYOFFS</button>
+        }
+    </div>
+
+    @if (_statsTab == "players")
+    {
     <!-- ═══ LEAGUE LEADERS ═══ -->
     <div>
             <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.6rem;flex-wrap:wrap;">
@@ -176,6 +616,10 @@ else if (_phase == Phase.Done && _season is not null)
                         <option value="@t.TeamName">@t.Abbreviation</option>
                     }
                 </select>
+                <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:0.82rem;color:@(_leagueEligOnly?"#fca":"#444");white-space:nowrap;">
+                    <input type="checkbox" @bind="_leagueEligOnly" style="cursor:pointer;accent-color:#fca;" />
+                    Eligible (41+ G, 15+ MPG)
+                </label>
                 <span style="color:#333;font-size: 0.8rem;margin-left:auto;">@SortedLeaguePlayers().Count() players</span>
             </div>
             <div class="scroll-x" style="max-height:520px;overflow-y:auto;">
@@ -186,6 +630,8 @@ else if (_phase == Phase.Done && _season is not null)
                         <th style="text-align:left;min-width:36px;">TEAM</th>
                         <th style="text-align:center;min-width:28px;">POS</th>
                         @LeagueTh("gp",      "GP")
+                        @LeagueTh("rest",    "REST")
+                        @LeagueTh("sf",      "SF")
                         @LeagueTh("min",     "MIN")
                         @LeagueTh("pts",     "PTS")
                         @LeagueTh("reb",     "REB")
@@ -224,6 +670,8 @@ else if (_phase == Phase.Done && _season is not null)
                             <td style="color:#555;font-size: 0.85rem;">@p.TeamAbbr</td>
                             <td style="text-align:center;color:#444;font-size: 0.8rem;">@p.Position</td>
                             <td style="text-align:center;color:#555;">@p.GP</td>
+                            <td style="text-align:center;color:@RestColor(p.GamesRested);">@p.GamesRested</td>
+                            <td style="text-align:center;color:@SfColor(p.AvgSeasonFatigue);">@p.AvgSeasonFatigue.ToString("F0")</td>
                             <td style="text-align:center;color:#777;">@p.Mpg.ToString("F1")</td>
                             <td style="text-align:center;color:#e8c060;font-weight:600;">@p.Ppg.ToString("F1")</td>
                             <td style="text-align:center;">@p.Rpg.ToString("F1")</td>
@@ -303,6 +751,8 @@ else if (_phase == Phase.Done && _season is not null)
                     <td></td>
                     <td></td>
                     <td style="text-align:center;color:#555;">—</td>
+                    <td style="text-align:center;color:#555;">—</td>
+                    <td style="text-align:center;color:#555;">—</td>
                     <td style="text-align:center;">@_ftMpg.ToString("F1")</td>
                     <td style="text-align:center;color:#e8c060;font-weight:600;">@_ftPpg.ToString("F1")</td>
                     <td style="text-align:center;">@_ftRpg.ToString("F1")</td>
@@ -336,11 +786,13 @@ else if (_phase == Phase.Done && _season is not null)
             </div>
             <div style="font-size: 0.78rem;color:#333;margin-top:4px;">All stats per game · click headers to sort · selected team highlighted</div>
     </div>
-
+    }
+    else if (_statsTab == "teams")
+    {
     <!-- ═══ LEAGUE STATS ═══ -->
     <div style="margin-top:1.5rem;">
         <div class="section-title">LEAGUE STATS</div>
-        <div style="display:grid;grid-template-columns:repeat(4,auto);gap:0.75rem 2.5rem;align-items:start;">
+        <div style="display:grid;grid-template-columns:repeat(5,auto);gap:0.75rem 2.5rem;align-items:start;">
 
             <!-- Pace & Possessions -->
             <div>
@@ -471,9 +923,439 @@ else if (_phase == Phase.Done && _season is not null)
                 </table>
             </div>
 
+            <!-- Injuries -->
+            <div>
+                <div style="font-size:0.78rem;color:#444;letter-spacing:1px;margin-bottom:4px;">INJURIES</div>
+                @{
+                    var allInj     = _season.PlayerStats.SelectMany(p => p.InjuryHistory).ToList();
+                    int totalInj   = allInj.Count;
+                    int totalMissG = allInj.Sum(r => r.GamesMissed);
+                    double avgMiss = totalInj > 0 ? (double)totalMissG / totalInj : 0;
+                }
+                <table style="font-size:0.9rem;">
+                    <tbody>
+                        <tr>
+                            <td style="color:#666;padding-right:1rem;">Total Injuries</td>
+                            <td style="color:#e8e8e8;font-weight:600;text-align:right;">@totalInj</td>
+                        </tr>
+                        <tr>
+                            <td style="color:#666;padding-right:1rem;">Total Games Missed</td>
+                            <td style="color:#e8e8e8;font-weight:600;text-align:right;">@totalMissG</td>
+                        </tr>
+                        <tr>
+                            <td style="color:#666;padding-right:1rem;">Avg Games Missed / Injury</td>
+                            <td style="color:#e8e8e8;font-weight:600;text-align:right;">@avgMiss.ToString("F1")</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
         </div>
     </div>
 
+    <!-- ═══ TEAM STATS ═══ -->
+    <div style="margin-top:1.5rem;">
+        <div class="section-title">TEAM STATS</div>
+        <div class="scroll-x">
+        <table>
+            <thead style="position:sticky;top:0;background:#111;z-index:1;">
+                <tr>
+                    <th style="text-align:left;min-width:42px;">TEAM</th>
+                    @TeamTh("wins",  "W")
+                    @TeamTh("losses","L")
+                    @TeamTh("pct",   "PCT")
+                    @TeamTh("ppg",   "PPG")
+                    @TeamTh("papg",  "PA")
+                    @TeamTh("diff",  "DIFF")
+                    @TeamTh("fgm",   "FGM")
+                    @TeamTh("fga",   "FGA")
+                    @TeamTh("fgpct", "FG%")
+                    @TeamTh("tpm",   "3PM")
+                    @TeamTh("tpa",   "3PA")
+                    @TeamTh("tppct", "3P%")
+                    @TeamTh("ftm",   "FTM")
+                    @TeamTh("fta",   "FTA")
+                    @TeamTh("ftpct", "FT%")
+                    @TeamTh("oreb",  "ORB")
+                    @TeamTh("dreb",  "DRB")
+                    @TeamTh("reb",   "REB")
+                    @TeamTh("ast",   "AST")
+                    @TeamTh("stl",   "STL")
+                    @TeamTh("blk",   "BLK")
+                    @TeamTh("tov",   "TOV")
+                    @TeamTh("pace",  "PACE")
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var t in SortedTeams())
+            {
+                double tdiff = t.Ppg - t.Papg;
+                <tr>
+                    <td style="color:#b8b8b8;font-weight:600;">@t.Abbreviation</td>
+                    <td style="text-align:center;color:#4af080;font-weight:600;">@t.Wins</td>
+                    <td style="text-align:center;color:#f06060;">@t.Losses</td>
+                    <td style="text-align:center;color:#888;">@t.Pct.ToString("F3")</td>
+                    <td style="text-align:center;color:#e8c060;font-weight:600;">@t.Ppg.ToString("F1")</td>
+                    <td style="text-align:center;color:#888;">@t.Papg.ToString("F1")</td>
+                    <td style="text-align:center;color:@(tdiff>=0?"#4af080":"#f06060");">@tdiff.ToString("+0.0;-0.0;0.0")</td>
+                    <td style="text-align:center;color:#888;">@t.Fgm.ToString("F1")</td>
+                    <td style="text-align:center;color:#666;">@t.Fga.ToString("F1")</td>
+                    <td style="text-align:center;color:@FgPctColor(t.FgPct);">@t.FgPct.ToString("P1")</td>
+                    <td style="text-align:center;color:#888;">@t.Tpm.ToString("F1")</td>
+                    <td style="text-align:center;color:#666;">@t.Tpa.ToString("F1")</td>
+                    <td style="text-align:center;color:@TpPctColor(t.TpPct);">@t.TpPct.ToString("P1")</td>
+                    <td style="text-align:center;color:#888;">@t.Ftm.ToString("F1")</td>
+                    <td style="text-align:center;color:#666;">@t.Fta.ToString("F1")</td>
+                    <td style="text-align:center;color:@FtPctColor(t.FtPct);">@t.FtPct.ToString("P1")</td>
+                    <td style="text-align:center;">@t.Oreb.ToString("F1")</td>
+                    <td style="text-align:center;color:#666;">@t.Dreb.ToString("F1")</td>
+                    <td style="text-align:center;">@t.Reb.ToString("F1")</td>
+                    <td style="text-align:center;color:#60c8e8;">@t.Ast.ToString("F1")</td>
+                    <td style="text-align:center;color:#a0e080;">@t.Stl.ToString("F1")</td>
+                    <td style="text-align:center;color:#e08060;">@t.Blk.ToString("F1")</td>
+                    <td style="text-align:center;color:#f06060;">@t.Tov.ToString("F1")</td>
+                    <td style="text-align:center;color:#777;">@t.Pace.ToString("F1")</td>
+                </tr>
+            }
+            </tbody>
+            <tfoot>
+            @{
+                var _tfl = _season!.TeamStats;
+                string _tflabel = "LEAGUE AVG";
+            }
+            <tr style="border-top:2px solid #333;color:#888;background:#0f0f0f;position:sticky;bottom:0;z-index:1;">
+                <td style="color:#555;font-weight:600;">@_tflabel</td>
+                <td style="text-align:center;color:#555;">@_tfl.Average(t=>t.Wins).ToString("F1")</td>
+                <td style="text-align:center;color:#555;">@_tfl.Average(t=>t.Losses).ToString("F1")</td>
+                <td style="text-align:center;">@_tfl.Average(t=>t.Pct).ToString("F3")</td>
+                <td style="text-align:center;color:#e8c060;">@_tfl.Average(t=>t.Ppg).ToString("F1")</td>
+                <td style="text-align:center;">@_tfl.Average(t=>t.Papg).ToString("F1")</td>
+                <td style="text-align:center;">@(_tfl.Average(t=>t.Ppg)-_tfl.Average(t=>t.Papg)).ToString("+0.0;-0.0;0.0")</td>
+                <td style="text-align:center;">@_tfl.Average(t=>t.Fgm).ToString("F1")</td>
+                <td style="text-align:center;">@_tfl.Average(t=>t.Fga).ToString("F1")</td>
+                <td style="text-align:center;">@(_season.LeagueFgPct).ToString("P1")</td>
+                <td style="text-align:center;">@_tfl.Average(t=>t.Tpm).ToString("F1")</td>
+                <td style="text-align:center;">@_tfl.Average(t=>t.Tpa).ToString("F1")</td>
+                <td style="text-align:center;">@(_season.LeagueTpPct).ToString("P1")</td>
+                <td style="text-align:center;">@_tfl.Average(t=>t.Ftm).ToString("F1")</td>
+                <td style="text-align:center;">@_tfl.Average(t=>t.Fta).ToString("F1")</td>
+                <td style="text-align:center;">@(_season.LeagueFtPct).ToString("P1")</td>
+                <td style="text-align:center;">@_tfl.Average(t=>t.Oreb).ToString("F1")</td>
+                <td style="text-align:center;">@_tfl.Average(t=>t.Dreb).ToString("F1")</td>
+                <td style="text-align:center;">@_tfl.Average(t=>t.Reb).ToString("F1")</td>
+                <td style="text-align:center;">@_tfl.Average(t=>t.Ast).ToString("F1")</td>
+                <td style="text-align:center;">@_tfl.Average(t=>t.Stl).ToString("F1")</td>
+                <td style="text-align:center;">@_tfl.Average(t=>t.Blk).ToString("F1")</td>
+                <td style="text-align:center;">@_tfl.Average(t=>t.Tov).ToString("F1")</td>
+                <td style="text-align:center;">@_tfl.Average(t=>t.Pace).ToString("F1")</td>
+            </tr>
+            </tfoot>
+        </table>
+        </div>
+    </div>
+    }
+
+    else if (_statsTab == "playoffs")
+    {
+    @if (_playoffs is not null)
+    {
+        <!-- PLAYOFF LEADERS -->
+        <div style="margin-bottom:1.5rem;">
+            <div class="section-title" style="margin-bottom:6px;">PLAYOFF LEADERS</div>
+            <div class="scroll-x" style="max-height:420px;overflow-y:auto;">
+            <table>
+                <thead style="position:sticky;top:0;background:#111;z-index:1;">
+                    <tr>
+                        <th style="text-align:left;min-width:120px;">PLAYER</th>
+                        <th style="text-align:left;min-width:36px;">TEAM</th>
+                        <th style="text-align:center;width:28px;">GP</th>
+                        <th style="text-align:center;width:38px;">MIN</th>
+                        <th style="text-align:center;width:38px;color:#e8c060;">PTS</th>
+                        <th style="text-align:center;width:38px;">REB</th>
+                        <th style="text-align:center;width:38px;color:#60c8e8;">AST</th>
+                        <th style="text-align:center;width:38px;color:#a0e080;">STL</th>
+                        <th style="text-align:center;width:38px;color:#e08060;">BLK</th>
+                        <th style="text-align:center;width:38px;color:#f06060;">TOV</th>
+                        <th style="text-align:center;width:44px;">+/-</th>
+                        <th style="text-align:center;width:44px;">FG%</th>
+                        <th style="text-align:center;width:34px;">3PA</th>
+                        <th style="text-align:center;width:44px;">3P%</th>
+                        <th style="text-align:center;width:44px;">FT%</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var p in _playoffs.PlayerStats.Where(p => p.GP > 0).OrderByDescending(p => p.Ppg))
+                {
+                    <tr @onclick="() => OpenPlayerModal(p)" style="cursor:pointer;">
+                        <td style="color:#b8b8b8;">@p.Name</td>
+                        <td style="color:#555;font-size:0.85rem;">@p.TeamAbbr</td>
+                        <td style="text-align:center;color:#555;">@p.GP</td>
+                        <td style="text-align:center;color:#777;">@p.Mpg.ToString("F1")</td>
+                        <td style="text-align:center;color:#e8c060;font-weight:600;">@p.Ppg.ToString("F1")</td>
+                        <td style="text-align:center;">@p.Rpg.ToString("F1")</td>
+                        <td style="text-align:center;color:#60c8e8;">@p.Apg.ToString("F1")</td>
+                        <td style="text-align:center;color:#a0e080;">@p.Spg.ToString("F1")</td>
+                        <td style="text-align:center;color:#e08060;">@p.Bpg.ToString("F1")</td>
+                        <td style="text-align:center;color:#f06060;">@p.Topg.ToString("F1")</td>
+                        <td style="text-align:center;color:@PmColor(p.AvgPlusMinus);">@p.AvgPlusMinus.ToString("+0.0;-0.0;0.0")</td>
+                        <td style="text-align:center;color:@FgPctColor(p.FgPct);">@p.FgPct.ToString("P1")</td>
+                        <td style="text-align:center;color:#666;">@p.Tpa.ToString("F1")</td>
+                        <td style="text-align:center;color:@TpPctColor(p.TpPct);">@(p.TotalThreeAtt > 0 ? p.TpPct.ToString("P1") : "—")</td>
+                        <td style="text-align:center;color:@FtPctColor(p.FtPct);">@(p.TotalFTA > 0 ? p.FtPct.ToString("P1") : "—")</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+            </div>
+        </div>
+
+        <!-- BRACKET -->
+        <div style="margin-bottom:1.5rem;">
+            <div class="section-title">PLAYOFF BRACKET</div>
+
+            @if (_playoffs.PlayInGames.Count > 0)
+            {
+                <div style="margin-bottom:1rem;">
+                    <div style="font-size:0.75rem;color:#444;letter-spacing:1px;margin-bottom:6px;">PLAY-IN TOURNAMENT</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:4px 20px;">
+                        @foreach (var g in _playoffs.PlayInGames)
+                        {
+                            bool hw = g.HomeScore > g.AwayScore;
+                            <span style="font-size:0.84rem;">
+                                <span style="color:@(hw ? "#c8c8c8" : "#555");">@g.HomeAbbr @g.HomeScore</span>
+                                <span style="color:#2a2a2a;"> – </span>
+                                <span style="color:@(!hw ? "#c8c8c8" : "#555");">@g.AwayScore @g.AwayAbbr</span>
+                            </span>
+                        }
+                    </div>
+                </div>
+            }
+
+            @if (_playoffs.EastFirstRound.Count > 0 || _playoffs.WestFirstRound.Count > 0)
+            {
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1rem;">
+                    <div>
+                        <div style="font-size:0.72rem;color:#444;letter-spacing:1px;margin-bottom:4px;">FIRST ROUND — EAST</div>
+                        @foreach (var s in _playoffs.EastFirstRound) { @SeriesRow(s) }
+                    </div>
+                    <div>
+                        <div style="font-size:0.72rem;color:#444;letter-spacing:1px;margin-bottom:4px;">FIRST ROUND — WEST</div>
+                        @foreach (var s in _playoffs.WestFirstRound) { @SeriesRow(s) }
+                    </div>
+                </div>
+            }
+
+            @if (_playoffs.EastSecondRound.Count > 0 || _playoffs.WestSecondRound.Count > 0)
+            {
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1rem;">
+                    <div>
+                        <div style="font-size:0.72rem;color:#444;letter-spacing:1px;margin-bottom:4px;">SECOND ROUND — EAST</div>
+                        @foreach (var s in _playoffs.EastSecondRound) { @SeriesRow(s) }
+                    </div>
+                    <div>
+                        <div style="font-size:0.72rem;color:#444;letter-spacing:1px;margin-bottom:4px;">SECOND ROUND — WEST</div>
+                        @foreach (var s in _playoffs.WestSecondRound) { @SeriesRow(s) }
+                    </div>
+                </div>
+            }
+
+            @if (_playoffs.EastConfFinals is not null || _playoffs.WestConfFinals is not null)
+            {
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1rem;">
+                    <div>
+                        <div style="font-size:0.72rem;color:#444;letter-spacing:1px;margin-bottom:4px;">CONF FINALS — EAST</div>
+                        @if (_playoffs.EastConfFinals is not null) { @SeriesRow(_playoffs.EastConfFinals) }
+                    </div>
+                    <div>
+                        <div style="font-size:0.72rem;color:#444;letter-spacing:1px;margin-bottom:4px;">CONF FINALS — WEST</div>
+                        @if (_playoffs.WestConfFinals is not null) { @SeriesRow(_playoffs.WestConfFinals) }
+                    </div>
+                </div>
+            }
+
+            @if (_playoffs.Finals is not null)
+            {
+                <div>
+                    <div style="font-size:0.72rem;color:#fca;letter-spacing:1px;margin-bottom:4px;">NBA FINALS</div>
+                    @SeriesRow(_playoffs.Finals)
+                </div>
+            }
+        </div>
+
+        <!-- AWARDS -->
+        @if (_awards is not null)
+        {
+        <div style="margin-top:1.5rem;">
+            <div class="section-title">SEASON AWARDS</div>
+
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.25rem;">
+                @if (_awards.MVP    is not null) { @AwardCard("MOST VALUABLE PLAYER",       _awards.MVP,    "#fca",    "#0d0900", "#2a1800") }
+                @if (_awards.DPOY   is not null) { @AwardCard("DEF. PLAYER OF THE YEAR",    _awards.DPOY,   "#4af0c0", "#000d0d", "#001e1e") }
+                @if (_awards.SixMOY is not null) { @AwardCard("6TH MAN OF THE YEAR",        _awards.SixMOY, "#b080ff", "#0a000d", "#1e0030") }
+            </div>
+
+            @{
+                var allNbaRows = new (string Label, List<AwardWinner> Players)[]
+                {
+                    ("ALL-NBA 1ST TEAM", _awards.AllNba1),
+                    ("ALL-NBA 2ND TEAM", _awards.AllNba2),
+                    ("ALL-NBA 3RD TEAM", _awards.AllNba3),
+                };
+                var allDefRows = new (string Label, List<AwardWinner> Players)[]
+                {
+                    ("ALL-DEFENSE 1ST TEAM", _awards.AllDef1),
+                    ("ALL-DEFENSE 2ND TEAM", _awards.AllDef2),
+                };
+            }
+
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1rem;">
+                @foreach (var (teamLabel, players) in allNbaRows)
+                {
+                    <div>
+                        <div style="font-size:0.7rem;color:#445;letter-spacing:1px;margin-bottom:5px;border-bottom:1px solid #1a1a1a;padding-bottom:3px;">@teamLabel</div>
+                        @foreach (var p in players)
+                        {
+                            <div style="display:flex;justify-content:space-between;padding:2px 0;font-size:0.84rem;">
+                                <span style="color:#b8b8b8;">@p.Name</span>
+                                <span style="color:#444;font-size:0.76rem;">@p.TeamAbbr</span>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;max-width:66%;">
+                @foreach (var (teamLabel, players) in allDefRows)
+                {
+                    <div>
+                        <div style="font-size:0.7rem;color:#345;letter-spacing:1px;margin-bottom:5px;border-bottom:1px solid #1a1a1a;padding-bottom:3px;">@teamLabel</div>
+                        @foreach (var p in players)
+                        {
+                            <div style="display:flex;justify-content:space-between;padding:2px 0;font-size:0.84rem;">
+                                <span style="color:#b0b8b0;">@p.Name</span>
+                                <span style="color:#444;font-size:0.76rem;">@p.TeamAbbr</span>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+        }
+    }
+    else
+    {
+        <div style="text-align:center;padding:3rem 0;color:#333;font-family:monospace;">
+            Use ▶ Simulate Playoffs to unlock this tab.
+        </div>
+    }
+    }
+
+}
+
+<!-- ═══ GAME LOG MODAL ═══ -->
+@if (_gameLogTeam is not null && _season is not null)
+{
+    var glTeam  = _gameLogTeam;
+    var glGames = _season.Games
+        .Where(g => g.HomeTeam == glTeam.TeamName || g.AwayTeam == glTeam.TeamName)
+        .OrderBy(g => g.Date)
+        .ToList();
+
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:1000;display:flex;align-items:center;justify-content:center;padding:1rem;"
+         @onclick="() => _gameLogTeam = null">
+        <div style="background:#141414;border:1px solid #2a2a2a;border-radius:6px;width:min(560px,95vw);max-height:90vh;display:flex;flex-direction:column;font-family:monospace;color:#d4d4d4;"
+             @onclick:stopPropagation="true">
+
+            <!-- Header -->
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:0.85rem 1.25rem;border-bottom:1px solid #1e1e1e;flex-shrink:0;">
+                <div>
+                    <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:@glTeam.PrimaryColor;margin-right:6px;vertical-align:middle;"></span>
+                    <span style="font-size:1.1rem;font-weight:800;color:#e8e8e8;letter-spacing:1px;">@glTeam.TeamName</span>
+                    <span style="color:#333;margin-left:8px;font-size:0.88rem;">@glTeam.Wins–@glTeam.Losses</span>
+                </div>
+                <button @onclick="() => _gameLogTeam = null" style="background:none;border:none;color:#444;font-size:1.3rem;cursor:pointer;line-height:1;padding:0;">✕</button>
+            </div>
+
+            <!-- Column headers -->
+            <div style="display:grid;grid-template-columns:72px 22px 44px 1fr 36px;gap:0 6px;padding:5px 1.25rem 3px;border-bottom:1px solid #1e1e1e;flex-shrink:0;">
+                <span style="font-size:0.75rem;color:#3a3a3a;letter-spacing:0.5px;">DATE</span>
+                <span style="font-size:0.75rem;color:#3a3a3a;text-align:center;">H/A</span>
+                <span style="font-size:0.75rem;color:#3a3a3a;text-align:center;">OPP</span>
+                <span style="font-size:0.75rem;color:#3a3a3a;text-align:right;padding-right:4px;">SCORE</span>
+                <span style="font-size:0.75rem;color:#3a3a3a;text-align:center;">W/L</span>
+            </div>
+
+            <!-- Scrollable game list -->
+            <div style="overflow-y:auto;flex:1;padding:0 1.25rem 0.75rem;">
+                @foreach (var g in glGames)
+                {
+                    bool isHome = g.HomeTeam == glTeam.TeamName;
+                    bool won    = isHome ? g.HomeScore > g.AwayScore : g.AwayScore > g.HomeScore;
+                    string oppAbbr = isHome ? g.AwayAbbr : g.HomeAbbr;
+                    string scoreStr = isHome
+                        ? $"{g.HomeScore}–{g.AwayScore}"
+                        : $"{g.AwayScore}–{g.HomeScore}";
+
+                    <div class="glog-row">
+                        <span style="color:#555;font-size:0.82rem;">@g.Date.ToString("MMM d")</span>
+                        <span style="text-align:center;font-size:0.78rem;color:@(isHome?"#60c8e8":"#888");">@(isHome?"H":"A")</span>
+                        <span style="text-align:center;color:#888;font-size:0.85rem;">@oppAbbr</span>
+                        <span style="text-align:right;padding-right:4px;color:@(won?"#c8c8c8":"#666");">@scoreStr</span>
+                        <span style="text-align:center;" class="@(won?"glog-w":"glog-l")">@(won?"W":"L")</span>
+                    </div>
+                }
+                @if (glGames.Count == 0)
+                {
+                    <div style="color:#333;text-align:center;padding:2rem 0;">No games recorded.</div>
+                }
+            </div>
+
+            <!-- Footer -->
+            <div style="padding:0.5rem 1.25rem;border-top:1px solid #1a1a1a;flex-shrink:0;display:flex;gap:1.5rem;font-size:0.8rem;color:#3a3a3a;">
+                <span>Home: <span style="color:#555;">@glTeam.HomeWins–@glTeam.HomeLosses</span></span>
+                <span>Away: <span style="color:#555;">@glTeam.AwayWins–@glTeam.AwayLosses</span></span>
+                <span>Conf: <span style="color:#555;">@glTeam.ConfWins–@glTeam.ConfLosses</span></span>
+                <span style="margin-left:auto;">@glGames.Count games</span>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- ═══ TICKER BOX SCORE MODAL ═══ -->
+@if (_tickerBoxScore is not null)
+{
+    var tbs = _tickerBoxScore;
+    bool thw = tbs.HomeScore > tbs.AwayScore;
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:1001;display:flex;align-items:center;justify-content:center;padding:1rem;"
+         @onclick="() => _tickerBoxScore = null">
+        <div style="background:#141414;border:1px solid #2a2a2a;border-radius:6px;width:min(380px,90vw);font-family:monospace;color:#d4d4d4;"
+             @onclick:stopPropagation="true">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:0.75rem 1rem;border-bottom:1px solid #1e1e1e;">
+                <span style="font-size:0.7rem;color:#444;letter-spacing:1px;">@tbs.Date.ToString("dddd, MMMM d").ToUpper()</span>
+                <button @onclick="() => _tickerBoxScore = null" style="background:none;border:none;color:#444;font-size:1.1rem;cursor:pointer;">✕</button>
+            </div>
+            <div style="padding:1.25rem 1.5rem;text-align:center;">
+                <div style="display:flex;align-items:center;justify-content:center;gap:1.5rem;">
+                    <div style="text-align:center;">
+                        <img src="/logos/teams/@(LogoSlug(tbs.HomeTeam)).svg" style="width:48px;height:48px;object-fit:contain;display:block;margin:0 auto 4px;" onerror="this.style.display='none'" />
+                        <div style="font-size:0.8rem;color:@(thw?"#e8e8e8":"#555");">@tbs.HomeAbbr</div>
+                    </div>
+                    <div>
+                        <div style="font-size:2rem;font-weight:800;color:#e8e8e8;letter-spacing:2px;">
+                            <span style="color:@(thw?"#4af080":"#888");">@tbs.HomeScore</span>
+                            <span style="color:#222;font-size:1.2rem;"> – </span>
+                            <span style="color:@(!thw?"#4af080":"#888");">@tbs.AwayScore</span>
+                        </div>
+                        <div style="font-size:0.68rem;color:#333;text-align:center;margin-top:2px;">FINAL</div>
+                    </div>
+                    <div style="text-align:center;">
+                        <img src="/logos/teams/@(LogoSlug(tbs.AwayTeam)).svg" style="width:48px;height:48px;object-fit:contain;display:block;margin:0 auto 4px;" onerror="this.style.display='none'" />
+                        <div style="font-size:0.8rem;color:@(!thw?"#e8e8e8":"#555");">@tbs.AwayAbbr</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 }
 
 <!-- ═══ PLAYER DETAIL MODAL ═══ -->
@@ -513,6 +1395,7 @@ else if (_phase == Phase.Done && _season is not null)
                     <button class="pdlg-tab @(_detailTab=="attrs"?"active":"")"  @onclick='() => _detailTab = "attrs"'>ATTRIBUTES</button>
                     <button class="pdlg-tab @(_detailTab=="tends"?"active":"")"  @onclick='() => _detailTab = "tends"'>TENDENCIES</button>
                 }
+                <button class="pdlg-tab @(_detailTab=="injuries"?"active":"")" @onclick='() => _detailTab = "injuries"'>INJURIES</button>
             </div>
 
             <div style="padding:0.85rem 1.25rem;">
@@ -532,6 +1415,63 @@ else if (_phase == Phase.Done && _season is not null)
                     @TendGroup("OFFENSIVE", new[]{("Touches","Touches"),("Drive","Drive"),("3-Point","ThreePt"),("Mid-Range","MidRange"),("Post-Up","PostUp"),("Isolation","Iso"),("Pull-Up","PullUp"),("Cut","Cut"),("Off Rebound","OffReb")})
                     @TendGroup("DEFENSIVE", new[]{("Steal","Steal"),("Block","Block")})
                 </div>
+            }
+            else if (_detailTab == "injuries")
+            {
+                var hist = _detailPlayer.InjuryHistory;
+                if (hist.Count == 0)
+                {
+                    <div style="color:#444;padding:1.5rem 0;font-size:0.9rem;">No injuries this season.</div>
+                }
+                else
+                {
+                    int totalMissed = hist.Sum(r => r.GamesMissed);
+                    int permCount   = hist.Count(r => r.HadPermanentDebuff);
+                    <div style="font-size:0.82rem;color:#555;margin-bottom:0.75rem;">
+                        @hist.Count injur@(hist.Count == 1 ? "y" : "ies") &nbsp;·&nbsp; @totalMissed games missed
+                        @if (permCount > 0) { <span style="color:#f06060;">&nbsp;·&nbsp; @permCount with permanent effects</span> }
+                    </div>
+                    <div class="scroll-x">
+                    <table style="width:100%;font-size:0.85rem;border-collapse:collapse;">
+                        <thead>
+                            <tr style="border-bottom:1px solid #252525;">
+                                <th style="color:#444;font-weight:600;text-align:left;padding:3px 8px 3px 0;white-space:nowrap;">DATE</th>
+                                <th style="color:#444;font-weight:600;text-align:left;padding:3px 6px;">INJURY</th>
+                                <th style="color:#444;font-weight:600;text-align:left;padding:3px 6px;">BODY PART</th>
+                                <th style="color:#444;font-weight:600;text-align:center;padding:3px 6px;">GRD</th>
+                                <th style="color:#444;font-weight:600;text-align:right;padding:3px 6px;">EST.</th>
+                                <th style="color:#444;font-weight:600;text-align:right;padding:3px 6px;">ACTUAL</th>
+                                <th style="color:#444;font-weight:600;text-align:right;padding:3px 6px;">MISSED</th>
+                                <th style="color:#444;font-weight:600;text-align:left;padding:3px 6px;">PERM LOSS</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var rec in hist.OrderByDescending(r => r.InjuredDate))
+                        {
+                            var gc = rec.Grade == 3 ? "#f06060" : rec.Grade == 2 ? "#fca" : "#88dd88";
+                            var permStr = rec.PermanentPenalties?.Count > 0
+                                ? string.Join(", ", rec.PermanentPenalties.Select(kv => $"{kv.Key} –{kv.Value}"))
+                                : "—";
+                            var actualStr = rec.ReturnedDate.HasValue ? $"{rec.ActualDays}d" : $"{rec.ActualDays}d*";
+                            <tr style="border-bottom:1px solid #1a1a1a;">
+                                <td style="color:#555;padding:3px 8px 3px 0;white-space:nowrap;">@rec.InjuredDate.ToString("MMM d")</td>
+                                <td style="padding:3px 6px;">@rec.InjuryName</td>
+                                <td style="color:#888;padding:3px 6px;">@rec.BodyPart</td>
+                                <td style="text-align:center;color:@gc;font-weight:700;padding:3px 6px;">G@rec.Grade</td>
+                                <td style="text-align:right;color:#666;padding:3px 6px;">@(rec.EstimatedDays)d</td>
+                                <td style="text-align:right;color:#888;padding:3px 6px;">@actualStr</td>
+                                <td style="text-align:right;color:#888;padding:3px 6px;">@rec.GamesMissed</td>
+                                <td style="color:@(rec.HadPermanentDebuff?"#f06060":"#555");padding:3px 6px;">@permStr</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                    @if (hist.Any(r => !r.ReturnedDate.HasValue))
+                    {
+                        <div style="font-size:0.75rem;color:#333;margin-top:4px;">* still injured at season end</div>
+                    }
+                    </div>
+                }
             }
             else if (_detailTab == "career")
             {
@@ -682,10 +1622,361 @@ else if (_phase == Phase.Done && _season is not null)
     </div>
 }
 
+<!-- ═══ HOW IT WORKS MODAL ═══ -->
+@if (_showHowItWorks)
+{
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:2000;display:flex;align-items:flex-start;justify-content:center;padding:1.5rem 1rem;overflow-y:auto;"
+         @onclick="() => _showHowItWorks = false">
+        <div style="background:#111;border:1px solid #2a2a2a;border-radius:8px;width:min(740px,96vw);font-family:monospace;color:#d4d4d4;margin:auto;"
+             @onclick:stopPropagation="true">
+
+            <!-- Header -->
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:1rem 1.25rem;border-bottom:1px solid #1e1e1e;">
+                <div>
+                    <span style="font-size:1.15rem;font-weight:800;color:#e8e8e8;letter-spacing:2px;">HOW THE SIM WORKS</span>
+                    <span style="color:#333;font-size:0.78rem;margin-left:10px;">click any section to expand</span>
+                </div>
+                <button @onclick="() => _showHowItWorks = false"
+                        style="background:none;border:none;color:#444;font-size:1.3rem;cursor:pointer;line-height:1;padding:0;">✕</button>
+            </div>
+
+            <!-- Sections -->
+            <div style="padding:1rem 1.25rem;">
+
+                <!-- 1. Overview -->
+                <div class="hiw-section">
+                    <button class="hiw-header" @onclick='() => HiwToggle("overview")'>
+                        <span>OVERVIEW</span><span style="color:#333;font-size:0.9rem;">@(HiwOpen("overview")?"▲":"▼")</span>
+                    </button>
+                    @if (HiwOpen("overview"))
+                    {
+                        <div class="hiw-body">
+                            <p><strong>BasketballSim</strong> is a possession-by-possession NBA simulator. Every game plays out one possession at a time — the engine generates a shot menu, selects the best available option, resolves the outcome, then moves to the next possession.</p>
+                            <p>Stats are calibrated to <strong>NBA 2023-24 league averages</strong>. A full 82-game season takes about 2–3 seconds to simulate.</p>
+                            <div class="kv"><span class="kv-label">Target pace</span><span class="kv-val">~103 possessions / team / game</span></div>
+                            <div class="kv"><span class="kv-label">Avg game score</span><span class="kv-val">~114 pts / team</span></div>
+                            <div class="kv"><span class="kv-label">Rating scale</span><span class="kv-val">5 (worst in NBA) → 50 (league avg) → 95 (best)</span></div>
+                            <div class="kv"><span class="kv-label">Roster source</span><span class="kv-val">ESPN rosters with NBA 2K attribute mapping</span></div>
+                        </div>
+                    }
+                </div>
+
+                <!-- 2. Player Attributes -->
+                <div class="hiw-section">
+                    <button class="hiw-header" @onclick='() => HiwToggle("attrs")'>
+                        <span>PLAYER ATTRIBUTES</span><span style="color:#333;font-size:0.9rem;">@(HiwOpen("attrs")?"▲":"▼")</span>
+                    </button>
+                    @if (HiwOpen("attrs"))
+                    {
+                        <div class="hiw-body">
+                            <p>Each player has <strong>19 attributes</strong> on a 5–95 scale, derived from NBA 2K ratings and remapped to our sim scale.</p>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem 1.5rem;margin-top:6px;">
+                                <div>
+                                    <div style="color:#555;font-size:0.76rem;letter-spacing:1px;margin-bottom:4px;">PHYSICAL</div>
+                                    @HiwChips("Height","Strength","Speed","Jumping","Endurance")
+                                    <div style="color:#555;font-size:0.76rem;letter-spacing:1px;margin:8px 0 4px;">SHOOTING</div>
+                                    @HiwChips("Inside","Dunks","Free Throw","Mid-Range","3-Point")
+                                </div>
+                                <div>
+                                    <div style="color:#555;font-size:0.76rem;letter-spacing:1px;margin-bottom:4px;">SKILL</div>
+                                    @HiwChips("Off IQ","Def IQ","Hustle","Dribbling","Passing","Off Reb","Def Reb")
+                                    <div style="color:#555;font-size:0.76rem;letter-spacing:1px;margin:8px 0 4px;">DEFENSE</div>
+                                    @HiwChips("Perimeter Def","Interior Def")
+                                </div>
+                            </div>
+                            <p style="margin-top:8px;">Players also have a <strong>Foul Tendency</strong> and separate <strong>fatigue/injury ratings</strong> not shown in the UI. Attributes drive shooting formulas, block/steal/rebound weights, and turnover rates directly — no hidden scalars.</p>
+                        </div>
+                    }
+                </div>
+
+                <!-- 3. Shot Generation -->
+                <div class="hiw-section">
+                    <button class="hiw-header" @onclick='() => HiwToggle("shots")'>
+                        <span>SHOT GENERATION</span><span style="color:#333;font-size:0.9rem;">@(HiwOpen("shots")?"▲":"▼")</span>
+                    </button>
+                    @if (HiwOpen("shots"))
+                    {
+                        <div class="hiw-body">
+                            <p>Every half-court possession, the engine builds a <strong>shot menu</strong> — a list of (ShotContext, ShotType, probability) entries for the ball-handler.</p>
+                            <p><strong>Shot contexts</strong> include:</p>
+                            <div style="margin:4px 0 8px;">
+                                <div style="color:#555;font-size:0.76rem;letter-spacing:1px;margin-bottom:3px;">INSIDE</div>
+                                @HiwChips("DrivingLayup","FloaterLayup","AlleyOop","CutDunk","CutLayup","PostMove","PickAndRollRoll","PickAndRollDunk","TransitionDunk","ContactDunk","PutbackLayup","TipIn")
+                                <div style="color:#555;font-size:0.76rem;letter-spacing:1px;margin:6px 0 3px;">MID-RANGE</div>
+                                @HiwChips("IsolationMidRange","FadeawayMidRange","PullUpMidRange","PickAndRollMidRange","PostMoveMidRange","LateClockMidRange")
+                                <div style="color:#555;font-size:0.76rem;letter-spacing:1px;margin:6px 0 3px;">THREE-POINT</div>
+                                @HiwChips("CatchAndShootCorner","CatchAndShootWing","PullUpThree","StepBackThree","PickAndRollThree","TransitionThree")
+                            </div>
+                            <p>Each entry has a <strong>perceived PPS</strong> (points per shot) score. The engine selects the highest-PPS option that clears its <strong>threshold</strong> (a minimum quality bar). If nothing clears the threshold, the ball is passed or dribbled until a better opportunity appears.</p>
+                            <div class="kv"><span class="kv-label">PPS compression</span><span class="kv-val">actual = 0.95 + (raw – 0.95) × 0.52</span></div>
+                            <div class="kv"><span class="kv-label">Thresholds</span><span class="kv-val">&gt;20s left=1.32 · &gt;15=1.09 · &gt;10=0.87 · &gt;5=0.60 · &gt;2=0.35</span></div>
+                            <div class="kv"><span class="kv-label">Pass time</span><span class="kv-val">Gaussian(1.5s, 1.0s) — each pass grows the clock</span></div>
+                        </div>
+                    }
+                </div>
+
+                <!-- 4. Shot Tendencies -->
+                <div class="hiw-section">
+                    <button class="hiw-header" @onclick='() => HiwToggle("tends")'>
+                        <span>SHOT TENDENCIES</span><span style="color:#333;font-size:0.9rem;">@(HiwOpen("tends")?"▲":"▼")</span>
+                    </button>
+                    @if (HiwOpen("tends"))
+                    {
+                        <div class="hiw-body">
+                            <p>Tendencies shape <em>how</em> a player gets their shots — not how many. They are split into two categories:</p>
+                            <p><strong>Appearance tendencies</strong> (normalized budget pool) — control which shot contexts appear in the menu. The four pool types compete for a fixed total probability:</p>
+                            <div class="kv"><span class="kv-label">Drive</span><span class="kv-val">DrivingLayup, FloaterLayup, PickAndRoll contexts</span></div>
+                            <div class="kv"><span class="kv-label">Cut</span><span class="kv-val">AlleyOop, CutDunk, CutLayup</span></div>
+                            <div class="kv"><span class="kv-label">Post</span><span class="kv-val">PostMove, PostMoveMidRange</span></div>
+                            <div class="kv"><span class="kv-label">Iso</span><span class="kv-val">IsolationMidRange, FadeawayMidRange</span></div>
+                            <p style="margin-top:6px;">A player with Drive=80, Cut=20 sees far more drive opportunities, but the total shot volume stays constant — tendencies redistribute, they don't inflate.</p>
+                            <p><strong>Threshold tendencies</strong> — lower the quality bar needed to pull the trigger:</p>
+                            <div class="kv"><span class="kv-label">ThreePt</span><span class="kv-val">willingness to shoot 3s (CaS, PnR3, Transition3)</span></div>
+                            <div class="kv"><span class="kv-label">MidRange</span><span class="kv-val">willingness to shoot mid-range pull-ups</span></div>
+                            <div class="kv"><span class="kv-label">PullUp</span><span class="kv-val">willingness to pull up off the dribble</span></div>
+                            <p style="margin-top:6px;color:#555;font-size:0.82rem;">Example: Mitchell Robinson has near-zero ThreePt and high Cut — he almost never attempts a 3 and gets most of his shots from cuts and alley-oops.</p>
+                        </div>
+                    }
+                </div>
+
+                <!-- 5. Shooting Formulas -->
+                <div class="hiw-section">
+                    <button class="hiw-header" @onclick='() => HiwToggle("formulas")'>
+                        <span>SHOOTING FORMULAS</span><span style="color:#333;font-size:0.9rem;">@(HiwOpen("formulas")?"▲":"▼")</span>
+                    </button>
+                    @if (HiwOpen("formulas"))
+                    {
+                        <div class="hiw-body">
+                            <p>Base make percentages scale linearly with the relevant attribute:</p>
+                            <div class="kv"><span class="kv-label">Inside</span><span class="kv-val">0.59 + (Inside/100 × 0.22) — at avg: 70%</span></div>
+                            <div class="kv"><span class="kv-label">Mid-Range</span><span class="kv-val">0.43 + (MidRange/100 × 0.17) — at avg: 51.5%</span></div>
+                            <div class="kv"><span class="kv-label">3-Point</span><span class="kv-val">0.315 + (ThreePoint/100 × 0.20) — at avg: 41.5%</span></div>
+                            <div class="kv"><span class="kv-label">Free Throw</span><span class="kv-val">cubic curve: 0.36 + 0.88x − 0.24x² (clamped)</span></div>
+                            <div class="kv"><span class="kv-label">Dunk</span><span class="kv-val">0.75 + (Dunks+Jumping)/200 × 0.20</span></div>
+                            <p style="margin-top:8px;">Each shot is then reduced by a <strong>ContestPenalty</strong> — how hard the defender contests:</p>
+                            <div class="kv"><span class="kv-label">Inside contest</span><span class="kv-val">driven by IntDef + Height of nearest defender</span></div>
+                            <div class="kv"><span class="kv-label">Mid contest</span><span class="kv-val">blend of IntDef (40%) + PerimDef (60%)</span></div>
+                            <div class="kv"><span class="kv-label">3PT contest</span><span class="kv-val">driven by PerimDef</span></div>
+                            <p style="margin-top:6px;">All formulas include an <strong>Efficiency Factor</strong> (EF) that varies by physical/mental state (fatigue, injury).</p>
+                        </div>
+                    }
+                </div>
+
+                <!-- 6. Defensive Focus -->
+                <div class="hiw-section">
+                    <button class="hiw-header" @onclick='() => HiwToggle("focus")'>
+                        <span>DEFENSIVE FOCUS SYSTEM</span><span style="color:#333;font-size:0.9rem;">@(HiwOpen("focus")?"▲":"▼")</span>
+                    </button>
+                    @if (HiwOpen("focus"))
+                    {
+                        <div class="hiw-body">
+                            <p>Teams concentrate defensive attention on the biggest offensive threats. A <strong>focusMult</strong> is computed for each offensive player on every possession and applied in three places:</p>
+                            <div class="kv"><span class="kv-label">Menu generation</span><span class="kv-val">fewer shots clear the PPS threshold (clamped ≥ 1.0)</span></div>
+                            <div class="kv"><span class="kv-label">Contest penalty</span><span class="kv-val">contestPenalty × focusMult — harder contest</span></div>
+                            <div class="kv"><span class="kv-label">Make %</span><span class="kv-val">adjMake × (1 − (focusMult−1) × 0.30)</span></div>
+                            <p style="margin-top:8px;"><strong>How focus is calculated:</strong> each player's threat score (avg of 3PT + Mid + Inside + Dribbling + OffIQ) is normalized against the 5 players on court. A star surrounded by bench players draws much higher focus than a star next to other stars.</p>
+                            <div class="kv"><span class="kv-label">Coach influence</span><span class="kv-val">HelpDefenseAmount (38–78) per team, set in CoachFactory</span></div>
+                            <div class="kv"><span class="kv-label">Jensen's inequality</span><span class="kv-val">sum(focusMult) ≤ n — over-focusing one player helps others</span></div>
+                        </div>
+                    }
+                </div>
+
+                <!-- 7. Fatigue & Rotation -->
+                <div class="hiw-section">
+                    <button class="hiw-header" @onclick='() => HiwToggle("fatigue")'>
+                        <span>FATIGUE &amp; ROTATION</span><span style="color:#333;font-size:0.9rem;">@(HiwOpen("fatigue")?"▲":"▼")</span>
+                    </button>
+                    @if (HiwOpen("fatigue"))
+                    {
+                        <div class="hiw-body">
+                            <p>Each player has a <strong>fatigue score</strong> (0–100, starting at 100). Playing minutes drains fatigue; rest days between games restore it. Fatigue reduces shooting efficiency, passing accuracy, and physical attribute effectiveness.</p>
+                            <div class="kv"><span class="kv-label">Drain rate</span><span class="kv-val">based on minutes played and Endurance rating</span></div>
+                            <div class="kv"><span class="kv-label">Recovery rate</span><span class="kv-val">per rest-day between games, scales with Endurance</span></div>
+                            <div class="kv"><span class="kv-label">Rotation depth</span><span class="kv-val">RotationManager assigns ~8 players per game (5 starters + bench)</span></div>
+                            <p style="margin-top:8px;">The <strong>RotationManager</strong> builds lineups based on coach style, player overall, and fatigue. Back-to-backs and short rest scenarios cause fatigue accumulation over the season — Endurance rating directly determines durability.</p>
+                            <div class="kv"><span class="kv-label">Each team's coach</span><span class="kv-val">has OffensiveStyle (Pace&amp;Space, Motion, Iso-Heavy, etc.)</span></div>
+                            <div class="kv"><span class="kv-label">Coach style affects</span><span class="kv-val">dribble isoMult, drive tendency weights, pace</span></div>
+                        </div>
+                    }
+                </div>
+
+                <!-- 8. Injuries -->
+                <div class="hiw-section">
+                    <button class="hiw-header" @onclick='() => HiwToggle("injuries")'>
+                        <span>INJURIES</span><span style="color:#333;font-size:0.9rem;">@(HiwOpen("injuries")?"▲":"▼")</span>
+                    </button>
+                    @if (HiwOpen("injuries"))
+                    {
+                        <div class="hiw-body">
+                            <p>Injuries occur in-game based on contact plays and player injury susceptibility. Each injury has a <strong>grade</strong>:</p>
+                            <div class="kv"><span class="kv-label">Grade 1 (Q)</span><span class="kv-val">questionable — player may play through it (chance-based)</span></div>
+                            <div class="kv"><span class="kv-label">Grade 2 (OUT)</span><span class="kv-val">out — misses games, DNP until recovered</span></div>
+                            <div class="kv"><span class="kv-label">Grade 3 (OUT)</span><span class="kv-val">severe — extended absence, higher permanent debuff risk</span></div>
+                            <p style="margin-top:8px;"><strong>Injury history is tracked</strong> per player through the season. Some injuries apply <strong>permanent rating debuffs</strong> (e.g. "ankle −3 Speed") that persist across possessions and future games.</p>
+                            <div class="kv"><span class="kv-label">Recovery ticks</span><span class="kv-val">once per rest day between games</span></div>
+                            <div class="kv"><span class="kv-label">Play-through (G1)</span><span class="kv-val">probability depends on player rank + injury severity</span></div>
+                            <div class="kv"><span class="kv-label">Perm debuff roll</span><span class="kv-val">runs when a Grade 2+ injury resolves</span></div>
+                        </div>
+                    }
+                </div>
+
+                <!-- 9. Season & Schedule -->
+                <div class="hiw-section">
+                    <button class="hiw-header" @onclick='() => HiwToggle("schedule")'>
+                        <span>SEASON &amp; SCHEDULE</span><span style="color:#333;font-size:0.9rem;">@(HiwOpen("schedule")?"▲":"▼")</span>
+                    </button>
+                    @if (HiwOpen("schedule"))
+                    {
+                        <div class="hiw-body">
+                            <p>The full 82-game schedule is generated upfront using a <strong>circulant algorithm</strong> that guarantees exactly 82 games, 41 home, 41 away per team across all 30 teams (1,230 total games).</p>
+                            <p>Games are then mapped to real NBA calendar dates (October → April) with realistic back-to-back and rest-day distributions. Rest days for each game are pre-computed and fed to fatigue/recovery math.</p>
+                            <div class="kv"><span class="kv-label">Live Season mode</span><span class="kv-val">sim one day at a time or auto-sim with a pause button</span></div>
+                            <div class="kv"><span class="kv-label">Instant Sim mode</span><span class="kv-val">simulates all 1,230 games in one shot (~2-3 sec)</span></div>
+                            <div class="kv"><span class="kv-label">Standings</span><span class="kv-val">W/L, PCT, GB, conf/div splits — updated live</span></div>
+                            <div class="kv"><span class="kv-label">Player stats</span><span class="kv-val">per-game averages aggregated after each game</span></div>
+                        </div>
+                    }
+                </div>
+
+                <!-- 10. Playoffs -->
+                <div class="hiw-section">
+                    <button class="hiw-header" @onclick='() => HiwToggle("playoffs")'>
+                        <span>PLAYOFFS &amp; AWARDS</span><span style="color:#333;font-size:0.9rem;">@(HiwOpen("playoffs")?"▲":"▼")</span>
+                    </button>
+                    @if (HiwOpen("playoffs"))
+                    {
+                        <div class="hiw-body">
+                            <p>After the regular season you can simulate the full NBA Playoffs, including the <strong>Play-In Tournament</strong> (seeds 7–10 in each conference).</p>
+                            <div class="kv"><span class="kv-label">Format</span><span class="kv-val">Play-In → First Round → Semis → Conf Finals → NBA Finals</span></div>
+                            <div class="kv"><span class="kv-label">Series length</span><span class="kv-val">best-of-7 for all rounds (best-of-5 for play-in)</span></div>
+                            <div class="kv"><span class="kv-label">Home court</span><span class="kv-val">higher seed hosts games 1, 2, 5, 7</span></div>
+                            <p style="margin-top:8px;"><strong>Season Awards</strong> are computed from regular-season stats:</p>
+                            <div class="kv"><span class="kv-label">MVP</span><span class="kv-val">weighted PTS + AST + REB + WS-proxy + team wins</span></div>
+                            <div class="kv"><span class="kv-label">DPOY</span><span class="kv-val">STL + BLK + DefRating + IntDef/PerimDef attributes</span></div>
+                            <div class="kv"><span class="kv-label">6MOY</span><span class="kv-val">best bench contributor (GP with low starter rate)</span></div>
+                            <div class="kv"><span class="kv-label">All-NBA / All-Def</span><span class="kv-val">position-balanced selection from top performers</span></div>
+                        </div>
+                    }
+                </div>
+
+                <!-- 11. Stats & Advanced Metrics -->
+                <div class="hiw-section">
+                    <button class="hiw-header" @onclick='() => HiwToggle("stats")'>
+                        <span>STATS &amp; ADVANCED METRICS</span><span style="color:#333;font-size:0.9rem;">@(HiwOpen("stats")?"▲":"▼")</span>
+                    </button>
+                    @if (HiwOpen("stats"))
+                    {
+                        <div class="hiw-body">
+                            <p>Box score stats are tracked possession-by-possession. Advanced metrics are derived from the raw counts:</p>
+                            <div class="kv"><span class="kv-label">TS%</span><span class="kv-val">True Shooting % — efficiency accounting for FTs</span></div>
+                            <div class="kv"><span class="kv-label">eFG%</span><span class="kv-val">Effective FG% — weights 3-pointers at 1.5×</span></div>
+                            <div class="kv"><span class="kv-label">USG%</span><span class="kv-val">% of team possessions used while on court</span></div>
+                            <div class="kv"><span class="kv-label">AST%</span><span class="kv-val">% of teammate FGM assisted while on court</span></div>
+                            <div class="kv"><span class="kv-label">OREB% / DREB%</span><span class="kv-val">rebounding rate vs available opportunities</span></div>
+                            <div class="kv"><span class="kv-label">OFF/DEF/NET RTG</span><span class="kv-val">points scored/allowed per 100 possessions on court</span></div>
+                            <div class="kv"><span class="kv-label">+/−</span><span class="kv-val">point differential while the player is on the court</span></div>
+                            <p style="margin-top:8px;">Click any player row in the standings or stats table to open their <strong>player card</strong> with full career history, attributes, tendencies, and injury log.</p>
+                        </div>
+                    }
+                </div>
+
+            </div><!-- /sections -->
+
+            <div style="padding:0.6rem 1.25rem 1rem;border-top:1px solid #191919;display:flex;justify-content:flex-end;">
+                <button @onclick="() => _showHowItWorks = false"
+                        style="background:#1a1a1a;border:1px solid #2a2a2a;color:#555;padding:5px 20px;border-radius:4px;cursor:pointer;font-family:monospace;font-size:0.85rem;">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
 </div>
 
 @code {
-    private enum Phase { NeedFetch, Fetching, Ready, Simulating, Done }
+    private enum Phase { NeedFetch, Fetching, Syncing, Ready, LiveSeason, Simulating, Done, Playoffs }
+
+    // ── Live season state ─────────────────────────────────────────────────────
+    private SeasonScheduleService.LiveSeasonState? _liveState;
+    private System.Threading.Timer?                _simTimer;
+    private bool                                   _isAutoSimming;
+    private string                                 _selectedTeam = "";
+    private string                                 _topTab       = "standings";
+    private string                                 _statsTab     = "players";
+    private SeasonGameRecord?                      _tickerBoxScore;
+
+    // ── Logo helper ───────────────────────────────────────────────────────────
+    private static string LogoSlug(string teamName) =>
+        teamName.ToLowerInvariant().Replace(' ', '-');
+
+    // ── Live season launch ────────────────────────────────────────────────────
+    private async Task StartLiveSeason()
+    {
+        StopAutoSim();
+        _liveState = null;
+        _phase     = Phase.LiveSeason;
+        _topTab    = "standings";
+        _statsTab  = "players";
+        StateHasChanged();
+        _liveState = await Task.Run(() =>
+            SeasonSvc.InitializeLiveSeason(_teams, _selectedTeam, disableInjuries: _disableInjuries));
+        StateHasChanged();
+    }
+
+    private void SimOneDayLive()
+    {
+        if (_liveState is null || _liveState.IsComplete) return;
+        SeasonSvc.SimulateDay(_liveState);
+        StateHasChanged();
+    }
+
+    private async Task SimRestOfSeasonLive()
+    {
+        if (_liveState is null) return;
+        StopAutoSim();
+        await Task.Run(() => SeasonSvc.SimulateRestOfSeason(_liveState));
+        StateHasChanged();
+    }
+
+    private void ToggleAutoSim()
+    {
+        if (_isAutoSimming) { StopAutoSim(); return; }
+        _isAutoSimming = true;
+        _simTimer = new System.Threading.Timer(_ =>
+        {
+            if (_liveState is null || _liveState.IsComplete) { StopAutoSim(); InvokeAsync(StateHasChanged); return; }
+            SeasonSvc.SimulateDay(_liveState);
+            InvokeAsync(StateHasChanged);
+        }, null, 0, 500);
+    }
+
+    private void StopAutoSim()
+    {
+        _simTimer?.Dispose();
+        _simTimer      = null;
+        _isAutoSimming = false;
+    }
+
+    // Roster player lookup for injury status badges (live season)
+    private Player? GetRosterPlayer(string name)
+    {
+        if (_liveState is null) return null;
+        foreach (var team in _liveState.Teams.Values)
+        {
+            var p = team.Roster.FirstOrDefault(rp =>
+                string.Equals(rp.Name, name, StringComparison.OrdinalIgnoreCase));
+            if (p is not null) return p;
+        }
+        return null;
+    }
+
+    // IAsyncDisposable — stop timer when component is torn down
+    public async ValueTask DisposeAsync()
+    {
+        StopAutoSim();
+        await Task.CompletedTask;
+    }
 
     private Phase         _phase            = Phase.NeedFetch;
     private int           _fetchDone        = 0;
@@ -693,13 +1984,53 @@ else if (_phase == Phase.Done && _season is not null)
     private int           _gamesPlayed      = 0;
     private SeasonResult? _season;
     private string?       _savedPath;
+    private bool          _disableInjuries = false;
     private string        _leagueSearch     = "";
     private string        _leagueTeamFilter = "";
 
-    private string _leagueSort  = "pts";
+    private string _leagueSort    = "pts";
     private bool   _leagueSortAsc = false;
+    private bool   _leagueEligOnly = false;
+
+    private string _teamSort    = "wins";
+    private bool   _teamSortAsc = false;
 
     private Dictionary<string, Team> _teams = [];
+
+    private PlayoffResult? _playoffs;
+    private SeasonAwards?  _awards;
+    private int            _playoffGamesPlayed;
+    private int            _playoffGamesTotal = 83;
+
+    private IReadOnlyList<(Team Team, Player Player)> InjuredPlayers =>
+        _teams.Values
+            .SelectMany(t => t.Roster
+                .Where(p => p.CurrentInjury is not null)
+                .Select(p => (Team: t, Player: p)))
+            .OrderByDescending(x => x.Player.CurrentInjury!.Definition.Grade)
+            .ThenBy(x => x.Player.CurrentInjury!.DaysRemaining)
+            .ToList();
+
+    // ── How It Works modal ────────────────────────────────────────────────────
+    private bool                _showHowItWorks = false;
+    private HashSet<string>     _hiwOpen        = [];
+    private void HiwToggle(string key) { if (!_hiwOpen.Add(key)) _hiwOpen.Remove(key); }
+    private bool HiwOpen(string key) => _hiwOpen.Contains(key);
+
+    private RenderFragment HiwChips(params string[] labels) => __builder =>
+    {
+        foreach (var l in labels)
+        {
+            __builder.OpenElement(0, "span");
+            __builder.AddAttribute(1, "class", "hiw-chip");
+            __builder.AddContent(2, l);
+            __builder.CloseElement();
+        }
+    };
+
+    // ── Game log modal ────────────────────────────────────────────────────────
+    private TeamSeasonStats? _gameLogTeam;
+    private void OpenGameLog(TeamSeasonStats t) => _gameLogTeam = t;
 
     // ── Player detail modal ───────────────────────────────────────────────────
     private PlayerSeasonStats?           _detailPlayer;
@@ -718,7 +2049,9 @@ else if (_phase == Phase.Done && _season is not null)
         return Task.CompletedTask;
     }
 
-    // ── ESPN fetch ────────────────────────────────────────────────────────────
+    // ── ESPN fetch + sync ─────────────────────────────────────────────────────
+    private int _syncUpdated, _syncAdded, _syncFreed;
+
     private async Task FetchRosters()
     {
         _phase = Phase.Fetching; _fetchDone = 0;
@@ -729,6 +2062,11 @@ else if (_phase == Phase.Done && _season is not null)
             InvokeAsync(StateHasChanged);
         });
         await RosterSvc.FetchAndSaveAsync(progress);
+
+        _phase = Phase.Syncing;
+        StateHasChanged();
+        (_syncUpdated, _syncAdded, _syncFreed) = await PlayerSvc.SyncRostersAsync();
+
         _teams = RosterSvc.LoadTeams();
         _phase = Phase.Ready;
         StateHasChanged();
@@ -737,16 +2075,34 @@ else if (_phase == Phase.Done && _season is not null)
     // ── Simulate ──────────────────────────────────────────────────────────────
     private async Task SimulateSeason()
     {
-        _phase = Phase.Simulating; _gamesPlayed = 0; _season = null;
+        _phase = Phase.Simulating; _gamesPlayed = 0; _season = null; _playoffs = null; _awards = null; _statsTab = "players";
         StateHasChanged();
         var progress = new Progress<(int current, int total)>(p =>
         {
             _gamesPlayed = p.current;
             InvokeAsync(StateHasChanged);
         });
-        _season    = await Task.Run(() => SeasonSvc.SimulateSeason(_teams, progress));
+        _season    = await Task.Run(() => SeasonSvc.SimulateSeason(_teams, progress, disableInjuries: _disableInjuries));
+        _awards    = SeasonScheduleService.ComputeAwards(_season);
         _savedPath = await Task.Run(() => SaveResults(_season));
         _phase = Phase.Done;
+        StateHasChanged();
+    }
+
+    private async Task SimulatePlayoffs()
+    {
+        if (_season is null) return;
+        _phase = Phase.Playoffs; _playoffGamesPlayed = 0; _playoffGamesTotal = 83;
+        StateHasChanged();
+        var progress = new Progress<(int done, int total)>(p =>
+        {
+            _playoffGamesPlayed = p.done;
+            if (p.total > 0) _playoffGamesTotal = p.total;
+            InvokeAsync(StateHasChanged);
+        });
+        _playoffs  = await Task.Run(() => SeasonSvc.SimulatePlayoffs(_teams, _season, progress));
+        _phase     = Phase.Done;
+        _statsTab  = "playoffs";
         StateHasChanged();
     }
 
@@ -772,11 +2128,54 @@ else if (_phase == Phase.Done && _season is not null)
     private IEnumerable<PlayerSeasonStats> SortedLeaguePlayers()
     {
         var q = _season!.PlayerStats.Where(p => p.GP > 0).AsEnumerable();
+        if (_leagueEligOnly)
+            q = q.Where(p => p.GP >= 41 && p.Mpg >= 15.0);
         if (_leagueSearch.Length > 1)
             q = q.Where(p => p.Name.Contains(_leagueSearch, StringComparison.OrdinalIgnoreCase));
         if (_leagueTeamFilter.Length > 0)
             q = q.Where(p => p.Team == _leagueTeamFilter);
         return ApplySort(q, _leagueSort, _leagueSortAsc);
+    }
+
+    private void SetTeamSort(string col)
+    {
+        if (_teamSort == col) _teamSortAsc = !_teamSortAsc;
+        else { _teamSort = col; _teamSortAsc = col is "losses" or "papg" or "tov"; }
+    }
+
+    private IEnumerable<TeamSeasonStats> SortedTeams()
+    {
+        if (_season is null) return [];
+        Func<TeamSeasonStats, double> key = _teamSort switch
+        {
+            "wins"   => t => t.Wins,
+            "losses" => t => t.Losses,
+            "pct"    => t => t.Pct,
+            "ppg"    => t => t.Ppg,
+            "papg"   => t => t.Papg,
+            "diff"   => t => t.Ppg - t.Papg,
+            "fgm"    => t => t.Fgm,
+            "fga"    => t => t.Fga,
+            "fgpct"  => t => t.FgPct,
+            "tpm"    => t => t.Tpm,
+            "tpa"    => t => t.Tpa,
+            "tppct"  => t => t.TpPct,
+            "ftm"    => t => t.Ftm,
+            "fta"    => t => t.Fta,
+            "ftpct"  => t => t.FtPct,
+            "oreb"   => t => t.Oreb,
+            "dreb"   => t => t.Dreb,
+            "reb"    => t => t.Reb,
+            "ast"    => t => t.Ast,
+            "stl"    => t => t.Stl,
+            "blk"    => t => t.Blk,
+            "tov"    => t => t.Tov,
+            "pace"   => t => t.Pace,
+            _        => t => t.Wins,
+        };
+        return _teamSortAsc
+            ? _season.TeamStats.OrderBy(key)
+            : _season.TeamStats.OrderByDescending(key);
     }
 
     private static IEnumerable<PlayerSeasonStats> ApplySort(
@@ -792,8 +2191,10 @@ else if (_phase == Phase.Done && _season is not null)
             "stl" => p => p.Spg,
             "blk" => p => p.Bpg,
             "tov" => p => p.Topg,
-            "min" => p => p.Mpg,
-            "gp"  => p => p.GP,
+            "min"  => p => p.Mpg,
+            "gp"   => p => p.GP,
+            "rest" => p => p.GamesRested,
+            "sf"   => p => p.AvgSeasonFatigue,
             "fg"      => p => p.FgPct,
             "3p"      => p => p.TpPct,
             "ft"      => p => p.FtPct,
@@ -826,6 +2227,21 @@ else if (_phase == Phase.Done && _season is not null)
              @onclick="() => SetLeagueSort(col)">
             @label@(_leagueSort == col ? (_leagueSortAsc ? " ▲" : " ▼") : "")
         </th>;
+
+    private RenderFragment TeamTh(string col, string label) =>
+        @<th data-sortable="true" class="@(_teamSort == col ? "sort-active" : "")"
+             style="text-align:center;"
+             @onclick="() => SetTeamSort(col)">
+            @label@(_teamSort == col ? (_teamSortAsc ? " ▲" : " ▼") : "")
+        </th>;
+
+    // REST: 0 = grey, 1-5 = yellow, 6-15 = orange, 16+ = red
+    private static string RestColor(int rest) =>
+        rest == 0 ? "#444" : rest <= 5 ? "#c8a840" : rest <= 15 ? "#e08040" : "#e05858";
+
+    // SF: avg pre-game fatigue — higher is better (fresher). Green = high energy, red = chronically fatigued.
+    private static string SfColor(double sf) =>
+        sf >= 80 ? "#4af080" : sf >= 65 ? "#a0d060" : sf >= 55 ? "#c8c8c8" : "#e08040";
 
     private static string PmColor(double pm) =>
         pm > 2 ? "#4af080" : pm < -2 ? "#f06060" : "#888";
@@ -900,6 +2316,23 @@ else if (_phase == Phase.Done && _season is not null)
     private static RenderFragment ShotBar(double pct, string color) =>
         @<div style="background:#1a1a1a;height:3px;border-radius:2px;">
             <div style="width:@(Math.Clamp(pct, 0, 1) * 100)%;background:@color;height:3px;border-radius:2px;"></div>
+        </div>;
+
+    private static RenderFragment SeriesRow(PlayoffSeriesRecord s) =>
+        @<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid #181818;font-size:0.86rem;font-family:monospace;">
+            <span style="color:#555;font-size:0.72rem;width:22px;text-align:right;">#@s.HighSeed</span>
+            <span style="min-width:32px;color:@(s.Complete&&s.HighSeedWins==4?"#e8e8e8":"#555");font-weight:@(s.Complete&&s.HighSeedWins==4?"700":"400");">@s.HighSeedAbbr</span>
+            <span style="width:34px;text-align:center;color:#444;font-size:0.82rem;">@s.HighSeedWins–@s.LowSeedWins</span>
+            <span style="min-width:32px;color:@(s.Complete&&s.LowSeedWins==4?"#e8e8e8":"#555");font-weight:@(s.Complete&&s.LowSeedWins==4?"700":"400");">@s.LowSeedAbbr</span>
+            <span style="color:#555;font-size:0.72rem;width:22px;">#@s.LowSeed</span>
+            @if (s.Complete) { <span style="font-size:0.72rem;color:#fca;margin-left:6px;">@s.SeriesScore</span> }
+        </div>;
+
+    private static RenderFragment AwardCard(string title, AwardWinner winner, string nameColor, string bg, string border) =>
+        @<div style="background:@bg;border:1px solid @border;border-radius:4px;padding:0.75rem;">
+            <div style="font-size:0.68rem;color:#555;letter-spacing:1.5px;margin-bottom:3px;">@title</div>
+            <div style="font-size:1rem;font-weight:700;color:@nameColor;">@winner.Name</div>
+            <div style="font-size:0.78rem;color:#444;margin-top:1px;">@winner.TeamAbbr · @winner.Position</div>
         </div>;
 
     // ── Save calibration output ───────────────────────────────────────────────
