@@ -2,6 +2,7 @@
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 @using BasketballSim.Models
 @using BasketballSim.Services
+@using BasketballSim.Simulation
 @using System.Text.Json
 @using Microsoft.AspNetCore.Components.Web
 @using static Microsoft.AspNetCore.Components.Web.RenderMode
@@ -186,22 +187,18 @@ else if (_phase == Phase.LiveSeason && _liveState is not null)
                      || g.AwayTeam.Equals(_liveState.FollowedTeam, StringComparison.OrdinalIgnoreCase))
             .TakeLast(20).ToList()
         : _liveState.RecentCompleted(20);
-    var tickerUpcoming  = _liveState.IsComplete
+    // Next 8 upcoming games for followed team (across however many days that spans)
+    var tickerUpcoming = _liveState.IsComplete
         ? new List<ScheduledGame>()
         : (hasFollowedTeam
-            ? _liveState.GamesOn(_liveState.CurrentDate)
-                .Where(g => g.HomeTeamId.Equals(_liveState.FollowedTeam, StringComparison.OrdinalIgnoreCase)
-                         || g.AwayTeamId.Equals(_liveState.FollowedTeam, StringComparison.OrdinalIgnoreCase))
+            ? _liveState.Schedule
+                .Where(g => g.Date.Date >= _liveState.CurrentDate
+                         && (g.HomeTeamId.Equals(_liveState.FollowedTeam, StringComparison.OrdinalIgnoreCase)
+                          || g.AwayTeamId.Equals(_liveState.FollowedTeam, StringComparison.OrdinalIgnoreCase)))
+                .OrderBy(g => g.Date)
+                .Take(8)
                 .ToList()
             : _liveState.GamesOn(_liveState.CurrentDate).Take(12).ToList());
-    var nextDayGames = _liveState.DateIndex + 1 < _liveState.TotalScheduledDays
-        ? (hasFollowedTeam
-            ? _liveState.GamesOn(_liveState.GameDates[_liveState.DateIndex + 1])
-                .Where(g => g.HomeTeamId.Equals(_liveState.FollowedTeam, StringComparison.OrdinalIgnoreCase)
-                         || g.AwayTeamId.Equals(_liveState.FollowedTeam, StringComparison.OrdinalIgnoreCase))
-                .ToList()
-            : _liveState.GamesOn(_liveState.GameDates[_liveState.DateIndex + 1]).Take(4).ToList())
-        : new List<ScheduledGame>();
     var liveMyTeam = _liveState.Standings.TryGetValue(_liveState.FollowedTeam, out var _lmt) ? _lmt : null;
     var livePlayers = _liveState.PlayerAgg.Values.Where(p => p.GP > 0).OrderByDescending(p => p.Ppg).ToList();
     var liveFiltered = livePlayers.AsEnumerable();
@@ -228,16 +225,18 @@ else if (_phase == Phase.LiveSeason && _liveState is not null)
         <div style="flex-shrink:0;width:1px;background:#222;height:32px;margin:0 2px;"></div>
         @foreach (var sg in tickerUpcoming)
         {
-            <div style="flex-shrink:0;background:#0a0f0a;border:1px solid #1a2a1a;border-radius:4px;padding:4px 8px;text-align:center;min-width:88px;">
-                <div style="font-size:0.6rem;color:#2a4a2a;margin-bottom:2px;">@sg.Date.ToString("MMM d") — TODAY</div>
-                <div style="font-size:0.8rem;color:#3a5a3a;">@(_liveState.Teams.TryGetValue(sg.HomeTeamId,out var ht)?ht.Abbreviation:"?") vs @(_liveState.Teams.TryGetValue(sg.AwayTeamId,out var at)?at.Abbreviation:"?")</div>
-            </div>
-        }
-        @foreach (var sg in nextDayGames)
-        {
-            <div style="flex-shrink:0;background:#0a0a0a;border:1px solid #1e1e1e;border-radius:4px;padding:4px 8px;text-align:center;min-width:88px;opacity:0.6;">
-                <div style="font-size:0.6rem;color:#252525;margin-bottom:2px;">@sg.Date.ToString("MMM d")</div>
-                <div style="font-size:0.8rem;color:#333;">@(_liveState.Teams.TryGetValue(sg.HomeTeamId,out var ht2)?ht2.Abbreviation:"?") vs @(_liveState.Teams.TryGetValue(sg.AwayTeamId,out var at2)?at2.Abbreviation:"?")</div>
+            bool isToday = sg.Date.Date == _liveState.CurrentDate;
+            bool isSelected = _simToGameTarget == sg;
+            string hAb = _liveState.Teams.TryGetValue(sg.HomeTeamId, out var _ht) ? _ht.Abbreviation : "?";
+            string aAb = _liveState.Teams.TryGetValue(sg.AwayTeamId, out var _at) ? _at.Abbreviation : "?";
+            <div @onclick="() => _simToGameTarget = (isSelected ? null : sg)"
+                 style="flex-shrink:0;cursor:pointer;background:@(isSelected?"#1a1a0d":"#0a0a0a");border:1px solid @(isSelected?"#4a4a1a":isToday?"#1a2a1a":"#1a1a1a");border-radius:4px;padding:4px 8px;text-align:center;min-width:88px;transition:border-color 0.1s;">
+                <div style="font-size:0.6rem;color:@(isToday?"#2a4a2a":"#252525");margin-bottom:2px;">@sg.Date.ToString("MMM d")@(isToday?" — TODAY":"")</div>
+                <div style="font-size:0.8rem;color:@(isToday?"#3a5a3a":"#2a2a2a");">@hAb <span style="color:#181818;">vs</span> @aAb</div>
+                @if (isSelected)
+                {
+                    <div style="font-size:0.62rem;color:#aaa0;margin-top:1px;color:#8a8a30;">▶ watch</div>
+                }
             </div>
         }
     }
@@ -288,6 +287,38 @@ else if (_phase == Phase.LiveSeason && _liveState is not null)
         <div style="background:#2a0a0a;border:1px solid #4a1a1a;border-radius:4px;padding:6px 12px;margin-bottom:6px;font-size:0.82rem;color:#f06060;display:flex;justify-content:space-between;align-items:center;">
             <span>⚠ @_simError</span>
             <button @onclick="() => _simError = null" style="background:none;border:none;color:#f06060;cursor:pointer;font-size:0.9rem;padding:0 4px;">✕</button>
+        </div>
+    }
+
+    @if (_simToGameTarget is not null && !_liveState.IsComplete)
+    {
+        var stg   = _simToGameTarget;
+        bool isToday2 = stg.Date.Date == _liveState.CurrentDate;
+        string stgH = _liveState.Teams.TryGetValue(stg.HomeTeamId, out var stgHT) ? stgHT.Name : stg.HomeTeamId;
+        string stgA = _liveState.Teams.TryGetValue(stg.AwayTeamId, out var stgAT) ? stgAT.Name : stg.AwayTeamId;
+        string stgHAb = stgHT?.Abbreviation ?? "?";
+        string stgAAb = stgAT?.Abbreviation ?? "?";
+        int daysAway = (stg.Date.Date - _liveState.CurrentDate).Days;
+        <div style="display:flex;align-items:center;gap:0.75rem;padding:7px 12px;background:#0e0e08;border:1px solid #2a2a14;border-radius:5px;margin-bottom:8px;flex-wrap:wrap;">
+            <img src="/logos/teams/@(LogoSlug(stgH)).svg" style="width:22px;height:22px;object-fit:contain;" onerror="this.style.display='none'" />
+            <span style="color:#c8c8c8;font-weight:700;font-size:0.88rem;">@stgHAb <span style="color:#333;font-weight:400;">vs</span> @stgAAb</span>
+            <img src="/logos/teams/@(LogoSlug(stgA)).svg" style="width:22px;height:22px;object-fit:contain;" onerror="this.style.display='none'" />
+            <span style="color:#555;font-size:0.8rem;">@stg.Date.ToString("ddd MMM d")</span>
+            @if (daysAway > 0) { <span style="color:#3a3a1a;font-size:0.78rem;">@daysAway day@(daysAway==1?"":"s") away</span> }
+            else { <span style="color:#2a4a2a;font-size:0.78rem;">TODAY</span> }
+            <span style="flex:1;"></span>
+            @if (_simBusy)
+            {
+                <span style="color:#555;font-size:0.82rem;">Simming to game…</span>
+            }
+            else
+            {
+                <button @onclick="() => SimToGame(stg)"
+                        style="background:#1a1a0a;color:#fca;border:1px solid #3a3a1a;padding:5px 18px;border-radius:4px;cursor:pointer;font-family:monospace;font-size:0.85rem;font-weight:700;">
+                    ▶ Watch Game
+                </button>
+            }
+            <button @onclick="() => _simToGameTarget = null" style="background:none;border:none;color:#333;cursor:pointer;font-size:1rem;padding:0 4px;">✕</button>
         </div>
     }
 
@@ -1629,6 +1660,149 @@ else if (_phase == Phase.Done && _season is not null)
     </div>
 }
 
+<!-- ═══ WATCH GAME MODAL ═══ -->
+@if (_watchGame is not null)
+{
+    var wg = _watchGame;
+    string wHomeAbbr = _liveState?.Teams.TryGetValue(wg.HomeTeam.Name, out var _wht) == true ? _wht.Abbreviation : wg.HomeTeam.Abbreviation;
+    string wAwayAbbr = _liveState?.Teams.TryGetValue(wg.AwayTeam.Name, out var _wat) == true ? _wat.Abbreviation : wg.AwayTeam.Abbreviation;
+
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:2000;display:flex;flex-direction:column;font-family:monospace;color:#d4d4d4;">
+
+        <!-- Score header -->
+        <div style="display:flex;align-items:center;justify-content:center;gap:2rem;padding:0.9rem 1.5rem;background:#0d0d0d;border-bottom:1px solid #1e1e1e;flex-shrink:0;">
+            <div style="display:flex;align-items:center;gap:8px;">
+                <img src="/logos/teams/@(LogoSlug(wg.AwayTeam.Name)).svg" style="width:32px;height:32px;object-fit:contain;" onerror="this.style.display='none'" />
+                <span style="font-size:0.78rem;color:#555;">@wAwayAbbr</span>
+                <span style="font-size:2rem;font-weight:800;color:@(_watchAwayScore>_watchHomeScore?"#4af080":"#c8c8c8");min-width:44px;text-align:right;">@_watchAwayScore</span>
+            </div>
+            <div style="text-align:center;">
+                <div style="font-size:0.65rem;color:#333;letter-spacing:1px;">@(WatchQuarterLabel())</div>
+                <div style="font-size:0.85rem;color:#444;font-weight:600;margin-top:1px;">@(WatchClockLabel())</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:2rem;font-weight:800;color:@(_watchHomeScore>_watchAwayScore?"#4af080":"#c8c8c8");min-width:44px;text-align:left;">@_watchHomeScore</span>
+                <span style="font-size:0.78rem;color:#555;">@wHomeAbbr</span>
+                <img src="/logos/teams/@(LogoSlug(wg.HomeTeam.Name)).svg" style="width:32px;height:32px;object-fit:contain;" onerror="this.style.display='none'" />
+            </div>
+            <!-- Controls -->
+            <div style="display:flex;align-items:center;gap:4px;margin-left:2rem;">
+                @foreach (var (label, ms) in new[]{("🐢",180),("▶",70),("⚡",18),("⏩",0)})
+                {
+                    bool sel2 = _watchDelayMs == ms;
+                    <button @onclick="() => _watchDelayMs = ms"
+                            style="background:@(sel2?"#2a2a1a":"none");border:1px solid @(sel2?"#4a4a2a":"#222");color:@(sel2?"#fca":"#444");padding:3px 7px;border-radius:3px;cursor:pointer;font-size:0.85rem;">@label</button>
+                }
+            </div>
+            @if (_watchDone)
+            {
+                <div style="display:flex;gap:4px;margin-left:1rem;">
+                    <button @onclick='()=>_watchTab="log"'   style="background:@(_watchTab=="log"?"#1a1a1a":"none");border:1px solid @(_watchTab=="log"?"#333":"#1a1a1a");color:@(_watchTab=="log"?"#aaa":"#333");padding:3px 10px;border-radius:3px;cursor:pointer;font-size:0.78rem;font-family:monospace;">PLAY-BY-PLAY</button>
+                    <button @onclick='()=>_watchTab="box"'   style="background:@(_watchTab=="box"?"#1a1a1a":"none");border:1px solid @(_watchTab=="box"?"#333":"#1a1a1a");color:@(_watchTab=="box"?"#aaa":"#333");padding:3px 10px;border-radius:3px;cursor:pointer;font-size:0.78rem;font-family:monospace;">BOX SCORE</button>
+                </div>
+            }
+            <button @onclick="CloseWatchModal" style="background:none;border:none;color:#333;font-size:1.3rem;cursor:pointer;margin-left:auto;padding:0 4px;">✕</button>
+        </div>
+
+        <!-- Content area -->
+        <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;">
+
+            @if (!_watchDone || _watchTab == "log")
+            {
+                <!-- Possession log -->
+                <div id="watchLog" style="flex:1;overflow-y:auto;padding:0.5rem 1.5rem;display:flex;flex-direction:column;gap:3px;">
+                    @foreach (var poss in _watchPossessions)
+                    {
+                        bool isScore = poss.PointsScored > 0;
+                        bool isTov   = poss.Event is PossessionEvent.TurnoverStolen or PossessionEvent.TurnoverDeadBall;
+                        bool isFoul  = poss.Event == PossessionEvent.FreeThrows;
+                        string rowColor = isScore ? "#c8c8c8" : isTov ? "#c06060" : isFoul ? "#88aacc" : "#4a4a4a";
+                        <div style="font-size:0.82rem;color:@rowColor;padding:2px 0;border-bottom:1px solid #141414;">
+                            <span style="color:#2a2a2a;margin-right:6px;font-size:0.74rem;">Q@poss.Quarter @FormatClock(poss.ClockSeconds)</span>@poss.Narrative
+                        </div>
+                    }
+                    @if (!_watchDone)
+                    {
+                        <div style="color:#2a2a2a;font-size:0.78rem;padding:4px 0;">…</div>
+                    }
+                    @if (_watchDone && _watchPossessions.Count == 0)
+                    {
+                        <div style="color:#333;padding:2rem;text-align:center;">No possession data.</div>
+                    }
+                </div>
+            }
+            else if (_watchDone && _watchTab == "box")
+            {
+                <!-- Box score -->
+                <div style="overflow-y:auto;flex:1;padding:1rem 1.5rem;">
+                    @foreach (var side in new[]{wg.HomeTeam, wg.AwayTeam})
+                    {
+                        var sideStats = wg.Stats.Values
+                            .Where(p => p.Team == side.Name && p.MinutesPlayed > 0)
+                            .OrderByDescending(p => p.Points)
+                            .ToList();
+                        int sideScore = side.Name == wg.HomeTeam.Name ? _watchHomeScore : _watchAwayScore;
+                        <div style="margin-bottom:1.25rem;">
+                            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                                <img src="/logos/teams/@(LogoSlug(side.Name)).svg" style="width:18px;height:18px;object-fit:contain;" onerror="this.style.display='none'" />
+                                <span style="font-size:0.9rem;font-weight:700;color:#c8c8c8;">@side.Abbreviation</span>
+                                <span style="font-size:1.1rem;font-weight:800;color:@(sideScore>=(side.Name==wg.HomeTeam.Name?_watchAwayScore:_watchHomeScore)?"#4af080":"#888");">@sideScore</span>
+                            </div>
+                            <table style="font-size:0.82rem;width:100%;border-collapse:collapse;">
+                                <thead><tr style="border-bottom:1px solid #1e1e1e;">
+                                    <th style="text-align:left;padding:2px 8px 2px 0;color:#444;font-weight:400;min-width:130px;">PLAYER</th>
+                                    <th style="text-align:center;color:#444;font-weight:400;width:36px;">MIN</th>
+                                    <th style="text-align:center;color:#e8c060;font-weight:400;width:28px;">PTS</th>
+                                    <th style="text-align:center;color:#444;font-weight:400;width:28px;">REB</th>
+                                    <th style="text-align:center;color:#60c8e8;font-weight:400;width:28px;">AST</th>
+                                    <th style="text-align:center;color:#a0e080;font-weight:400;width:28px;">STL</th>
+                                    <th style="text-align:center;color:#e08060;font-weight:400;width:28px;">BLK</th>
+                                    <th style="text-align:center;color:#f06060;font-weight:400;width:28px;">TOV</th>
+                                    <th style="text-align:center;color:#444;font-weight:400;width:44px;">FG</th>
+                                    <th style="text-align:center;color:#444;font-weight:400;width:44px;">3PT</th>
+                                    <th style="text-align:center;color:#444;font-weight:400;width:44px;">FT</th>
+                                    <th style="text-align:center;color:#444;font-weight:400;width:36px;">+/-</th>
+                                </tr></thead>
+                                <tbody>
+                                @foreach (var ps in sideStats)
+                                {
+                                    double pmVal = ps.PlusMinus;
+                                    <tr style="border-bottom:1px solid #141414;">
+                                        <td style="color:#b8b8b8;padding:2px 8px 2px 0;">@ps.Name</td>
+                                        <td style="text-align:center;color:#555;">@ps.MinutesPlayed.ToString("F0")</td>
+                                        <td style="text-align:center;color:#e8c060;font-weight:600;">@ps.Points</td>
+                                        <td style="text-align:center;">@(ps.OffRebounds+ps.DefRebounds)</td>
+                                        <td style="text-align:center;color:#60c8e8;">@ps.Assists</td>
+                                        <td style="text-align:center;color:#a0e080;">@ps.Steals</td>
+                                        <td style="text-align:center;color:#e08060;">@ps.Blocks</td>
+                                        <td style="text-align:center;color:#f06060;">@ps.Turnovers</td>
+                                        <td style="text-align:center;color:#555;">@ps.FGMade-@ps.FGAttempts</td>
+                                        <td style="text-align:center;color:#555;">@ps.ThreeMade-@ps.ThreeAttempts</td>
+                                        <td style="text-align:center;color:#555;">@ps.FTMade-@ps.FTAttempts</td>
+                                        <td style="text-align:center;color:@PmColor(pmVal);">@pmVal.ToString("+0;-0;0")</td>
+                                    </tr>
+                                }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            }
+
+        </div>
+
+        @if (_watchDone)
+        {
+            <div style="padding:0.6rem 1.5rem;border-top:1px solid #1a1a1a;display:flex;align-items:center;gap:1rem;background:#0d0d0d;flex-shrink:0;">
+                <span style="font-size:0.8rem;color:#555;">FINAL</span>
+                <span style="color:#4af080;font-size:0.8rem;font-weight:600;">@(wg.FinalAwayScore > wg.FinalHomeScore ? wAwayAbbr : wHomeAbbr) wins</span>
+                <span style="flex:1;"></span>
+                <button @onclick="CloseWatchModal" style="background:#1a1a2a;border:1px solid #2a2a4a;color:#8ab8ff;padding:5px 20px;border-radius:4px;cursor:pointer;font-family:monospace;font-size:0.85rem;">Done</button>
+            </div>
+        }
+    </div>
+}
+
 <!-- ═══ HOW IT WORKS MODAL ═══ -->
 @if (_showHowItWorks)
 {
@@ -2037,6 +2211,116 @@ else if (_phase == Phase.Done && _season is not null)
             .OrderByDescending(x => x.Player.CurrentInjury!.Definition.Grade)
             .ThenBy(x => x.Player.CurrentInjury!.DaysRemaining)
             .ToList();
+
+    // ── Sim to Game / Watch state ─────────────────────────────────────────────
+    private ScheduledGame?         _simToGameTarget;
+    private GameResult?            _watchGame;
+    private bool                   _watchDone;
+    private string                 _watchTab      = "log";
+    private int                    _watchDelayMs  = 70;
+    private int                    _watchHomeScore;
+    private int                    _watchAwayScore;
+    private int                    _watchQuarter  = 1;
+    private int                    _watchClockSec = 720;
+    private List<PossessionResult> _watchPossessions = [];
+    private CancellationTokenSource? _watchCts;
+
+    private string WatchQuarterLabel() => _watchQuarter switch
+    {
+        1 => "1ST QTR", 2 => "2ND QTR", 3 => "3RD QTR", 4 => "4TH QTR",
+        _ => $"OT{_watchQuarter - 4}"
+    };
+    private string WatchClockLabel() => _watchDone ? "FINAL"
+        : $"{_watchClockSec / 60}:{_watchClockSec % 60:D2}";
+    private static string FormatClock(int sec) => $"{sec / 60}:{sec % 60:D2}";
+
+    private async Task SimToGame(ScheduledGame target)
+    {
+        if (_liveState is null || _simBusy) return;
+        _simBusy         = true;
+        _simToGameTarget = null;
+        _simError        = null;
+        StateHasChanged();
+
+        GameResult? captured = null;
+        try
+        {
+            captured = await Task.Run(() =>
+            {
+                SeasonSvc.SimulateDaysUntil(_liveState, target.Date);
+                return SeasonSvc.SimulateDayCapturingGame(_liveState, target);
+            });
+        }
+        catch (Exception ex)
+        {
+            _simError = $"Sim error: {ex.Message}";
+            _simBusy = false;
+            StateHasChanged();
+            return;
+        }
+        finally
+        {
+            _simBusy = false;
+        }
+
+        if (captured is null)
+        {
+            _simError = "Could not capture game result.";
+            StateHasChanged();
+            return;
+        }
+
+        // Open watch modal
+        _watchGame       = captured;
+        _watchDone       = false;
+        _watchTab        = "log";
+        _watchHomeScore  = 0;
+        _watchAwayScore  = 0;
+        _watchQuarter    = 1;
+        _watchClockSec   = 720;
+        _watchPossessions = [];
+        _watchCts?.Cancel();
+        _watchCts = new CancellationTokenSource();
+        StateHasChanged();
+
+        await WatchGameAsync(_watchCts.Token);
+    }
+
+    private async Task WatchGameAsync(CancellationToken ct)
+    {
+        if (_watchGame is null) return;
+        foreach (var poss in _watchGame.Possessions)
+        {
+            if (ct.IsCancellationRequested) break;
+            _watchHomeScore   = poss.HomeScore;
+            _watchAwayScore   = poss.AwayScore;
+            _watchQuarter     = poss.Quarter;
+            _watchClockSec    = poss.ClockSeconds;
+            _watchPossessions.Add(poss);
+
+            if (_watchDelayMs > 0)
+            {
+                try { await Task.Delay(_watchDelayMs, ct); } catch { break; }
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        if (!ct.IsCancellationRequested)
+        {
+            _watchHomeScore = _watchGame.FinalHomeScore;
+            _watchAwayScore = _watchGame.FinalAwayScore;
+            _watchDone = true;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void CloseWatchModal()
+    {
+        _watchCts?.Cancel();
+        _watchGame  = null;
+        _watchDone  = false;
+        _watchPossessions = [];
+        StateHasChanged();
+    }
 
     // ── How It Works modal ────────────────────────────────────────────────────
     private bool                _showHowItWorks = false;
