@@ -283,6 +283,13 @@ else if (_phase == Phase.LiveSeason && _liveState is not null)
             <span style="color:#4af080;font-size:0.8rem;">@liveMyTeam.Wins–@liveMyTeam.Losses</span>
         }
     </div>
+    @if (_simError is not null)
+    {
+        <div style="background:#2a0a0a;border:1px solid #4a1a1a;border-radius:4px;padding:6px 12px;margin-bottom:6px;font-size:0.82rem;color:#f06060;display:flex;justify-content:space-between;align-items:center;">
+            <span>⚠ @_simError</span>
+            <button @onclick="() => _simError = null" style="background:none;border:none;color:#f06060;cursor:pointer;font-size:0.9rem;padding:0 4px;">✕</button>
+        </div>
+    }
 
     <!-- ═══ TOP TABS: STANDINGS | CALENDAR ═══ -->
     <div style="display:flex;gap:0;border-bottom:1px solid #1e1e1e;margin-bottom:0.75rem;">
@@ -1933,9 +1940,24 @@ else if (_phase == Phase.Done && _season is not null)
 
     private async Task SimRestOfSeasonLive()
     {
-        if (_liveState is null) return;
+        if (_liveState is null || _simBusy) return;
+        _simBusy  = true;
+        _simError = null;
         StopAutoSim();
-        await Task.Run(() => SeasonSvc.SimulateRestOfSeason(_liveState));
+        // Small delay to let any in-flight timer callback finish before we start
+        await Task.Delay(80);
+        try
+        {
+            await Task.Run(() => SeasonSvc.SimulateRestOfSeason(_liveState));
+        }
+        catch (Exception ex)
+        {
+            _simError = $"Sim error: {ex.Message}";
+        }
+        finally
+        {
+            _simBusy = false;
+        }
         StateHasChanged();
     }
 
@@ -1945,6 +1967,7 @@ else if (_phase == Phase.Done && _season is not null)
         _isAutoSimming = true;
         _simTimer = new System.Threading.Timer(_ =>
         {
+            if (_simBusy) return; // background sim in progress — skip this tick
             if (_liveState is null || _liveState.IsComplete) { StopAutoSim(); InvokeAsync(StateHasChanged); return; }
             SeasonSvc.SimulateDay(_liveState);
             InvokeAsync(StateHasChanged);
@@ -1957,6 +1980,9 @@ else if (_phase == Phase.Done && _season is not null)
         _simTimer      = null;
         _isAutoSimming = false;
     }
+
+    // Guard against concurrent SimulateDay calls (timer vs. background Task)
+    private volatile bool _simBusy = false;
 
     // Roster player lookup for injury status badges (live season)
     private Player? GetRosterPlayer(string name)
@@ -1984,6 +2010,7 @@ else if (_phase == Phase.Done && _season is not null)
     private int           _gamesPlayed      = 0;
     private SeasonResult? _season;
     private string?       _savedPath;
+    private string?       _simError;
     private bool          _disableInjuries = false;
     private string        _leagueSearch     = "";
     private string        _leagueTeamFilter = "";
@@ -2091,8 +2118,15 @@ else if (_phase == Phase.Done && _season is not null)
 
     private async Task SimulatePlayoffs()
     {
-        if (_season is null) return;
+        // Resolve the season result from whichever mode produced it
+        SeasonResult? seasonResult = _season ?? _liveState?.Result;
+        IReadOnlyDictionary<string, Team> teams = (_liveState is not null)
+            ? _liveState.Teams
+            : _teams;
+        if (seasonResult is null) return;
+
         _phase = Phase.Playoffs; _playoffGamesPlayed = 0; _playoffGamesTotal = 83;
+        _simError = null;
         StateHasChanged();
         var progress = new Progress<(int done, int total)>(p =>
         {
@@ -2100,9 +2134,24 @@ else if (_phase == Phase.Done && _season is not null)
             if (p.total > 0) _playoffGamesTotal = p.total;
             InvokeAsync(StateHasChanged);
         });
-        _playoffs  = await Task.Run(() => SeasonSvc.SimulatePlayoffs(_teams, _season, progress));
-        _phase     = Phase.Done;
-        _statsTab  = "playoffs";
+        try
+        {
+            _playoffs = await Task.Run(() => SeasonSvc.SimulatePlayoffs(teams, seasonResult, progress));
+        }
+        catch (Exception ex)
+        {
+            _simError = $"Playoff sim error: {ex.Message}";
+            _phase = _season is not null ? Phase.Done : Phase.LiveSeason;
+            StateHasChanged();
+            return;
+        }
+        // Keep the awards computation using the resolved season result
+        _awards = SeasonScheduleService.ComputeAwards(seasonResult);
+        // If we came from LiveSeason, promote the result so Phase.Done renders properly
+        if (_season is null && _liveState?.Result is not null)
+            _season = _liveState.Result;
+        _phase    = Phase.Done;
+        _statsTab = "playoffs";
         StateHasChanged();
     }
 
