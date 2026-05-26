@@ -29,10 +29,10 @@ public class NbaRosterService(IWebHostEnvironment env, EspnService espnSvc, Nba2
                 .Where(p => p.Team.Equals(meta.Name, StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
-            var configs = EspnTeamFactory.BuildRoster(teamPlayers, maxBench: 10);
+            var configs = EspnTeamFactory.BuildRoster(teamPlayers, maxBench: 15);
             var team    = EspnTeamFactory.BuildTeam(
                 configs, meta.Name, meta.Abbr, meta.PrimaryColor,
-                rotationDepth: 10,
+                coach: CoachFactory.GetCoach(meta.Name),
                 secondaryColor: meta.SecondaryColor,
                 division: meta.Division,
                 conference: meta.Conference);

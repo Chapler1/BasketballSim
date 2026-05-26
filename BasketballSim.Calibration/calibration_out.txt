@@ -1,0 +1,777 @@
+﻿══════════════════════════════════════════════════════════════════
+ NBA 2023-24 TARGETS  (per team per game)
+══════════════════════════════════════════════════════════════════
+ PTS  114.6  |  FGA 88.7  |  FGM 42.9  |  FG%  48.4%
+ 3PA   35.1  |  3PM  13.1 |  3P%  37.3%
+ 2PA   53.6  |  2PM  29.8 |  2P%  55.6%
+ FTA   21.5  |  FTM  16.7 |  FT%  77.5%
+ ORB    9.5  |  DRB  32.6 |  TRB  42.1
+ AST   26.5  |  STL   7.4 |  BLK   4.9 |  TOV 13.9
+ Dunks: ~6-8 per team per game
+══════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════
+ SET 1: BASELINES
+
+── All-50 Baseline (should ≈ NBA avg)
+   500 games | Home wins: 239 (47.8%)  Avg score: 87.9 - 88.4  (diff: -0.5)
+   HOME: 
+     PTS   87.9 | FGA  77.6 FGM 31.9 FG% 41.2%
+     3PA   30.4 | 3PM  9.9  3P% 32.5%
+     2PA   47.2 | 2PM 22.1  2P% 46.8%
+     FTA   21.9 | FTM 14.2  FT% 64.8%
+     ORB    7.9 | DRB 34.0  AST 18.7  STL 7.7  BLK 2.1  TOV 17.0
+     SPLIT: Layup 21.3 | Dunk 7.1 (52.2% make) | Mid 18.7 | 3PT 30.4
+       AlleyOop              1.2 att   75.5%
+       CutDunk               0.6 att   68.0%
+       TransitionDunk        0.4 att   64.0%
+       PickAndRollDunk       0.2 att   60.0%
+       ContactDunk           0.3 att   39.9%
+       Putback               4.5 att   43.4%
+   AWAY: 
+     PTS   88.4 | FGA  77.7 FGM 32.0 FG% 41.2%
+     3PA   30.1 | 3PM  9.6  3P% 32.0%
+     2PA   47.6 | 2PM 22.4  2P% 47.0%
+     FTA   22.5 | FTM 14.8  FT% 65.7%
+     ORB    8.4 | DRB 34.5  AST 18.4  STL 7.7  BLK 2.1  TOV 17.1
+     SPLIT: Layup 21.6 | Dunk 7.4 (52.7% make) | Mid 18.7 | 3PT 30.1
+       AlleyOop              1.3 att   75.9%
+       CutDunk               0.5 att   66.5%
+       TransitionDunk        0.4 att   60.8%
+       PickAndRollDunk       0.3 att   60.3%
+       ContactDunk           0.3 att   39.6%
+       Putback               4.6 att   44.7%
+
+── Pace 97
+   500 games | Home wins: 294 (58.8%)  Avg score: 89.7 - 86.7  (diff: +3.0)
+   HOME: 
+     PTS   89.7 | FGA  77.2 FGM 32.7 FG% 42.3%
+     3PA   30.5 | 3PM 10.0  3P% 32.7%
+     2PA   46.8 | 2PM 22.7  2P% 48.6%
+     FTA   21.5 | FTM 14.3  FT% 66.5%
+     ORB    7.8 | DRB 34.4  AST 18.8  STL 7.8  BLK 2.1  TOV 17.3
+     SPLIT: Layup 20.9 | Dunk 7.0 (53.2% make) | Mid 18.9 | 3PT 30.5
+       AlleyOop              1.2 att   77.4%
+       CutDunk               0.5 att   68.5%
+       TransitionDunk        0.3 att   66.0%
+       PickAndRollDunk       0.3 att   54.3%
+       ContactDunk           0.3 att   41.4%
+       Putback               4.5 att   45.0%
+   AWAY: 
+     PTS   86.7 | FGA  77.4 FGM 31.3 FG% 40.5%
+     3PA   29.7 | 3PM  9.3  3P% 31.3%
+     2PA   47.7 | 2PM 22.1  2P% 46.3%
+     FTA   22.6 | FTM 14.7  FT% 65.2%
+     ORB    8.3 | DRB 33.6  AST 18.0  STL 7.7  BLK 2.0  TOV 17.3
+     SPLIT: Layup 21.2 | Dunk 7.3 (51.8% make) | Mid 19.1 | 3PT 29.7
+       AlleyOop              1.2 att   73.1%
+       CutDunk               0.5 att   65.5%
+       TransitionDunk        0.3 att   67.4%
+       PickAndRollDunk       0.3 att   56.2%
+       ContactDunk           0.3 att   45.4%
+       Putback               4.7 att   44.0%
+
+── Pace 104
+   500 games | Home wins: 193 (38.6%)  Avg score: 87.9 - 92.0  (diff: -4.1)
+   HOME: 
+     PTS   87.9 | FGA  77.8 FGM 31.8 FG% 40.9%
+     3PA   30.9 | 3PM  9.9  3P% 32.1%
+     2PA   46.8 | 2PM 21.9  2P% 46.7%
+     FTA   22.1 | FTM 14.4  FT% 65.2%
+     ORB    7.4 | DRB 33.8  AST 18.3  STL 7.7  BLK 2.0  TOV 17.0
+     SPLIT: Layup 21.1 | Dunk 6.2 (50.3% make) | Mid 19.5 | 3PT 30.9
+       AlleyOop              1.0 att   77.1%
+       CutDunk               0.4 att   69.8%
+       TransitionDunk        0.3 att   58.0%
+       PickAndRollDunk       0.2 att   59.1%
+       ContactDunk           0.3 att   44.5%
+       Putback               4.1 att   41.5%
+   AWAY: 
+     PTS   92.0 | FGA  78.6 FGM 33.4 FG% 42.5%
+     3PA   30.8 | 3PM 10.1  3P% 32.8%
+     2PA   47.9 | 2PM 23.3  2P% 48.7%
+     FTA   22.1 | FTM 15.1  FT% 68.3%
+     ORB    8.3 | DRB 35.1  AST 19.2  STL 7.7  BLK 2.1  TOV 17.1
+     SPLIT: Layup 21.8 | Dunk 7.4 (55.9% make) | Mid 18.6 | 3PT 30.8
+       AlleyOop              1.3 att   75.3%
+       CutDunk               0.5 att   63.6%
+       TransitionDunk        0.4 att   68.4%
+       PickAndRollDunk       0.2 att   61.1%
+       ContactDunk           0.3 att   48.4%
+       Putback               4.7 att   48.7%
+
+════════════════════════════════════════════════════════════════
+ SET 2: THREE-POINT SHOOTING
+
+── High 3PT=80  (should ~40+ 3PA)
+   500 games | Home wins: 312 (62.4%)  Avg score: 108.6 - 103.6  (diff: +5.1)
+   HOME: 
+     PTS  108.6 | FGA  82.5 FGM 39.4 FG% 47.7%
+     3PA   37.4 | 3PM 14.9  3P% 39.8%
+     2PA   45.2 | 2PM 24.5  2P% 54.3%
+     FTA   22.5 | FTM 14.9  FT% 66.4%
+     ORB    7.4 | DRB 34.6  AST 24.7  STL 7.2  BLK 2.2  TOV 16.7
+     SPLIT: Layup 24.4 | Dunk 6.7 (60.0% make) | Mid 14.1 | 3PT 37.4
+       AlleyOop              0.9 att   80.6%
+       CutDunk               0.4 att   78.7%
+       TransitionDunk        0.3 att   73.5%
+       PickAndRollDunk       0.7 att   64.0%
+       ContactDunk           0.3 att   47.7%
+       Putback               4.1 att   52.5%
+   AWAY: 
+     PTS  103.6 | FGA  82.5 FGM 37.3 FG% 45.2%
+     3PA   37.1 | 3PM 14.2  3P% 38.2%
+     2PA   45.4 | 2PM 23.1  2P% 50.9%
+     FTA   23.1 | FTM 14.9  FT% 64.6%
+     ORB    7.4 | DRB 32.6  AST 23.1  STL 7.2  BLK 2.2  TOV 16.4
+     SPLIT: Layup 23.9 | Dunk 6.6 (54.0% make) | Mid 14.9 | 3PT 37.1
+       AlleyOop              0.9 att   77.2%
+       CutDunk               0.4 att   74.4%
+       TransitionDunk        0.3 att   70.0%
+       PickAndRollDunk       0.6 att   59.9%
+       ContactDunk           0.3 att   48.1%
+       Putback               4.2 att   45.8%
+
+── Low 3PT=20  (should ~15-20 3PA)
+   500 games | Home wins: 183 (36.6%)  Avg score: 69.2 - 72.9  (diff: -3.7)
+   HOME: 
+     PTS   69.2 | FGA  73.6 FGM 24.0 FG% 32.7%
+     3PA   25.8 | 3PM  6.7  3P% 25.9%
+     2PA   47.7 | 2PM 17.3  2P% 36.3%
+     FTA   22.6 | FTM 14.4  FT% 64.0%
+     ORB    8.3 | DRB 36.1  AST 13.4  STL 7.9  BLK 2.2  TOV 17.4
+     SPLIT: Layup 18.0 | Dunk 6.6 (32.3% make) | Mid 23.1 | 3PT 25.8
+       AlleyOop              0.9 att   55.7%
+       CutDunk               0.4 att   44.9%
+       TransitionDunk        0.3 att   49.0%
+       PickAndRollDunk       0.2 att   41.0%
+       ContactDunk           0.2 att   20.8%
+       Putback               4.6 att   25.7%
+   AWAY: 
+     PTS   72.9 | FGA  74.0 FGM 25.4 FG% 34.3%
+     3PA   25.0 | 3PM  6.5  3P% 26.2%
+     2PA   49.0 | 2PM 18.9  2P% 38.5%
+     FTA   22.5 | FTM 15.5  FT% 69.2%
+     ORB    8.9 | DRB 37.7  AST 13.7  STL 7.9  BLK 2.1  TOV 17.6
+     SPLIT: Layup 18.5 | Dunk 7.5 (38.4% make) | Mid 23.0 | 3PT 25.0
+       AlleyOop              1.1 att   61.4%
+       CutDunk               0.5 att   44.5%
+       TransitionDunk        0.4 att   54.7%
+       PickAndRollDunk       0.2 att   52.0%
+       ContactDunk           0.3 att   33.1%
+       Putback               5.0 att   31.0%
+
+── 3PT=85/IQ=75 vs 3PT=25 (big split expected)
+   500 games | Home wins: 494 (98.8%)  Avg score: 106.0 - 74.1  (diff: +32.0)
+   HOME: 
+     PTS  106.0 | FGA  77.0 FGM 38.5 FG% 50.0%
+     3PA   38.8 | 3PM 16.5  3P% 42.4%
+     2PA   38.1 | 2PM 22.0  2P% 57.6%
+     FTA   19.2 | FTM 12.6  FT% 66.0%
+     ORB    6.7 | DRB 38.6  AST 25.3  STL 7.2  BLK 2.1  TOV 16.9
+     SPLIT: Layup 21.2 | Dunk 7.0 (63.7% make) | Mid 10.0 | 3PT 38.8
+       AlleyOop              1.0 att   86.0%
+       CutDunk               0.4 att   78.9%
+       TransitionDunk        0.3 att   77.8%
+       PickAndRollDunk       0.8 att   68.8%
+       ContactDunk           0.2 att   56.3%
+       Putback               4.3 att   55.3%
+   AWAY: 
+     PTS   74.1 | FGA  77.2 FGM 25.8 FG% 33.4%
+     3PA   27.2 | 3PM  7.2  3P% 26.3%
+     2PA   49.9 | 2PM 18.6  2P% 37.3%
+     FTA   23.3 | FTM 15.3  FT% 65.9%
+     ORB    9.1 | DRB 29.0  AST 14.2  STL 7.7  BLK 2.0  TOV 16.6
+     SPLIT: Layup 18.9 | Dunk 7.2 (34.9% make) | Mid 23.8 | 3PT 27.2
+       AlleyOop              1.0 att   58.9%
+       CutDunk               0.4 att   44.6%
+       TransitionDunk        0.3 att   43.8%
+       PickAndRollDunk       0.2 att   45.3%
+       ContactDunk           0.3 att   25.9%
+       Putback               5.0 att   28.8%
+
+════════════════════════════════════════════════════════════════
+ SET 3: INTERIOR / DUNKS
+
+── Elite Bigs (Inside=85, Dunks=85, Jump=85, H=80) — ~10-12 dunks
+   500 games | Home wins: 452 (90.4%)  Avg score: 101.8 - 82.0  (diff: +19.8)
+   HOME: 
+     PTS  101.8 | FGA  80.6 FGM 38.8 FG% 48.1%
+     3PA   25.0 | 3PM  8.7  3P% 34.6%
+     2PA   55.5 | 2PM 30.1  2P% 54.3%
+     FTA   23.9 | FTM 15.5  FT% 64.9%
+     ORB    9.6 | DRB 39.4  AST 21.7  STL 7.3  BLK 5.2  TOV 16.9
+     SPLIT: Layup 28.6 | Dunk 10.3 (57.2% make) | Mid 16.6 | 3PT 25.0
+       AlleyOop              2.1 att   79.7%
+       CutDunk               0.7 att   70.6%
+       TransitionDunk        0.5 att   70.2%
+       PickAndRollDunk       0.4 att   61.7%
+       ContactDunk           1.2 att   43.1%
+       Putback               5.4 att   47.9%
+   AWAY: 
+     PTS   82.0 | FGA  78.6 FGM 29.1 FG% 37.0%
+     3PA   32.4 | 3PM 10.1  3P% 31.3%
+     2PA   46.1 | 2PM 18.9  2P% 41.0%
+     FTA   21.1 | FTM 13.7  FT% 65.0%
+     ORB    6.6 | DRB 29.0  AST 17.6  STL 7.5  BLK 2.4  TOV 16.7
+     SPLIT: Layup 21.1 | Dunk 5.8 (44.6% make) | Mid 19.2 | 3PT 32.4
+       AlleyOop              1.0 att   74.3%
+       CutDunk               0.4 att   63.4%
+       TransitionDunk        0.3 att   61.4%
+       PickAndRollDunk       0.2 att   53.5%
+       ContactDunk           0.2 att   33.0%
+       Putback               3.7 att   33.5%
+
+── Non-Dunkers (Dunks=15, Jump=30, H=35) — ~1-2 dunks
+   500 games | Home wins: 207 (41.4%)  Avg score: 88.5 - 92.3  (diff: -3.8)
+   HOME: 
+     PTS   88.5 | FGA  76.5 FGM 31.6 FG% 41.3%
+     3PA   31.5 | 3PM 10.3  3P% 32.8%
+     2PA   45.0 | 2PM 21.2  2P% 47.2%
+     FTA   22.4 | FTM 15.0  FT% 66.9%
+     ORB    6.5 | DRB 32.6  AST 18.2  STL 7.6  BLK 2.2  TOV 17.0
+     SPLIT: Layup 20.5 | Dunk 4.7 (48.4% make) | Mid 19.8 | 3PT 31.5
+       AlleyOop              0.4 att   72.6%
+       CutDunk               0.3 att   70.9%
+       TransitionDunk        0.2 att   66.3%
+       PickAndRollDunk       0.1 att   53.7%
+       ContactDunk           0.2 att   47.6%
+       Putback               3.5 att   42.6%
+   AWAY: 
+     PTS   92.3 | FGA  79.8 FGM 34.0 FG% 42.6%
+     3PA   29.4 | 3PM  9.4  3P% 32.1%
+     2PA   50.4 | 2PM 24.6  2P% 48.7%
+     FTA   22.3 | FTM 14.9  FT% 66.8%
+     ORB    9.8 | DRB 35.2  AST 19.3  STL 7.7  BLK 1.9  TOV 17.0
+     SPLIT: Layup 22.8 | Dunk 8.7 (55.4% make) | Mid 19.0 | 3PT 29.4
+       AlleyOop              1.4 att   78.3%
+       CutDunk               0.6 att   63.1%
+       TransitionDunk        0.5 att   71.8%
+       PickAndRollDunk       0.3 att   57.7%
+       ContactDunk           0.4 att   41.5%
+       Putback               5.4 att   47.9%
+
+── Contact Dunkers (Dunks=80, Str=90, Jump=70)
+   500 games | Home wins: 337 (67.4%)  Avg score: 89.0 - 82.3  (diff: +6.7)
+   HOME: 
+     PTS   89.0 | FGA  77.8 FGM 33.1 FG% 42.5%
+     3PA   28.6 | 3PM  9.3  3P% 32.5%
+     2PA   49.2 | 2PM 23.8  2P% 48.3%
+     FTA   21.1 | FTM 13.6  FT% 64.6%
+     ORB    8.6 | DRB 37.2  AST 18.6  STL 7.5  BLK 4.2  TOV 17.5
+     SPLIT: Layup 20.9 | Dunk 9.3 (54.1% make) | Mid 19.0 | 3PT 28.6
+       AlleyOop              1.7 att   75.9%
+       CutDunk               0.7 att   73.9%
+       TransitionDunk        0.4 att   61.8%
+       PickAndRollDunk       0.3 att   67.4%
+       ContactDunk           1.4 att   43.2%
+       Putback               4.9 att   45.4%
+   AWAY: 
+     PTS   82.3 | FGA  77.6 FGM 29.7 FG% 38.3%
+     3PA   31.0 | 3PM  9.7  3P% 31.2%
+     2PA   46.6 | 2PM 20.0  2P% 43.0%
+     FTA   20.4 | FTM 13.2  FT% 64.5%
+     ORB    7.2 | DRB 33.0  AST 17.7  STL 8.1  BLK 2.0  TOV 16.8
+     SPLIT: Layup 21.0 | Dunk 7.0 (52.4% make) | Mid 18.5 | 3PT 31.0
+       AlleyOop              1.4 att   73.5%
+       CutDunk               0.6 att   68.5%
+       TransitionDunk        0.4 att   62.1%
+       PickAndRollDunk       0.3 att   57.6%
+       ContactDunk           0.3 att   37.6%
+       Putback               4.0 att   42.2%
+
+════════════════════════════════════════════════════════════════
+ SET 4: DEFENSE
+
+── Elite PerimDef=85 vs All-50 — opp 3P% should drop
+   500 games | Home wins: 329 (65.8%)  Avg score: 85.5 - 79.4  (diff: +6.1)
+   HOME: 
+     PTS   85.5 | FGA  75.3 FGM 31.1 FG% 41.3%
+     3PA   30.2 | 3PM  9.8  3P% 32.4%
+     2PA   45.1 | 2PM 21.3  2P% 47.2%
+     FTA   21.1 | FTM 13.6  FT% 64.3%
+     ORB    7.4 | DRB 33.8  AST 18.0  STL 8.7  BLK 2.9  TOV 17.1
+     SPLIT: Layup 20.5 | Dunk 6.2 (49.6% make) | Mid 18.5 | 3PT 30.2
+       AlleyOop              0.9 att   73.0%
+       CutDunk               0.4 att   65.1%
+       TransitionDunk        0.3 att   67.5%
+       PickAndRollDunk       0.2 att   56.0%
+       ContactDunk           0.3 att   42.9%
+       Putback               4.1 att   41.7%
+   AWAY: 
+     PTS   79.4 | FGA  74.5 FGM 29.3 FG% 39.3%
+     3PA   22.4 | 3PM  5.2  3P% 23.2%
+     2PA   52.1 | 2PM 24.1  2P% 46.2%
+     FTA   23.8 | FTM 15.7  FT% 65.9%
+     ORB    8.0 | DRB 33.5  AST 16.3  STL 7.8  BLK 2.2  TOV 17.1
+     SPLIT: Layup 25.1 | Dunk 7.6 (50.9% make) | Mid 19.4 | 3PT 22.4
+       AlleyOop              1.3 att   70.8%
+       CutDunk               0.6 att   66.6%
+       TransitionDunk        0.5 att   59.0%
+       PickAndRollDunk       0.3 att   61.6%
+       ContactDunk           0.4 att   41.8%
+       Putback               4.5 att   42.2%
+
+── Elite IntDef=85 vs All-50 — opp inside% should drop
+   500 games | Home wins: 432 (86.4%)  Avg score: 89.1 - 73.7  (diff: +15.4)
+   HOME: 
+     PTS   89.1 | FGA  75.6 FGM 32.4 FG% 42.9%
+     3PA   29.9 | 3PM 10.0  3P% 33.5%
+     2PA   45.7 | 2PM 22.4  2P% 49.0%
+     FTA   21.3 | FTM 14.3  FT% 67.2%
+     ORB    7.6 | DRB 40.2  AST 18.7  STL 7.7  BLK 4.6  TOV 17.3
+     SPLIT: Layup 20.7 | Dunk 6.6 (52.9% make) | Mid 18.4 | 3PT 29.9
+       AlleyOop              1.1 att   75.9%
+       CutDunk               0.4 att   66.5%
+       TransitionDunk        0.3 att   69.6%
+       PickAndRollDunk       0.2 att   51.3%
+       ContactDunk           0.3 att   45.0%
+       Putback               4.2 att   45.1%
+   AWAY: 
+     PTS   73.7 | FGA  78.7 FGM 25.1 FG% 31.8%
+     3PA   36.1 | 3PM 11.4  3P% 31.4%
+     2PA   42.6 | 2PM 13.7  2P% 32.2%
+     FTA   18.7 | FTM 12.3  FT% 65.6%
+     ORB    9.7 | DRB 32.4  AST 15.1  STL 7.7  BLK 2.0  TOV 17.2
+     SPLIT: Layup 13.0 | Dunk 6.9 (27.1% make) | Mid 22.8 | 3PT 36.1
+       AlleyOop              0.7 att   64.3%
+       CutDunk               0.3 att   60.2%
+       TransitionDunk        0.2 att   58.5%
+       PickAndRollDunk       0.1 att   46.2%
+       ContactDunk           0.2 att   20.2%
+       Putback               5.3 att   18.6%
+
+── Elite Total D (both=85) vs All-50 — away ~8-10 less pts
+   500 games | Home wins: 497 (99.4%)  Avg score: 89.6 - 59.9  (diff: +29.8)
+   HOME: 
+     PTS   89.6 | FGA  74.0 FGM 33.1 FG% 44.7%
+     3PA   29.1 | 3PM 10.2  3P% 35.0%
+     2PA   45.0 | 2PM 22.9  2P% 50.9%
+     FTA   19.9 | FTM 13.3  FT% 66.7%
+     ORB    7.6 | DRB 41.4  AST 19.1  STL 9.4  BLK 5.9  TOV 17.1
+     SPLIT: Layup 20.7 | Dunk 6.8 (57.3% make) | Mid 17.5 | 3PT 29.1
+       AlleyOop              1.1 att   81.1%
+       CutDunk               0.5 att   71.7%
+       TransitionDunk        0.4 att   76.8%
+       PickAndRollDunk       0.3 att   59.6%
+       ContactDunk           0.2 att   53.2%
+       Putback               4.3 att   47.5%
+   AWAY: 
+     PTS   59.9 | FGA  73.8 FGM 20.4 FG% 27.6%
+     3PA   28.8 | 3PM  6.4  3P% 22.3%
+     2PA   45.0 | 2PM 13.9  2P% 31.0%
+     FTA   19.3 | FTM 12.7  FT% 65.9%
+     ORB    8.3 | DRB 30.3  AST 11.5  STL 7.7  BLK 2.0  TOV 18.0
+     SPLIT: Layup 14.5 | Dunk 5.9 (21.3% make) | Mid 24.6 | 3PT 28.8
+       AlleyOop              0.5 att   63.1%
+       CutDunk               0.2 att   56.9%
+       TransitionDunk        0.2 att   51.3%
+       PickAndRollDunk       0.1 att   32.4%
+       ContactDunk           0.2 att   11.0%
+       Putback               4.6 att   13.0%
+
+════════════════════════════════════════════════════════════════
+ SET 5: SKILLS
+
+── High IQ+Drib=80 — fewer TOs, better decisions
+   500 games | Home wins: 363 (72.6%)  Avg score: 92.3 - 83.4  (diff: +8.9)
+   HOME: 
+     PTS   92.3 | FGA  75.7 FGM 33.5 FG% 44.2%
+     3PA   31.2 | 3PM 10.6  3P% 33.8%
+     2PA   44.4 | 2PM 22.9  2P% 51.6%
+     FTA   21.9 | FTM 14.8  FT% 67.3%
+     ORB    7.2 | DRB 34.1  AST 20.2  STL 7.2  BLK 2.1  TOV 15.4
+     SPLIT: Layup 21.9 | Dunk 7.1 (54.1% make) | Mid 15.4 | 3PT 31.2
+       AlleyOop              1.0 att   79.6%
+       CutDunk               0.5 att   74.5%
+       TransitionDunk        0.3 att   69.2%
+       PickAndRollDunk       0.3 att   70.1%
+       ContactDunk           0.3 att   46.6%
+       Putback               4.7 att   44.5%
+   AWAY: 
+     PTS   83.4 | FGA  75.9 FGM 30.1 FG% 39.7%
+     3PA   29.7 | 3PM  9.1  3P% 30.7%
+     2PA   46.2 | 2PM 21.0  2P% 45.5%
+     FTA   21.6 | FTM 14.1  FT% 65.2%
+     ORB    8.2 | DRB 31.9  AST 17.0  STL 7.3  BLK 2.1  TOV 16.3
+     SPLIT: Layup 20.3 | Dunk 7.1 (49.8% make) | Mid 18.8 | 3PT 29.7
+       AlleyOop              1.1 att   70.8%
+       CutDunk               0.5 att   56.9%
+       TransitionDunk        0.4 att   69.3%
+       PickAndRollDunk       0.2 att   53.3%
+       ContactDunk           0.3 att   33.5%
+       Putback               4.5 att   43.0%
+
+── Low IQ+Drib=20 — more TOs
+   500 games | Home wins: 255 (51.0%)  Avg score: 84.7 - 84.3  (diff: +0.4)
+   HOME: 
+     PTS   84.7 | FGA  77.0 FGM 30.8 FG% 40.0%
+     3PA   29.9 | 3PM  9.4  3P% 31.4%
+     2PA   47.0 | 2PM 21.4  2P% 45.5%
+     FTA   21.1 | FTM 13.7  FT% 64.7%
+     ORB    8.1 | DRB 36.1  AST 17.2  STL 8.0  BLK 2.2  TOV 19.5
+     SPLIT: Layup 19.6 | Dunk 6.6 (50.5% make) | Mid 20.8 | 3PT 29.9
+       AlleyOop              1.1 att   72.4%
+       CutDunk               0.4 att   68.0%
+       TransitionDunk        0.4 att   53.6%
+       PickAndRollDunk       0.2 att   65.1%
+       ContactDunk           0.3 att   35.4%
+       Putback               4.2 att   43.2%
+   AWAY: 
+     PTS   84.3 | FGA  78.4 FGM 30.3 FG% 38.7%
+     3PA   30.9 | 3PM  9.4  3P% 30.6%
+     2PA   47.5 | 2PM 20.9  2P% 44.0%
+     FTA   22.5 | FTM 14.2  FT% 63.0%
+     ORB    8.5 | DRB 34.8  AST 17.5  STL 8.8  BLK 2.0  TOV 17.8
+     SPLIT: Layup 21.6 | Dunk 7.3 (48.9% make) | Mid 18.5 | 3PT 30.9
+       AlleyOop              1.2 att   72.1%
+       CutDunk               0.5 att   64.7%
+       TransitionDunk        0.4 att   57.7%
+       PickAndRollDunk       0.3 att   56.9%
+       ContactDunk           0.3 att   41.0%
+       Putback               4.7 att   40.7%
+
+── Elite Rebounders (OReb=DReb=85)
+   500 games | Home wins: 300 (60.0%)  Avg score: 88.8 - 85.1  (diff: +3.6)
+   HOME: 
+     PTS   88.8 | FGA  79.1 FGM 32.5 FG% 41.1%
+     3PA   30.4 | 3PM  9.8  3P% 32.4%
+     2PA   48.7 | 2PM 22.7  2P% 46.6%
+     FTA   21.7 | FTM 13.9  FT% 64.0%
+     ORB   10.3 | DRB 35.8  AST 18.3  STL 7.5  BLK 2.1  TOV 17.7
+     SPLIT: Layup 21.9 | Dunk 7.9 (47.6% make) | Mid 18.9 | 3PT 30.4
+       AlleyOop              1.0 att   77.5%
+       CutDunk               0.4 att   61.6%
+       TransitionDunk        0.3 att   60.1%
+       PickAndRollDunk       0.2 att   58.9%
+       ContactDunk           0.3 att   31.8%
+       Putback               5.7 att   41.4%
+   AWAY: 
+     PTS   85.1 | FGA  74.9 FGM 30.5 FG% 40.7%
+     3PA   30.7 | 3PM 10.1  3P% 32.9%
+     2PA   44.3 | 2PM 20.4  2P% 46.1%
+     FTA   21.6 | FTM 14.1  FT% 65.1%
+     ORB    5.4 | DRB 32.9  AST 18.1  STL 8.1  BLK 2.1  TOV 16.9
+     SPLIT: Layup 19.8 | Dunk 5.4 (51.5% make) | Mid 19.1 | 3PT 30.7
+       AlleyOop              1.1 att   74.4%
+       CutDunk               0.5 att   62.0%
+       TransitionDunk        0.4 att   59.6%
+       PickAndRollDunk       0.2 att   56.2%
+       ContactDunk           0.3 att   40.3%
+       Putback               3.0 att   41.7%
+
+════════════════════════════════════════════════════════════════
+ SET 6: FREE THROWS
+
+── High FT drivers (FT=85, Inside=75, Spd=75, Drib=75)
+   500 games | Home wins: 413 (82.6%)  Avg score: 103.5 - 89.1  (diff: +14.4)
+   HOME: 
+     PTS  103.5 | FGA  79.5 FGM 36.9 FG% 46.4%
+     3PA   26.9 | 3PM  9.3  3P% 34.4%
+     2PA   52.6 | 2PM 27.6  2P% 52.6%
+     FTA   24.3 | FTM 20.4  FT% 84.0%
+     ORB    7.4 | DRB 35.2  AST 21.0  STL 8.4  BLK 1.9  TOV 15.1
+     SPLIT: Layup 28.9 | Dunk 6.0 (50.4% make) | Mid 17.6 | 3PT 26.9
+       AlleyOop              0.8 att   83.5%
+       CutDunk               0.4 att   68.6%
+       TransitionDunk        0.2 att   57.0%
+       PickAndRollDunk       0.2 att   60.6%
+       ContactDunk           0.2 att   31.5%
+       Putback               4.2 att   42.3%
+   AWAY: 
+     PTS   89.1 | FGA  79.5 FGM 32.3 FG% 40.6%
+     3PA   31.7 | 3PM 10.1  3P% 31.9%
+     2PA   47.8 | 2PM 22.2  2P% 46.4%
+     FTA   22.0 | FTM 14.3  FT% 65.2%
+     ORB    8.6 | DRB 32.1  AST 18.8  STL 6.8  BLK 2.6  TOV 17.0
+     SPLIT: Layup 20.6 | Dunk 7.5 (49.8% make) | Mid 19.7 | 3PT 31.7
+       AlleyOop              1.2 att   72.6%
+       CutDunk               0.5 att   65.2%
+       TransitionDunk        0.3 att   58.6%
+       PickAndRollDunk       0.3 att   54.5%
+       ContactDunk           0.3 att   39.3%
+       Putback               4.9 att   42.4%
+
+════════════════════════════════════════════════════════════════
+ SET 7: COACHING
+
+── Coach OffRat 95 vs 5 — target ~6 pt differential
+   500 games | Home wins: 344 (68.8%)  Avg score: 92.1 - 85.1  (diff: +6.9)
+   HOME: 
+     PTS   92.1 | FGA  78.2 FGM 33.6 FG% 43.0%
+     3PA   31.3 | 3PM 10.6  3P% 33.9%
+     2PA   46.9 | 2PM 23.0  2P% 49.1%
+     FTA   21.5 | FTM 14.2  FT% 66.3%
+     ORB    7.7 | DRB 35.6  AST 19.8  STL 7.8  BLK 2.1  TOV 17.1
+     SPLIT: Layup 21.5 | Dunk 6.6 (52.8% make) | Mid 18.7 | 3PT 31.3
+       AlleyOop              1.1 att   79.4%
+       CutDunk               0.4 att   70.4%
+       TransitionDunk        0.3 att   64.4%
+       PickAndRollDunk       0.2 att   63.6%
+       ContactDunk           0.3 att   41.3%
+       Putback               4.3 att   43.7%
+   AWAY: 
+     PTS   85.1 | FGA  78.1 FGM 30.6 FG% 39.2%
+     3PA   29.9 | 3PM  9.2  3P% 30.7%
+     2PA   48.1 | 2PM 21.5  2P% 44.6%
+     FTA   22.2 | FTM 14.7  FT% 66.3%
+     ORB    8.4 | DRB 33.6  AST 17.2  STL 7.6  BLK 2.1  TOV 17.5
+     SPLIT: Layup 21.1 | Dunk 7.2 (47.9% make) | Mid 19.9 | 3PT 29.9
+       AlleyOop              0.9 att   72.0%
+       CutDunk               0.5 att   63.0%
+       TransitionDunk        0.3 att   61.1%
+       PickAndRollDunk       0.3 att   60.2%
+       ContactDunk           0.3 att   42.4%
+       Putback               4.8 att   40.4%
+
+── Pace&Space coach vs GritAndGrind coach
+   500 games | Home wins: 229 (45.8%)  Avg score: 84.8 - 86.3  (diff: -1.5)
+   HOME: 
+     PTS   84.8 | FGA  74.8 FGM 30.8 FG% 41.2%
+     3PA   29.8 | 3PM  9.5  3P% 32.0%
+     2PA   45.0 | 2PM 21.3  2P% 47.3%
+     FTA   21.3 | FTM 13.6  FT% 63.5%
+     ORB    6.4 | DRB 33.7  AST 18.3  STL 7.6  BLK 2.2  TOV 17.5
+     SPLIT: Layup 20.3 | Dunk 6.1 (55.5% make) | Mid 18.6 | 3PT 29.8
+       AlleyOop              1.2 att   75.6%
+       CutDunk               0.5 att   62.6%
+       TransitionDunk        0.4 att   66.3%
+       PickAndRollDunk       0.3 att   59.1%
+       ContactDunk           0.3 att   40.4%
+       Putback               3.4 att   47.3%
+   AWAY: 
+     PTS   86.3 | FGA  78.7 FGM 31.4 FG% 39.8%
+     3PA   29.2 | 3PM  9.1  3P% 31.3%
+     2PA   49.6 | 2PM 22.2  2P% 44.9%
+     FTA   22.3 | FTM 14.4  FT% 64.7%
+     ORB   10.3 | DRB 34.2  AST 17.4  STL 7.9  BLK 2.0  TOV 17.1
+     SPLIT: Layup 21.9 | Dunk 7.9 (45.4% make) | Mid 19.7 | 3PT 29.2
+       AlleyOop              0.9 att   71.4%
+       CutDunk               0.4 att   63.6%
+       TransitionDunk        0.3 att   57.0%
+       PickAndRollDunk       0.2 att   54.5%
+       ContactDunk           0.3 att   43.3%
+       Putback               5.7 att   39.0%
+
+════════════════════════════════════════════════════════════════
+ SET 8: RATING EXTREMES
+
+── All-95 vs All-50
+   500 games | Home wins: 500 (100.0%)  Avg score: 151.8 - 47.7  (diff: +104.1)
+   HOME: 
+     PTS  151.8 | FGA  80.6 FGM 62.3 FG% 77.3%
+     3PA   19.3 | 3PM 10.2  3P% 53.1%
+     2PA   61.3 | 2PM 52.0  2P% 84.9%
+     FTA   18.8 | FTM 17.0  FT% 90.0%
+     ORB    5.1 | DRB 45.9  AST 51.8  STL 11.8  BLK 8.5  TOV 10.7
+     SPLIT: Layup 44.6 | Dunk 14.6 (89.5% make) | Mid 2.2 | 3PT 19.3
+       AlleyOop              3.9 att   95.2%
+       CutDunk               1.4 att   94.6%
+       TransitionDunk        0.5 att   95.0%
+       PickAndRollDunk       3.6 att   93.8%
+       ContactDunk           1.2 att   81.5%
+       Putback               4.0 att   79.8%
+   AWAY: 
+     PTS   47.7 | FGA  70.3 FGM 16.1 FG% 22.9%
+     3PA   27.9 | 3PM  5.0  3P% 17.9%
+     2PA   42.5 | 2PM 11.1  2P% 26.1%
+     FTA   15.9 | FTM 10.5  FT% 66.3%
+     ORB    4.6 | DRB 11.6  AST  9.5  STL 5.8  BLK 3.2  TOV 19.1
+     SPLIT: Layup 11.0 | Dunk 4.0 (22.9% make) | Mid 27.4 | 3PT 27.9
+       AlleyOop              0.7 att   63.9%
+       CutDunk               0.3 att   52.7%
+       TransitionDunk        0.2 att   49.6%
+       PickAndRollDunk       0.1 att   12.8%
+       ContactDunk           0.2 att    3.5%
+       Putback               2.5 att    7.0%
+
+── All-95 vs All-5
+   500 games | Home wins: 500 (100.0%)  Avg score: 170.0 - 16.7  (diff: +153.3)
+   HOME: 
+     PTS  170.0 | FGA  80.9 FGM 74.9 FG% 92.6%
+     3PA    7.8 | 3PM  4.5  3P% 58.1%
+     2PA   73.1 | 2PM 70.4  2P% 96.3%
+     FTA   17.0 | FTM 15.5  FT% 91.2%
+     ORB    1.6 | DRB 45.0  AST 61.3  STL 18.7  BLK 5.3  TOV  8.2
+     SPLIT: Layup 59.7 | Dunk 12.9 (94.9% make) | Mid 0.6 | 3PT 7.8
+       AlleyOop              4.5 att   95.3%
+       CutDunk               2.0 att   95.4%
+       TransitionDunk        0.9 att   95.3%
+       PickAndRollDunk       3.2 att   94.6%
+       ContactDunk           1.1 att   94.8%
+       Putback               1.2 att   93.3%
+   AWAY: 
+     PTS   16.7 | FGA  58.2 FGM  5.0 FG%  8.5%
+     3PA   26.5 | 3PM  2.0  3P%  7.4%
+     2PA   31.7 | 2PM  3.0  2P%  9.5%
+     FTA   13.3 | FTM  4.8  FT% 35.9%
+     ORB    4.6 | DRB  3.7  AST  1.4  STL 2.9  BLK 0.0  TOV 31.9
+     SPLIT: Layup 4.9 | Dunk 2.2 (5.5% make) | Mid 24.7 | 3PT 26.5
+       Putback               2.2 att    5.5%
+
+══════════════════════════════════════════════════════════════════
+ SEASON SIM — REAL NBA ROSTERS (1,230 games)
+══════════════════════════════════════════════════════════════════
+   Loading 2K cache: C:\Users\Billy\source\repos\BasketballSim\BasketballSim\Data\nba2k_cache.json
+   Players in cache: 528
+   Teams loaded: 30
+   Simulating 1,230 games...
+
+   150/1230 games (12%)   
+   250/1230 games (20%)   
+   400/1230 games (32%)   
+   500/1230 games (40%)   
+   650/1230 games (52%)   
+   750/1230 games (60%)   
+   900/1230 games (73%)   
+   1000/1230 games (81%)   
+   1150/1230 games (93%)   
+   1230/1230 games (100%)   
+
+  LEAGUE AVG (per team per game)
+  Stat          Sim   Target    Delta
+  ─────────────────────────────────────────
+  PTS         110.9    114.6     -3.7 ✅
+  FGA          87.5     88.7     -1.2 ✅
+  FGM          40.9     42.9     -2.0 ✅
+  FG%         46.7%    48.4%     -1.7 ⚠
+  3PA          36.1     35.1     +1.0 ✅
+  3PM          13.4     13.1     +0.3 ✅
+  3P%         37.2%    37.3%     -0.1 ✅
+  2PA          51.4     53.6     -2.2 ✅
+  2PM          27.4     29.8     -2.4 ✅
+  2P%         53.4%    55.6%     -2.2 ⚠
+  FTA          20.5     21.5     -1.0 ✅
+  FTM          15.7     16.7     -1.0 ✅
+  FT%         76.8%    77.5%     -0.7 ✅
+  ORB           8.7      9.5     -0.8 ✅
+  DRB          34.6     32.6     +2.0 ✅
+  AST          27.8     26.5     +1.3 ✅
+  STL           7.8      7.4     +0.4 ✅
+  BLK           4.6      4.9     -0.3 ✅
+  TOV          14.9     13.9     +1.0 ✅
+
+  Avg possessions/team/game: 101.8  (NBA ~100)
+  Avg possession length:     14.1s  (NBA ~14s)
+  Avg passes/possession:     3.0
+
+  TOP 10 SCORERS
+  #   Name                   Team   GP    PPG    FTA    MPG
+  1   Kyrie Irving            DAL   82   28.5    4.9   32.7
+  2   Devin Booker            PHX   82   28.5    4.4   30.5
+  3   Tyrese Maxey            PHI   82   26.9    4.8   29.1
+  4   Luka Doncic             LAL   76   26.6    4.9   29.4
+  5   Jayson Tatum            BOS   67   26.5    4.7   34.7
+  6   Shai Gilgeous-Alexander  OKC   82   26.2    4.4   30.6
+  7   Stephen Curry            GS   75   25.3    4.5   28.9
+  8   Nikola Jokic            DEN   80   25.2    4.8   31.1
+  9   Kevin Durant            HOU   79   24.6    4.2   30.2
+  10  Cade Cunningham         DET   80   23.1    5.3   35.0
+
+  TOP 10 REBOUNDERS
+  #   Name                   Team    RPG    OPG    DPG
+  1   Karl-Anthony Towns       NY   11.0    1.7    9.3
+  2   Victor Wembanyama        SA   10.7    2.1    8.7
+  3   Jalen Duren             DET   10.5    3.4    7.0
+  4   Alperen Sengun          HOU    9.3    2.4    6.9
+  5   Nikola Jokic            DEN    9.2    1.9    7.3
+  6   Giannis Antetokounmpo   MIL    9.0    2.0    7.0
+  7   Mitchell Robinson        NY    8.5    2.5    6.0
+  8   Kristaps Porzingis       GS    8.4    1.5    6.9
+  9   Ausar Thompson          DET    8.4    2.5    6.0
+  10  Evan Mobley             CLE    8.4    1.6    6.8
+
+  TOP 10 BLOCKERS
+  #   Name                   Team    BPG
+  1   Victor Wembanyama        SA   2.50
+  2   Anthony Davis           WSH   1.83
+  3   Scottie Barnes          TOR   1.77
+  4   Evan Mobley             CLE   1.74
+  5   Giannis Antetokounmpo   MIL   1.62
+  6   Myles Turner            MIL   1.48
+  7   Chet Holmgren           OKC   1.48
+  8   Dereck Lively II        DAL   1.45
+  9   Kristaps Porzingis       GS   1.43
+  10  Nic Claxton             BKN   1.39
+
+  LEAGUE SHOT TYPE SPLIT (per team per game)
+  Type        Att/g   % FGA     FG%    Target Att   Target %FGA
+  ─────────────────────────────────────────────────────────────
+  Inside       29.6   33.9%   57.3%        ~32-33          ~37%
+  Mid          21.7   24.8%   48.2%        ~20-21          ~23%
+  3PT          36.1   41.3%   37.2%         ~35.1        ~39.6%
+
+  PLAYER SHOT PROFILES
+  Name                         Tm  GP   PPG   FGA   FG% | InsAtt   In%  InFG% | MidAtt  Mid%   MFG% |   3PA   3P%  3P%FGA
+  ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  Mitchell Robinson            NY  82   4.1   3.8   49% |    3.0   77%    50%  |    0.7   18%    54%  |   0.2   13%      5%
+  Jalen Brunson                NY  82  22.6  16.7   46% |    4.3   26%    58%  |    3.0   18%    50%  |   9.4   39%     56%
+  Stephen Curry                GS  75  25.3  18.5   44% |    3.1   17%    56%  |    3.3   18%    49%  |  12.1   40%     66%
+  Kevin Durant                HOU  79  24.6  20.3   44% |    3.6   18%    59%  |    6.1   30%    50%  |  10.6   35%     52%
+  Shai Gilgeous-Alexander     OKC  82  26.2  19.6   51% |    7.4   38%    69%  |    5.9   30%    48%  |   6.2   34%     32%
+  Kyrie Irving                DAL  82  28.5  23.3   45% |    5.7   24%    62%  |    8.1   35%    49%  |   9.4   32%     41%
+  Joel Embiid                 PHI  82   8.4   6.8   45% |    2.5   36%    51%  |    2.1   31%    44%  |   2.2   38%     33%
+  Nikola Jokic                DEN  80  25.2  18.5   49% |    4.9   26%    56%  |    6.1   33%    55%  |   7.5   40%     41%
+  Giannis Antetokounmpo       MIL  82  14.6  12.6   49% |    6.3   50%    54%  |    4.7   37%    51%  |   1.7   26%     14%
+  LeBron James                LAL  82   6.0   5.6   40% |    2.3   41%    48%  |    1.3   23%    35%  |   2.0   34%     36%
+  Karl-Anthony Towns           NY  82  20.6  15.6   46% |    5.7   37%    55%  |    1.6   10%    38%  |   8.3   41%     53%
+  Anthony Davis               WSH  82  15.0  12.2   48% |    4.9   40%    59%  |    4.1   34%    47%  |   3.2   35%     26%
+
+  ALL PLAYERS — SHOT SPLIT (sorted by PPG, qualifying ≥ 15 GP, ≥ 15 MPG)
+  Name                         Tm   PPG   FGA |   In%  InFG% |  Mid%   MFG% |  3P%FGA   3P%
+  ─────────────────────────────────────────────────────────────────────────────────────────────────────
+  Kyrie Irving                DAL  28.5  23.3 |   24%    62%  |   35%    49%  |     41%   32%
+  Devin Booker                PHX  28.5  22.1 |   28%    65%  |   31%    51%  |     40%   35%
+  Tyrese Maxey                PHI  26.9  19.3 |   27%    62%  |   16%    51%  |     56%   40%
+  Luka Doncic                 LAL  26.6  19.4 |   37%    68%  |   18%    50%  |     45%   36%
+  Jayson Tatum                BOS  26.5  20.9 |   23%    61%  |   22%    44%  |     55%   38%
+  Shai Gilgeous-Alexander     OKC  26.2  19.6 |   38%    69%  |   30%    48%  |     32%   34%
+  Stephen Curry                GS  25.3  18.5 |   17%    56%  |   18%    49%  |     66%   40%
+  Nikola Jokic                DEN  25.2  18.5 |   26%    56%  |   33%    55%  |     41%   40%
+  Kevin Durant                HOU  24.6  20.3 |   18%    59%  |   30%    50%  |     52%   35%
+  Cade Cunningham             DET  23.1  18.4 |   32%    57%  |   25%    44%  |     43%   33%
+  Donovan Mitchell            CLE  22.7  16.2 |   33%    67%  |   15%    48%  |     53%   40%
+  Jamal Murray                DEN  22.7  17.5 |   29%    62%  |   26%    49%  |     46%   35%
+  Damian Lillard              POR  22.7  18.8 |   22%    54%  |   30%    46%  |     48%   36%
+  Jalen Brunson                NY  22.6  16.7 |   26%    58%  |   18%    50%  |     56%   39%
+  Jaden McDaniels             MIN  22.0  17.5 |   26%    57%  |   32%    51%  |     42%   37%
+  Anthony Edwards             MIN  22.0  16.0 |   34%    62%  |   11%    52%  |     55%   40%
+  Jaylen Brown                BOS  21.9  17.6 |   34%    62%  |   22%    47%  |     45%   34%
+  Ja Morant                   MEM  21.8  15.6 |   40%    66%  |   31%    52%  |     28%   32%
+  Harrison Barnes              SA  20.8  16.3 |   29%    60%  |   24%    44%  |     47%   38%
+  Jalen Suggs                 ORL  20.6  14.4 |   43%    63%  |   20%    44%  |     37%   38%
+  Karl-Anthony Towns           NY  20.6  15.6 |   37%    55%  |   10%    38%  |     53%   41%
+  Jalen Williams              OKC  20.5  16.1 |   27%    62%  |   28%    53%  |     45%   36%
+  Kristaps Porzingis           GS  20.0  14.0 |   32%    64%  |   11%    47%  |     57%   45%
+  Tyrese Haliburton           IND  19.8  14.8 |   25%    68%  |   25%    57%  |     50%   36%
+  Collin Sexton               CHI  19.4  15.7 |   27%    52%  |   19%    53%  |     54%   35%
+  Michael Porter Jr.          BKN  19.4  16.1 |   29%    54%  |   28%    47%  |     43%   35%
+  Zach LaVine                 SAC  19.3  14.5 |   27%    67%  |   17%    53%  |     56%   36%
+  Darius Garland              LAC  18.9  14.0 |   27%    62%  |   19%    56%  |     53%   37%
+  Rui Hachimura               LAL  18.6  14.5 |   28%    62%  |   23%    46%  |     49%   39%
+  Kawhi Leonard               LAC  18.4  15.2 |   27%    54%  |   23%    45%  |     50%   37%
+  Aaron Gordon                DEN  18.3  14.2 |   31%    61%  |   27%    49%  |     42%   38%
+  Ausar Thompson              DET  18.3  15.6 |   50%    55%  |   25%    45%  |     25%   32%
+  Mikal Bridges                NY  18.2  14.6 |   26%    56%  |   30%    50%  |     43%   38%
+  Anfernee Simons             CHI  18.0  14.4 |   28%    58%  |   25%    47%  |     47%   35%
+  Desmond Bane                ORL  17.9  14.2 |   21%    63%  |   33%    49%  |     47%   34%
+  Max Christie                DAL  17.5  11.9 |   31%    60%  |   16%    52%  |     53%   45%
+  Andrew Wiggins              MIA  17.3  13.2 |   42%    64%  |   23%    44%  |     35%   38%
+  CJ McCollum                 ATL  17.3  12.4 |   28%    62%  |   19%    48%  |     54%   41%
+  Matas Buzelis               CHI  17.2  13.6 |   31%    60%  |   19%    43%  |     50%   36%
+  Pascal Siakam               IND  17.2  12.8 |   30%    60%  |   19%    46%  |     51%   42%
+  De'Andre Hunter             SAC  17.1  12.6 |   22%    61%  |   36%    55%  |     42%   42%
+  Ochai Agbaji                BKN  17.1  14.0 |   26%    55%  |   31%    51%  |     43%   36%
+  Cedric Coward               MEM  16.9  12.8 |   32%    59%  |   17%    43%  |     51%   40%
+  De'Aaron Fox                 SA  16.8  13.1 |   39%    62%  |   31%    45%  |     30%   30%
+  LaMelo Ball                 CHA  16.6  12.8 |   36%    63%  |   23%    46%  |     40%   35%
+  Bam Adebayo                 MIA  16.6  12.0 |   36%    62%  |   34%    51%  |     30%   44%
+  Trae Young                  WSH  16.5  12.1 |   26%    65%  |   26%    45%  |     49%   38%
+  Paul George                 PHI  16.2  13.4 |   24%    58%  |   36%    47%  |     40%   36%
+  Jeremiah Fears               NO  16.2  13.3 |   30%    50%  |   35%    50%  |     34%   34%
+  Tre Mann                    CHA  16.2  13.2 |   19%    57%  |   33%    51%  |     48%   36%
+   Season results saved to: C:\Users\Billy\source\repos\BasketballSim\BasketballSim.Calibration\bin\Debug\net10.0\season_results.json
+
+Output written to: C:\Users\Billy\source\repos\BasketballSim\BasketballSim.Calibration\bin\Debug\net10.0\calibration_output.txt
+
+Done. Results: C:\Users\Billy\source\repos\BasketballSim\BasketballSim.Calibration\bin\Debug\net10.0\calibration_output.txt

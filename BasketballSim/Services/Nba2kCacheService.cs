@@ -159,6 +159,7 @@ public class Nba2kCacheService(IWebHostEnvironment env)
                             + r.V("shotIQ") * 0.20;
         double pullProxy    = (r.V("midRangeShot") + r.V("ballHandle")) / 2.0;
         double cutProxy     = r.V("agility") * 0.50 + r.V("speed") * 0.30 + r.V("hustle") * 0.20;
+
         // Touches: uses the sim's own mapped attributes (already [5,95] scale) so it reflects
         // our attribute system, not raw 2K values. Weighted average = already in [5,95].
         static double M(IReadOnlyDictionary<string, double> m, string k) =>
@@ -177,7 +178,7 @@ public class Nba2kCacheService(IWebHostEnvironment env)
             // Offensive
             ["Touches"]  = Math.Clamp((int)Math.Round(touchesProxy), 5, 95),
             ["Drive"]    = T(driveProxy,              28, 68, 92),
-            ["ThreePt"]  = T(r.V("threePointShot"),  25, 78, 99),
+            ["ThreePt"]  = T(r.V("threePointShot"), 25, 78, 99),  // willingness to pull trigger on 3s (affects threshold, not appearance)
             ["MidRange"] = T(r.V("midRangeShot"),    25, 74, 98),
             ["PostUp"]   = T(postProxy,              25, 55, 90),
             ["Iso"]      = T(isoProxy,               30, 70, 96),

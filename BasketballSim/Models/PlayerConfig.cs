@@ -50,6 +50,10 @@ public class PlayerConfig
     public int Tend_Steal    { get; set; } = 50;
     public int Tend_Block    { get; set; } = 50;
 
+    // Injury system
+    public DominantHand DominantHand { get; set; } = DominantHand.Right;
+    public Dictionary<string, int> InjuryRatings { get; set; } = new();
+
     public Player ToPlayer() => new()
     {
         Name = Name, Team = Team, Position = Position,
@@ -63,6 +67,8 @@ public class PlayerConfig
         Attr_Rebounding_Off = ReboundingOff, Attr_Rebounding_Def = ReboundingDef,
         Attr_PerimeterDefense = PerimeterDefense, Attr_InteriorDefense = InteriorDefense,
         Attr_FoulTendency = FoulTendency,
+        DominantHand = DominantHand,
+        InjuryRatings = InjuryRatings,
         Tendencies = new PlayerTendencies
         {
             Touches = Tend_Touches, Drive = Tend_Drive, PostUp = Tend_PostUp,

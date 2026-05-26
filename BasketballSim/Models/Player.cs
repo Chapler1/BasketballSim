@@ -43,156 +43,180 @@ public class Player
     // ── Tendencies ────────────────────────────────────────────────
     internal PlayerTendencies Tendencies { get; init; } = new();
 
+    // ── Injury System ─────────────────────────────────────────────
+    public DominantHand DominantHand { get; init; } = DominantHand.Right;
+
+    // 40 body-part injury ratings (1–99; default 70). Higher = healthier/less fragile.
+    // Mutable dict so SeasonScheduleService can degrade ratings after injuries.
+    public Dictionary<string, int> InjuryRatings { get; init; } = new();
+
+    // Active in-game/season injury. null = fully healthy.
+    public ActiveInjury? CurrentInjury { get; set; }
+
+    // Permanent attribute loss accumulated over career (key = attr name, value = total pts lost).
+    public Dictionary<string, int> PermanentInjuryPenalties { get; init; } = new();
+
+    // Injury debuff multipliers — read from EffectiveDebuff so dominant-hand scaling is included.
+    // 1.0 = no effect. Grade 3 players should not be on court.
+    internal double InjuryFactor_Shooting =>
+        CurrentInjury is { IsPlaying: true } ? CurrentInjury.EffectiveDebuff.Shooting : 1.0;
+    internal double InjuryFactor_Physical =>
+        CurrentInjury is { IsPlaying: true } ? CurrentInjury.EffectiveDebuff.Physical : 1.0;
+    internal double InjuryFactor_Speed =>
+        CurrentInjury is { IsPlaying: true } ? CurrentInjury.EffectiveDebuff.Speed    : 1.0;
+    internal double InjuryFactor_Jump =>
+        CurrentInjury is { IsPlaying: true } ? CurrentInjury.EffectiveDebuff.Jump     : 1.0;
+
+    // ── Permanent Penalty Helpers ─────────────────────────────────
+    // Subtract accumulated career injury loss from raw attribute; floor at 5.
+    private int EffAttr(string key, int raw) =>
+        Math.Max(5, raw - PermanentInjuryPenalties.GetValueOrDefault(key, 0));
+
+    private int EffSpeed      => EffAttr("Speed",      Speed);
+    private int EffJumping    => EffAttr("Jumping",    Jumping);
+    private int EffStrength   => EffAttr("Strength",   Strength);
+    private int EffEndurance  => EffAttr("Endurance",  Endurance);
+    private int EffInside     => EffAttr("Inside",     Attr_Inside);
+    private int EffMidRange   => EffAttr("MidRange",   Attr_MidRange);
+    private int EffThreePoint => EffAttr("ThreePoint", Attr_ThreePoint);
+    private int EffDribbling  => EffAttr("Dribbling",  Attr_Dribbling);
+    private int EffPassing    => EffAttr("Passing",    Attr_Passing);
+    private int EffIntDef     => EffAttr("IntDef",     Attr_InteriorDefense);
+    private int EffPerimDef   => EffAttr("PerimDef",   Attr_PerimeterDefense);
+
     // ── Derived Tendency Properties ───────────────────────────────
     internal double DriveGravity =>
-        (Speed + Attr_Dribbling + Attr_Inside) / 300.0;
+        (EffSpeed + Attr_Dribbling + Attr_Inside) / 300.0 * InjuryFactor_Speed;
 
     internal double PerimeterGravity =>
         Attr_ThreePoint / 100.0;
 
     internal double ShotClockAggressiveness =>
-        (Speed + Attr_oBBIQ) / 200.0;
+        (EffSpeed + Attr_oBBIQ) / 200.0 * InjuryFactor_Speed;
 
     internal double CutTendency =>
-        (Speed + Jumping + Attr_oBBIQ) / 300.0;
+        (EffSpeed + EffJumping + Attr_oBBIQ) / 300.0 * InjuryFactor_Speed * InjuryFactor_Jump;
 
     // Compressed hustle weight for loose ball scrambles.
-    // At 95: 1.135×, at 50: 1.0×, at 5: 0.865× — best player has ~1.31× edge over worst.
+    // At 95: 1.135×, at 50: 1.0×, at 5: 0.865×
     internal double LooseBallWeight =>
         1.0 + (Attr_Hustle - 50) / 50.0 * 0.15;
 
     internal double AlleyOopTendency =>
-        (Jumping + Attr_Dunks + Speed) / 300.0;
+        (EffJumping + Attr_Dunks + EffSpeed) / 300.0 * InjuryFactor_Jump * InjuryFactor_Speed;
 
     // Gates how often inside shots become dunks; driven by jumping, height, dunk rating
     internal double DunkTendency =>
-        (Attr_Dunks + Jumping + Height) / 300.0;
+        (Attr_Dunks + EffJumping + Height) / 300.0 * InjuryFactor_Jump;
 
-    // Composite screening ability — drives both screener selection and screen effectiveness.
-    // At avg (50,50,50): 100. At elite (95,95,95): 190. At floor (5,5,5): 10.
+    // Composite screening ability — drives screener selection and screen effectiveness.
     internal double ScreenAbility =>
-        (Strength + Attr_oBBIQ + Attr_Hustle) / 1.5;
+        (EffStrength + Attr_oBBIQ + Attr_Hustle) / 1.5 * InjuryFactor_Physical;
 
     // ── Fatigue / Energy ──────────────────────────────────────────
     // Energy 0–100. Starts fresh at 100, drains as player runs, recovers at breaks.
     public double Energy { get; set; } = 100.0;
 
     // Quadratic penalty curve: the last 30 points of energy hurt far more than the first.
-    // maxPenalty = maximum attribute reduction when fully exhausted (Energy=0).
     private double FatigueCurve(double maxPenalty) =>
         1.0 - Math.Pow(1.0 - Energy / 100.0, 2.0) * maxPenalty;
 
-    // Physical attributes (Speed, Jumping, Dunks, OReb, DReb, Block, Steal, Contest)
-    // At Energy=0: 55% penalty. Tired legs don't lie.
     internal double EnergyFactor_Physical => FatigueCurve(0.55);
-    // Shooting mechanics (Inside, Mid, 3PT, FT) — form breaks down under fatigue
-    // At Energy=0: 40% penalty.
     internal double EnergyFactor_Shooting => FatigueCurve(0.40);
-    // Mental/skill (IQ, Handle) — most resilient but TOs climb when exhausted
-    // At Energy=0: 20% penalty.
     internal double EnergyFactor_Mental   => FatigueCurve(0.20);
 
-    // How much energy this player burns each possession they are on the floor.
-    // High endurance reduces drain; low endurance accelerates it.
     // enduranceMod: 0.82 at End=95 (drains 18% slower), 1.18 at End=5 (drains 18% faster).
-    // Calibrated so an average player (End=50) loses ~30 energy per 12-minute quarter,
-    // ending a full game around 24 energy (~32% physical penalty) after breaks.
     internal double EnergyDrain(bool isOffense)
     {
-        double enduranceMod = 1.0 + (50.0 - Endurance) / 250.0;
+        double enduranceMod = 1.0 + (50.0 - EffEndurance) / 250.0;
         return (isOffense ? 0.66 : 0.54) * enduranceMod;
     }
 
-    // Apply drain and clamp to [0, 100].
     internal void DrainEnergy(bool isOffense) =>
         Energy = Math.Max(0.0, Energy - EnergyDrain(isOffense));
 
-    // Recover energy at a break. High endurance players recover faster.
     // recovMod: 0.72 at End=5, 0.90 at End=50, 1.08 at End=95.
     internal void RecoverEnergy(double baseAmount)
     {
-        double recovMod = 0.70 + Endurance / 250.0;
+        double recovMod = 0.70 + EffEndurance / 250.0;
         Energy = Math.Min(100.0, Energy + baseAmount * recovMod);
     }
 
     // ── Make% Converters ──────────────────────────────────────────
-    // All make% properties apply the appropriate energy factor so fatigue
-    // naturally degrades performance as the game progresses.
+    // All make% properties apply energy and injury factors.
 
     internal double InsideMakePct =>
-        (0.46 + (Attr_Inside / 100.0) * 0.26) * EnergyFactor_Shooting;
+        (0.59 + (EffInside / 100.0) * 0.22) * EnergyFactor_Shooting * InjuryFactor_Shooting;
 
-    // Uncontested dunk — very high base, degraded by physical fatigue (legs give out)
+    // Uncontested dunk — degraded by physical/jump fatigue and injury
     internal double DunkMakePct =>
-        Math.Clamp(0.75 + (Attr_Dunks + Jumping) / 200.0 * 0.20, 0.75, 0.95) * EnergyFactor_Physical;
+        Math.Clamp(0.75 + (Attr_Dunks + EffJumping) / 200.0 * 0.20, 0.75, 0.95)
+        * EnergyFactor_Physical * InjuryFactor_Physical * InjuryFactor_Jump;
 
-    // Contact dunk — strength helps power through; also physically demanding
+    // Contact dunk — strength helps power through
     internal double ContactDunkMakePct =>
-        (0.65 + (Attr_Dunks + Jumping + Strength) / 300.0 * 0.20) * EnergyFactor_Physical;
+        (0.65 + (Attr_Dunks + EffJumping + EffStrength) / 300.0 * 0.20)
+        * EnergyFactor_Physical * InjuryFactor_Physical * InjuryFactor_Jump;
 
     internal double MidRangeMakePct =>
-        (0.35 + (Attr_MidRange / 100.0) * 0.20) * EnergyFactor_Shooting;
+        (0.43 + (EffMidRange / 100.0) * 0.17) * EnergyFactor_Shooting * InjuryFactor_Shooting;
 
     internal double ThreeMakePct =>
-        (0.285 + (Attr_ThreePoint / 100.0) * 0.20) * EnergyFactor_Shooting;
+        (0.315 + (EffThreePoint / 100.0) * 0.20) * EnergyFactor_Shooting * InjuryFactor_Shooting;
 
     internal double FTMakePct
     {
         get
         {
             double x = Attr_FreeThrow / 100.0;
-            // FT is mostly muscle memory — use Mental energy factor (less drain)
+            // FT is mostly muscle memory — use Mental energy factor
             double base_ = Math.Clamp(0.36 + 0.88 * x - 0.24 * x * x, 0.22, 0.97);
-            return base_ * EnergyFactor_Mental;
+            return base_ * EnergyFactor_Mental * InjuryFactor_Shooting;
         }
     }
 
-    // Defense: tired defenders contest worse and steal less effectively
-    // Power-law curves widen the spread between stars and scrubs.
-    // Physical bonus: Height + Jumping both contribute to blocking ability.
-    // BlockMod is used as a weighting proxy for blocker attribution.
-    // Actual block CHANCE is computed per-shot-type in GameEngine.
+    // BlockMod: weighting proxy for blocker attribution.
     internal double BlockMod =>
-        (Math.Pow(Attr_InteriorDefense / 100.0, 2.0) * 0.130
-         + Math.Max(0.0, (Height + Jumping - 100) / 2800.0))
-        * EnergyFactor_Physical;
+        (Math.Pow(EffIntDef / 100.0, 2.0) * 0.130
+         + Math.Max(0.0, (Height + EffJumping - 100) / 2800.0))
+        * EnergyFactor_Physical * InjuryFactor_Physical
+        * (1.0 + (Attr_Hustle - 50) / 100.0 * 0.08);
 
-    // Exponent raised 1.3→1.8: widens elite/poor spread (~4.2× vs ~2.8×).
-    // Scalar trimmed 0.12→0.09: offsets the added deflection-steal volume.
     internal double StealMod =>
-        Math.Pow((Attr_PerimeterDefense + Speed) / 200.0, 1.8) * 0.09 * EnergyFactor_Physical;
+        Math.Pow((EffPerimDef + EffSpeed) / 200.0, 1.8) * 0.09
+        * EnergyFactor_Physical * InjuryFactor_Physical
+        * (1.0 + (Attr_Hustle - 50) / 100.0 * 0.08);
 
-    // Tired players lose handle and decision-making → more turnovers.
-    // EnergyFactor_Mental < 1 → dividing raises the rate.
-    // Calibrated to NBA target ~13.9 TOV/game using real rosters.
+    // Tired/injured players lose handle and decision-making → more turnovers.
     internal double TurnoverRate =>
-        (0.060 - ((Attr_oBBIQ + Attr_Dribbling) / 200.0) * 0.030) / EnergyFactor_Mental;
+        (0.045 - ((Attr_oBBIQ + EffDribbling) / 200.0) * 0.025) / EnergyFactor_Mental;
 
-    // Rebounding: power-law spreads elite rebounders further from average.
     internal double ORebWeight =>
-        Math.Pow((Attr_Rebounding_Off + Jumping) / 200.0, 1.3) * EnergyFactor_Physical;
+        Math.Pow((Attr_Rebounding_Off + EffJumping) / 200.0, 1.3)
+        * EnergyFactor_Physical * InjuryFactor_Physical * InjuryFactor_Jump;
 
     internal double DRebWeight =>
-        Math.Pow((Attr_Rebounding_Def + Height) / 200.0, 1.3) * EnergyFactor_Physical;
+        Math.Pow((Attr_Rebounding_Def + Height) / 200.0, 1.3)
+        * EnergyFactor_Physical * InjuryFactor_Physical;
 
-    // Elite passers/playmakers attract the ball much more than average.
     internal double AssistWeight =>
-        Math.Pow((Attr_Passing + Attr_oBBIQ) / 200.0, 3.0);
+        Math.Pow((EffPassing + Attr_oBBIQ) / 200.0, 3.0);
 
-    // Tired defenders can't close out or contest as well.
-    // Physical attributes (Height) add a bonus to inside/mid contest.
     internal double ContestPenalty(ShotType shot) => shot switch
     {
+        // Centered at IntDef/PerimDef=50 so the league-average penalty is unchanged
+        // while elite defenders contest far harder and poor defenders barely contest at all.
         ShotType.Inside =>
-            ((Attr_InteriorDefense / 100.0) * 0.42
+            (Math.Max(0.0, 0.25 + (EffIntDef - 50) / 100.0 * 0.85)
              + (Height - 50) / 900.0)
-            * EnergyFactor_Physical,
+            * EnergyFactor_Physical * InjuryFactor_Physical,
         ShotType.MidRange =>
-            ((Attr_InteriorDefense * 0.4 + Attr_PerimeterDefense * 0.6) / 100.0 * 0.092
+            (Math.Max(0.0, 0.046 + (EffIntDef * 0.4 + EffPerimDef * 0.6 - 50) / 100.0 * 0.13)
              + (Height - 50) / 1000.0)
-            * EnergyFactor_Physical,
+            * EnergyFactor_Physical * InjuryFactor_Physical,
         ShotType.ThreePointer =>
-            (Attr_PerimeterDefense / 100.0) * 0.155 * EnergyFactor_Physical,
+            Math.Max(0.0, 0.09 + (EffPerimDef - 50) / 100.0 * 0.34)
+            * EnergyFactor_Physical * InjuryFactor_Physical,
         _ => 0.04
     };
 }

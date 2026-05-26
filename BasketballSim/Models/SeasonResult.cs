@@ -113,6 +113,16 @@ public class PlayerSeasonStats
         ? 200.0 * TotalOppPtsOnCourt / TotalPossessionsOnCourt : 0;
     public double NetRating => OffRating - DefRating;
 
+    // Season fatigue tracking
+    public int    GamesRested      { get; set; }  // games auto-benched due to fatigue
+    public double TotalFatigueIn   { get; set; }  // sum of pre-game fatigue (played games only)
+    public double AvgSeasonFatigue => GP > 0 ? TotalFatigueIn / GP : 100.0;
+
+    // Season injury tracking
+    public int              GamesInjured     { get; set; }  // games missed due to injury (Grade 3 / Grade 2 DNP)
+    public int              GamesPlayedThrough { get; set; }  // games played with Grade 1 or 2 injury
+    public List<InjuryRecord> InjuryHistory  { get; set; } = [];
+
     // Advanced stats — computed post-season by SeasonScheduleService.ComputeAdvancedStats()
     public double PER  { get; set; }   // Player Efficiency Rating (league avg = 15)
     public double OWS  { get; set; }   // Offensive Win Shares
@@ -183,18 +193,73 @@ public class TeamSeasonStats
 }
 
 public record SeasonGameRecord(
-    string HomeTeam,
-    string AwayTeam,
-    string HomeAbbr,
-    string AwayAbbr,
-    int    HomeScore,
-    int    AwayScore);
+    string   HomeTeam,
+    string   AwayTeam,
+    string   HomeAbbr,
+    string   AwayAbbr,
+    int      HomeScore,
+    int      AwayScore,
+    DateTime Date,
+    int      HomeRestDays,
+    int      AwayRestDays);
+
+public class PlayoffSeriesRecord
+{
+    public int    HighSeed      { get; set; }
+    public int    LowSeed       { get; set; }
+    public string HighSeedTeam  { get; set; } = "";
+    public string LowSeedTeam   { get; set; } = "";
+    public string HighSeedAbbr  { get; set; } = "";
+    public string LowSeedAbbr   { get; set; } = "";
+    public int    HighSeedWins  { get; set; }
+    public int    LowSeedWins   { get; set; }
+    public bool   Complete      => HighSeedWins == 4 || LowSeedWins == 4;
+    public string Winner        => HighSeedWins == 4 ? HighSeedTeam : (LowSeedWins == 4 ? LowSeedTeam : "");
+    public string WinnerAbbr    => HighSeedWins == 4 ? HighSeedAbbr : (LowSeedWins == 4 ? LowSeedAbbr : "");
+    public int    WinnerSeed    => HighSeedWins == 4 ? HighSeed : LowSeed;
+    public string SeriesScore   => $"{Math.Max(HighSeedWins, LowSeedWins)}-{Math.Min(HighSeedWins, LowSeedWins)}";
+    public List<SeasonGameRecord> Games { get; set; } = [];
+}
+
+public class PlayoffResult
+{
+    public List<SeasonGameRecord>    PlayInGames      { get; set; } = [];
+    public List<PlayoffSeriesRecord> EastFirstRound   { get; set; } = [];
+    public List<PlayoffSeriesRecord> WestFirstRound   { get; set; } = [];
+    public List<PlayoffSeriesRecord> EastSecondRound  { get; set; } = [];
+    public List<PlayoffSeriesRecord> WestSecondRound  { get; set; } = [];
+    public PlayoffSeriesRecord?      EastConfFinals   { get; set; }
+    public PlayoffSeriesRecord?      WestConfFinals   { get; set; }
+    public PlayoffSeriesRecord?      Finals           { get; set; }
+    public string?                   Champion         { get; set; }
+    public string?                   ChampionAbbr     { get; set; }
+    public List<PlayerSeasonStats>   PlayerStats      { get; set; } = [];
+    // Seedings after play-in (for display): 8 teams per conf in seed order
+    public List<(string Name, string Abbr, int Seed)> EastSeeds { get; set; } = [];
+    public List<(string Name, string Abbr, int Seed)> WestSeeds { get; set; } = [];
+}
+
+public record AwardWinner(string Name, string Team, string TeamAbbr, double Score, Position Position);
+
+public class SeasonAwards
+{
+    public AwardWinner?      MVP     { get; set; }
+    public AwardWinner?      DPOY    { get; set; }
+    public AwardWinner?      SixMOY  { get; set; }
+    public List<AwardWinner> AllNba1 { get; set; } = [];
+    public List<AwardWinner> AllNba2 { get; set; } = [];
+    public List<AwardWinner> AllNba3 { get; set; } = [];
+    public List<AwardWinner> AllDef1 { get; set; } = [];
+    public List<AwardWinner> AllDef2 { get; set; } = [];
+}
 
 public class SeasonResult
 {
     public List<TeamSeasonStats>   TeamStats   { get; set; } = [];
     public List<PlayerSeasonStats> PlayerStats { get; set; } = [];
     public List<SeasonGameRecord>  Games       { get; set; } = [];
+    public PlayoffResult?          Playoffs    { get; set; }
+    public SeasonAwards?           Awards      { get; set; }
     public DateTime SimulatedAt { get; set; } = DateTime.Now;
 
     // Each call to SimulatePossessionChain = one possession (ORBs extend, not restart).

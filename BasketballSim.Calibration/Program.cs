@@ -42,7 +42,7 @@ RunScenario("Low 3PT=20  (should ~15-20 3PA)",
     MT("Home", "HME", "#4af", 100, each: c => c.ThreePoint = 20),
     MT("Away", "AWY", "#f84", 100, each: c => c.ThreePoint = 20));
 RunScenario("3PT=85/IQ=75 vs 3PT=25 (big split expected)",
-    MT("Home", "3PT", "#4af", 100, each: c => { c.ThreePoint = 85; c.BasketballIQ = 75; }),
+    MT("Home", "3PT", "#4af", 100, each: c => { c.ThreePoint = 85; c.oBBIQ = 75; c.dBBIQ = 75; }),
     MT("Away", "LOW", "#f84", 100, each: c => c.ThreePoint = 25));
 
 WH("SET 3: INTERIOR / DUNKS");
@@ -73,10 +73,10 @@ RunScenario("Elite Total D (both=85) vs All-50 — away ~8-10 less pts",
 
 WH("SET 5: SKILLS");
 RunScenario("High IQ+Drib=80 — fewer TOs, better decisions",
-    MT("Home", "IQ+", "#4af", 100, each: c => { c.BasketballIQ = 80; c.Dribbling = 80; }),
+    MT("Home", "IQ+", "#4af", 100, each: c => { c.oBBIQ = 80; c.dBBIQ = 80; c.Dribbling = 80; }),
     MT("Away", "AVG", "#f84", 100));
 RunScenario("Low IQ+Drib=20 — more TOs",
-    MT("Home", "IQ-", "#4af", 100, each: c => { c.BasketballIQ = 20; c.Dribbling = 20; }),
+    MT("Home", "IQ-", "#4af", 100, each: c => { c.oBBIQ = 20; c.dBBIQ = 20; c.Dribbling = 20; }),
     MT("Away", "AVG", "#f84", 100));
 RunScenario("Elite Rebounders (OReb=DReb=85)",
     MT("Home", "REB", "#4af", 100, each: c => { c.ReboundingOff = 85; c.ReboundingDef = 85; }),
@@ -90,11 +90,11 @@ RunScenario("High FT drivers (FT=85, Inside=75, Spd=75, Drib=75)",
 
 WH("SET 7: COACHING");
 RunScenario("Coach OffRat 95 vs 5 — target ~6 pt differential",
-    MT("Home", "COA", "#4af", 100, coach: new CoachingProfile(1.0, 1.0, 1.0, 95, 60)),
-    MT("Away", "COB", "#f84", 100, coach: new CoachingProfile(1.0, 1.0, 1.0, 5, 60)));
-RunScenario("Pace&Space coach vs PostUp coach",
-    MT("Home", "P&S", "#4af", 100, coach: CoachingProfiles.PaceAndSpace),
-    MT("Away", "PST", "#f84", 100, coach: CoachingProfiles.PostUp));
+    MT("Home", "COA", "#4af", 100, coach: new Coach { Name = "HC Elite", OffensiveRating = 95, DefensiveRating = 60 }),
+    MT("Away", "COB", "#f84", 100, coach: new Coach { Name = "HC Weak",  OffensiveRating = 5,  DefensiveRating = 60 }));
+RunScenario("Pace&Space coach vs GritAndGrind coach",
+    MT("Home", "P&S", "#4af", 100, coach: new Coach { Name = "P&S Coach", OffStyle = OffensiveStyle.PaceAndSpace }),
+    MT("Away", "GnG", "#f84", 100, coach: new Coach { Name = "GnG Coach", OffStyle = OffensiveStyle.GritAndGrind }));
 
 WH("SET 8: RATING EXTREMES");
 RunScenario("All-95 vs All-50",
@@ -168,7 +168,7 @@ else
         var configs = EspnTeamFactory.BuildRoster(espnPlayers, lookup, name);
         var team    = EspnTeamFactory.BuildTeam(
             configs, name, abbr, primary,
-            rotationDepth: 10,
+            coach: CoachFactory.GetCoach(name),
             secondaryColor: secondary, division: division, conference: conf);
         teamsByName[name] = team;
     }
@@ -264,6 +264,84 @@ else
     foreach (var (ps, idx) in seasonResult.PlayerStats.OrderByDescending(p => p.Bpg).Take(10).Select((p, i) => (p, i)))
         W($"  {idx+1,-3} {ps.Name,-22} {ps.TeamAbbr,4} {ps.Bpg,6:F2}");
 
+    // ── League shot-type split ─────────────────────────────────────────────────
+    {
+        double numTeamGames = ts.Sum(t2 => t2.GP);  // 30 teams × 82 = 2,460
+        double lInsideAtt = seasonResult.PlayerStats.Sum(p => p.TotalInsideAtt);
+        double lInsideMade= seasonResult.PlayerStats.Sum(p => p.TotalInsideMade);
+        double lMidAtt    = seasonResult.PlayerStats.Sum(p => p.TotalMidAtt);
+        double lMidMade   = seasonResult.PlayerStats.Sum(p => p.TotalMidMade);
+        double lThreeAtt  = ts.Sum(t2 => t2.TotalThreeAtt);
+        double lThreeMade = ts.Sum(t2 => t2.TotalThreeMade);
+        double lFga       = ts.Sum(t2 => t2.TotalFGA);
+
+        double iApg = lInsideAtt / numTeamGames;
+        double mApg = lMidAtt    / numTeamGames;
+        double tApg = lThreeAtt  / numTeamGames;
+        double iPct = lFga > 0 ? lInsideAtt / lFga * 100 : 0;
+        double mPct = lFga > 0 ? lMidAtt    / lFga * 100 : 0;
+        double tPct = lFga > 0 ? lThreeAtt  / lFga * 100 : 0;
+        double iMk  = lInsideAtt > 0 ? lInsideMade / lInsideAtt * 100 : 0;
+        double mMk  = lMidAtt    > 0 ? lMidMade    / lMidAtt    * 100 : 0;
+        double tMk  = lThreeAtt  > 0 ? lThreeMade  / lThreeAtt  * 100 : 0;
+
+        W("");
+        W("  LEAGUE SHOT TYPE SPLIT (per team per game)");
+        W($"  {"Type",-10} {"Att/g",6} {"% FGA",7} {"FG%",7}  {"Target Att",12} {"Target %FGA",13}");
+        W($"  {"─────────────────────────────────────────────────────────────"}");
+        W($"  {"Inside",-10} {iApg,6:F1} {iPct,6:F1}% {iMk,6:F1}%  {"~32-33",12} {"~37%",13}");
+        W($"  {"Mid",-10} {mApg,6:F1} {mPct,6:F1}% {mMk,6:F1}%  {"~20-21",12} {"~23%",13}");
+        W($"  {"3PT",-10} {tApg,6:F1} {tPct,6:F1}% {tMk,6:F1}%  {"~35.1",12} {"~39.6%",13}");
+    }
+
+    // ── Per-player shot profiles ───────────────────────────────────────────────
+    {
+        var targets = new[]
+        {
+            "Mitchell Robinson", "Jalen Brunson", "Stephen Curry",
+            "Kevin Durant", "Shai Gilgeous-Alexander", "Kyrie Irving",
+            "Joel Embiid", "Nikola Jokic", "Giannis Antetokounmpo", "LeBron James",
+            "Karl-Anthony Towns", "Anthony Davis",
+        };
+
+        var lookup2 = seasonResult.PlayerStats
+            .ToDictionary(p => p.Name, p => p, StringComparer.OrdinalIgnoreCase);
+
+        W("");
+        W("  PLAYER SHOT PROFILES");
+        W($"  {"Name",-26} {"Tm",4} {"GP",3} {"PPG",5} {"FGA",5} {"FG%",5} | {"InsAtt",6} {"In%",5} {"InFG%",6} | {"MidAtt",6} {"Mid%",5} {"MFG%",6} | {"3PA",5} {"3P%",5} {"3P%FGA",7}");
+        W($"  {"─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────"}");
+        foreach (var name in targets)
+        {
+            if (!lookup2.TryGetValue(name, out var p)) { W($"  {name,-26} (not found)"); continue; }
+            double fga    = p.TotalFGA;
+            double inPct  = fga > 0 ? p.TotalInsideAtt / fga * 100 : 0;
+            double midPct = fga > 0 ? p.TotalMidAtt    / fga * 100 : 0;
+            double tpPct  = fga > 0 ? p.TotalThreeAtt  / fga * 100 : 0;
+            double inFg   = p.TotalInsideAtt > 0 ? (double)p.TotalInsideMade / p.TotalInsideAtt * 100 : 0;
+            double midFg  = p.TotalMidAtt    > 0 ? (double)p.TotalMidMade    / p.TotalMidAtt    * 100 : 0;
+            double tpFg   = p.TotalThreeAtt  > 0 ? (double)p.TotalThreeMade  / p.TotalThreeAtt  * 100 : 0;
+            W($"  {p.Name,-26} {p.TeamAbbr,4} {p.GP,3} {p.Ppg,5:F1} {p.Fga,5:F1} {p.FgPct*100,4:F0}% | {p.InsideApg,6:F1} {inPct,4:F0}% {inFg,5:F0}%  | {p.MidApg,6:F1} {midPct,4:F0}% {midFg,5:F0}%  | {p.Tpa,5:F1} {tpFg,4:F0}% {tpPct,6:F0}%");
+        }
+
+        // also print all players sorted by name for full reference
+        W("");
+        W("  ALL PLAYERS — SHOT SPLIT (sorted by PPG, qualifying ≥ 15 GP, ≥ 15 MPG)");
+        W($"  {"Name",-26} {"Tm",4} {"PPG",5} {"FGA",5} | {"In%",5} {"InFG%",6} | {"Mid%",5} {"MFG%",6} | {"3P%FGA",7} {"3P%",5}");
+        W($"  {"─────────────────────────────────────────────────────────────────────────────────────────────────────"}");
+        foreach (var p in seasonResult.PlayerStats.Where(p => p.GP >= 15 && p.Mpg >= 15).Take(50))
+        {
+            double fga    = p.TotalFGA;
+            double inPct  = fga > 0 ? p.TotalInsideAtt / fga * 100 : 0;
+            double midPct = fga > 0 ? p.TotalMidAtt    / fga * 100 : 0;
+            double tpPct  = fga > 0 ? p.TotalThreeAtt  / fga * 100 : 0;
+            double inFg   = p.TotalInsideAtt > 0 ? (double)p.TotalInsideMade / p.TotalInsideAtt * 100 : 0;
+            double midFg  = p.TotalMidAtt    > 0 ? (double)p.TotalMidMade    / p.TotalMidAtt    * 100 : 0;
+            double tpFg   = p.TotalThreeAtt  > 0 ? (double)p.TotalThreeMade  / p.TotalThreeAtt  * 100 : 0;
+            W($"  {p.Name,-26} {p.TeamAbbr,4} {p.Ppg,5:F1} {p.Fga,5:F1} | {inPct,4:F0}% {inFg,5:F0}%  | {midPct,4:F0}% {midFg,5:F0}%  | {tpPct,6:F0}% {tpFg,4:F0}%");
+        }
+    }
+
     // Save season results JSON
     var seasonOutputPath = Path.Combine(
         Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location)!,
@@ -291,7 +369,22 @@ else
             p.Name, p.Team, p.TeamAbbr, pos = p.Position.ToString(),
             p.GP, ppg = p.Ppg, rpg = p.Rpg, apg = p.Apg, bpg = p.Bpg, spg = p.Spg,
             fta = p.Fta, mpg = p.Mpg,
+            fga = p.Fga, fg_pct = Math.Round(p.FgPct * 100, 1),
+            inside_apg = Math.Round(p.InsideApg, 1), inside_pct = Math.Round(p.InsidePct * 100, 1),
+            mid_apg    = Math.Round(p.MidApg,    1), mid_pct    = Math.Round(p.MidPct    * 100, 1),
+            tpa        = Math.Round(p.Tpa,        1), tp_pct    = Math.Round(p.TpPct     * 100, 1),
         }),
+        all_player_shots = seasonResult.PlayerStats
+            .Where(p => p.GP >= 15 && p.Mpg >= 15)
+            .Take(100)
+            .Select(p => new
+            {
+                p.Name, p.TeamAbbr, pos = p.Position.ToString(),
+                p.GP, ppg = p.Ppg, fga = p.Fga, fg_pct = Math.Round(p.FgPct * 100, 1),
+                inside_apg = Math.Round(p.InsideApg, 1), inside_pct = Math.Round(p.InsidePct * 100, 1),
+                mid_apg    = Math.Round(p.MidApg,    1), mid_pct    = Math.Round(p.MidPct    * 100, 1),
+                tpa        = Math.Round(p.Tpa,        1), tp_pct    = Math.Round(p.TpPct     * 100, 1),
+            }),
     }, serOptions));
     W($"   Season results saved to: {seasonOutputPath}");
 }
@@ -318,7 +411,7 @@ void StatPct(string label, double sim, double target)
 void WH(string label) { W(""); W($"{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}{'═',1}"); W($" {label}"); }
 
 Team MT(string name, string abbr, string color, double pace,
-    int all = 50, CoachingProfile? coach = null,
+    int all = 50, Coach? coach = null,
     Action<PlayerConfig>? each = null)
 {
     var positions = new[] { Position.PG, Position.SG, Position.SF, Position.PF, Position.C };
@@ -329,7 +422,7 @@ Team MT(string name, string abbr, string color, double pace,
             Name = $"{pos}{i + 1}{abbr}", Team = name, Position = pos,
             Height = all, Strength = all, Speed = all, Jumping = all, Endurance = all,
             Inside = all, Dunks = all, FreeThrow = all, MidRange = all, ThreePoint = all,
-            BasketballIQ = all, Dribbling = all, Passing = all,
+            oBBIQ = all, dBBIQ = all, Dribbling = all, Passing = all,
             ReboundingOff = all, ReboundingDef = all,
             PerimeterDefense = all, InteriorDefense = all
         };
@@ -340,7 +433,7 @@ Team MT(string name, string abbr, string color, double pace,
     {
         Name = name, Abbreviation = abbr,
         PrimaryColor = color, SecondaryColor = "#888",
-        Pace = pace, Coach = coach ?? CoachingProfiles.Balanced,
+        Pace = pace, Coach = coach ?? new Coach { Name = "Staff Coach" },
         Roster = roster
     };
 }

@@ -1,0 +1,2172 @@
+{
+  "AJ Green": {
+    "InjLAnkle": 75,
+    "InjLQuad": 58,
+    "InjLowerBack": 77,
+    "InjRShoulder": 67
+  },
+  "AJ Johnson": {
+    "InjLAchilles": 70
+  },
+  "Aaron Gordon": {
+    "InjLAnkle": 68,
+    "InjLHamstring": 73,
+    "InjLHand": 78,
+    "InjLShinCalf": 63,
+    "InjRFoot": 50,
+    "InjRKnee": 81,
+    "InjRShinCalf": 8,
+    "InjRShoulder": 76
+  },
+  "Aaron Nesmith": {
+    "InjLAnkle": 45,
+    "InjLShinCalf": 77,
+    "InjRAnkle": 49
+  },
+  "Aaron Wiggins": {
+    "InjLAchilles": 62,
+    "InjRAnkle": 77
+  },
+  "Adem Bona": {
+    "InjLAnkle": 68,
+    "InjLKnee": 68
+  },
+  "Ajay Mitchell": {
+    "InjRToes": 41
+  },
+  "Al Horford": {
+    "InjLToes": 15,
+    "InjLowerBack": 78,
+    "InjNeck": 77,
+    "InjRKnee": 71
+  },
+  "Alex Caruso": {
+    "InjLAnkle": 38,
+    "InjLFoot": 83,
+    "InjLHip": 46,
+    "InjLToes": 72,
+    "InjLWrist": 77,
+    "InjLowerBack": 79,
+    "InjNeck": 73,
+    "InjRAnkle": 77,
+    "InjRHamstring": 69,
+    "InjRHip": 56,
+    "InjRWrist": 74
+  },
+  "Alex Sarr": {
+    "InjLAnkle": 48
+  },
+  "Alperen Sengun": {
+    "InjLShinCalf": 67,
+    "InjLowerBack": 58,
+    "InjRAnkle": 58,
+    "InjRHip": 79,
+    "InjRKnee": 80
+  },
+  "Amen Thompson": {
+    "InjLAnkle": 62,
+    "InjRShoulder": 79
+  },
+  "Amir Coffey": {
+    "InjLKnee": 62
+  },
+  "Andre Drummond": {
+    "InjLAnkle": 77,
+    "InjLToes": 36,
+    "InjRAnkle": 69
+  },
+  "Andre Jackson Jr.": {
+    "InjLHip": 82,
+    "InjLowerBack": 75,
+    "InjRHip": 74,
+    "InjRWrist": 71
+  },
+  "Andrew Nembhard": {
+    "InjLKnee": 49,
+    "InjLowerBack": 78,
+    "InjRKnee": 74,
+    "InjUpperBack": 61
+  },
+  "Andrew Wiggins": {
+    "InjLAnkle": 72,
+    "InjLKnee": 84,
+    "InjLShinCalf": 76,
+    "InjLowerBack": 56,
+    "InjRAnkle": 42,
+    "InjRFingers": 73,
+    "InjRHamstring": 55
+  },
+  "Anfernee Simons": {
+    "InjLAnkle": 82,
+    "InjLKnee": 60,
+    "InjRElbow": 82,
+    "InjRFingers": 67,
+    "InjRForearm": 50,
+    "InjRHand": 83
+  },
+  "Anthony Black": {
+    "InjLowerBack": 69
+  },
+  "Anthony Davis": {
+    "InjAbdominals": 66,
+    "InjHead": 79,
+    "InjLAchilles": 56,
+    "InjLAnkle": 54,
+    "InjLFoot": 40,
+    "InjLHip": 26,
+    "InjLKnee": 64,
+    "InjLShoulder": 77,
+    "InjLowerBack": 75,
+    "InjRFoot": 64,
+    "InjRHip": 79,
+    "InjRShinCalf": 78,
+    "InjRWrist": 79
+  },
+  "Anthony Edwards": {
+    "InjLAnkle": 80,
+    "InjLFingers": 82,
+    "InjLKnee": 72,
+    "InjRHip": 44,
+    "InjRShinCalf": 78
+  },
+  "Anthony Gill": {
+    "InjLHip": 67,
+    "InjRAnkle": 63,
+    "InjRHamstring": 67,
+    "InjRShinCalf": 80
+  },
+  "Ariel Hukporti": {
+    "InjLAnkle": 73,
+    "InjLKnee": 57
+  },
+  "Ausar Thompson": {
+    "InjLHip": 79
+  },
+  "Austin Reaves": {
+    "InjLElbow": 69,
+    "InjLHamstring": 83,
+    "InjRAnkle": 52,
+    "InjRShinCalf": 67
+  },
+  "Ayo Dosunmu": {
+    "InjLShoulder": 39,
+    "InjRAchilles": 80,
+    "InjRQuad": 70,
+    "InjRShinCalf": 53
+  },
+  "Bam Adebayo": {
+    "InjLHip": 69,
+    "InjLKnee": 61,
+    "InjLowerBack": 62,
+    "InjRElbow": 80,
+    "InjRFingers": 75,
+    "InjRShinCalf": 81
+  },
+  "Ben Sheppard": {
+    "InjLOblique": 50,
+    "InjLToes": 64
+  },
+  "Bennedict Mathurin": {
+    "InjAbdominals": 77,
+    "InjLAnkle": 81,
+    "InjLShinCalf": 64,
+    "InjLWrist": 63,
+    "InjRShoulder": 59,
+    "InjRToes": 73
+  },
+  "Bilal Coulibaly": {
+    "InjRHamstring": 54,
+    "InjRHip": 50,
+    "InjRWrist": 62
+  },
+  "Blake Wesley": {
+    "InjLKnee": 80
+  },
+  "Bobby Portis": {
+    "InjLHamstring": 81,
+    "InjRElbow": 79
+  },
+  "Bobi Klintman": {
+    "InjRShinCalf": 48
+  },
+  "Bogdan Bogdanovic": {
+    "InjLFoot": 35,
+    "InjLShinCalf": 56,
+    "InjRShinCalf": 78
+  },
+  "Bones Hyland": {
+    "InjRKnee": 78
+  },
+  "Bradley Beal": {
+    "InjLAnkle": 67,
+    "InjLHamstring": 48,
+    "InjLShinCalf": 46,
+    "InjLToes": 70,
+    "InjLWrist": 72,
+    "InjLowerBack": 76,
+    "InjRAnkle": 66,
+    "InjRElbow": 75,
+    "InjRKnee": 78
+  },
+  "Branden Carlson": {
+    "InjHead": 66
+  },
+  "Brandin Podziemski": {
+    "InjAbdominals": 57,
+    "InjLowerBack": 62,
+    "InjRKnee": 84
+  },
+  "Brandon Clarke": {
+    "InjLAchilles": 41,
+    "InjLToes": 82,
+    "InjLowerBack": 74,
+    "InjRHand": 79,
+    "InjRKnee": 43,
+    "InjRShinCalf": 69
+  },
+  "Brandon Ingram": {
+    "InjLAnkle": 42,
+    "InjLKnee": 72,
+    "InjRAchilles": 81,
+    "InjRFoot": 71,
+    "InjRHamstring": 72,
+    "InjRHip": 81,
+    "InjRShinCalf": 69
+  },
+  "Brandon Miller": {
+    "InjLAnkle": 57,
+    "InjLowerBack": 70,
+    "InjRWrist": 33
+  },
+  "Brandon Williams": {
+    "InjLHamstring": 66,
+    "InjLOblique": 78,
+    "InjLWrist": 74,
+    "InjLowerBack": 75,
+    "InjRFingers": 57
+  },
+  "Brice Sensabaugh": {
+    "InjLHip": 78,
+    "InjRAnkle": 74
+  },
+  "Bronny James": {
+    "InjLFoot": 59,
+    "InjLForearm": 79
+  },
+  "Brook Lopez": {
+    "InjLowerBack": 53
+  },
+  "Bruce Brown": {
+    "InjRKnee": 18
+  },
+  "Bryce McGowens": {
+    "InjChest": 60,
+    "InjLHip": 79,
+    "InjRKnee": 73
+  },
+  "CJ McCollum": {
+    "InjLAnkle": 82,
+    "InjRAnkle": 75,
+    "InjRFoot": 60,
+    "InjRHip": 54
+  },
+  "Cade Cunningham": {
+    "InjLKnee": 41,
+    "InjLShinCalf": 54,
+    "InjLShoulder": 61,
+    "InjRAnkle": 64,
+    "InjRHip": 72
+  },
+  "Caleb Houstan": {
+    "InjRAnkle": 76
+  },
+  "Caleb Martin": {
+    "InjLAchilles": 76,
+    "InjLKnee": 82,
+    "InjLowerBack": 67,
+    "InjRAnkle": 66,
+    "InjRHip": 45,
+    "InjRShinCalf": 75,
+    "InjRShoulder": 65,
+    "InjUpperBack": 68
+  },
+  "Cam Christie": {
+    "InjLAnkle": 66
+  },
+  "Cam Spencer": {
+    "InjLFingers": 57,
+    "InjRAnkle": 57
+  },
+  "Cam Thomas": {
+    "InjLHamstring": 47,
+    "InjLowerBack": 62,
+    "InjRAnkle": 73
+  },
+  "Cam Whitmore": {
+    "InjLKnee": 77,
+    "InjRAnkle": 79,
+    "InjRKnee": 72
+  },
+  "Cameron Johnson": {
+    "InjLAnkle": 73,
+    "InjLHip": 74,
+    "InjLKnee": 83,
+    "InjLToes": 70,
+    "InjLowerBack": 59,
+    "InjRAnkle": 43,
+    "InjRHip": 78,
+    "InjRKnee": 70,
+    "InjRQuad": 75
+  },
+  "Cameron Payne": {
+    "InjHead": 78,
+    "InjLElbow": 59,
+    "InjLHamstring": 65,
+    "InjLowerBack": 77,
+    "InjRAnkle": 66,
+    "InjRHamstring": 82,
+    "InjRWrist": 75
+  },
+  "Caris LeVert": {
+    "InjLAnkle": 82,
+    "InjLFingers": 81,
+    "InjLKnee": 42,
+    "InjLowerBack": 77,
+    "InjRElbow": 83,
+    "InjRFoot": 82,
+    "InjRKnee": 52,
+    "InjRWrist": 41
+  },
+  "Cason Wallace": {
+    "InjLQuad": 77,
+    "InjRKnee": 82,
+    "InjRShoulder": 38
+  },
+  "Chet Holmgren": {
+    "InjLAnkle": 77,
+    "InjLHip": 65,
+    "InjLowerBack": 74,
+    "InjRFoot": 66,
+    "InjRHip": 45,
+    "InjRShinCalf": 74
+  },
+  "Christian Braun": {
+    "InjLFoot": 58,
+    "InjLowerBack": 77
+  },
+  "Clint Capela": {
+    "InjLHip": 72,
+    "InjLWrist": 51,
+    "InjLowerBack": 68,
+    "InjRAchilles": 83,
+    "InjRKnee": 73
+  },
+  "Coby White": {
+    "InjLAnkle": 58,
+    "InjLShoulder": 74,
+    "InjNeck": 57,
+    "InjRAnkle": 62,
+    "InjRFoot": 69,
+    "InjRHip": 65
+  },
+  "Cody Williams": {
+    "InjLAnkle": 62
+  },
+  "Colin Castleton": {
+    "InjRWrist": 63
+  },
+  "Collin Gillespie": {
+    "InjRAnkle": 41,
+    "InjRShinCalf": 70
+  },
+  "Collin Sexton": {
+    "InjLAnkle": 56,
+    "InjLKnee": 76
+  },
+  "Corey Kispert": {
+    "InjLAnkle": 65,
+    "InjLFingers": 59
+  },
+  "Craig Porter Jr.": {
+    "InjLAnkle": 59,
+    "InjRFingers": 68
+  },
+  "D'Angelo Russell": {
+    "InjLFingers": 75,
+    "InjLHamstring": 63,
+    "InjLShinCalf": 85,
+    "InjLowerBack": 83,
+    "InjRAnkle": 43,
+    "InjRShinCalf": 63
+  },
+  "DaRon Holmes II": {
+    "InjHead": 58,
+    "InjRAchilles": 44
+  },
+  "Daeqwon Plowden": {
+    "InjLWrist": 67
+  },
+  "Dalen Terry": {
+    "InjLKnee": 66,
+    "InjRAnkle": 70,
+    "InjRKnee": 70,
+    "InjRShinCalf": 55
+  },
+  "Damian Lillard": {
+    "InjAbdominals": 63,
+    "InjHead": 61,
+    "InjLAchilles": 77,
+    "InjLAnkle": 75,
+    "InjLHip": 61,
+    "InjLShinCalf": 84,
+    "InjRAchilles": 79,
+    "InjRHamstring": 57,
+    "InjRHip": 60,
+    "InjRShinCalf": 31
+  },
+  "Daniel Gafford": {
+    "InjHead": 80,
+    "InjLAnkle": 66,
+    "InjRKnee": 55
+  },
+  "Darius Garland": {
+    "InjHead": 59,
+    "InjLHip": 64,
+    "InjLToes": 51,
+    "InjLowerBack": 70
+  },
+  "Davion Mitchell": {
+    "InjLQuad": 77,
+    "InjRFoot": 80,
+    "InjRShoulder": 75
+  },
+  "Day'Ron Sharpe": {
+    "InjLHamstring": 55,
+    "InjLKnee": 70,
+    "InjRKnee": 63,
+    "InjRWrist": 65
+  },
+  "De'Aaron Fox": {
+    "InjLAnkle": 83,
+    "InjLFingers": 56,
+    "InjLKnee": 80,
+    "InjRHand": 81,
+    "InjRShoulder": 81
+  },
+  "De'Andre Hunter": {
+    "InjLFoot": 73,
+    "InjRFingers": 70,
+    "InjRKnee": 34,
+    "InjRWrist": 73
+  },
+  "De'Anthony Melton": {
+    "InjHead": 66,
+    "InjLKnee": 51,
+    "InjLowerBack": 47
+  },
+  "DeMar DeRozan": {
+    "InjLowerBack": 62
+  },
+  "Dean Wade": {
+    "InjLAnkle": 63,
+    "InjRAnkle": 72,
+    "InjRKnee": 27
+  },
+  "Deandre Ayton": {
+    "InjLElbow": 66,
+    "InjLKnee": 72,
+    "InjLShinCalf": 50,
+    "InjLowerBack": 83,
+    "InjRAnkle": 79,
+    "InjRFingers": 58,
+    "InjRHand": 74,
+    "InjRKnee": 61,
+    "InjRShinCalf": 81
+  },
+  "Dejounte Murray": {
+    "InjLHand": 53,
+    "InjLShinCalf": 83,
+    "InjLowerBack": 79,
+    "InjRAchilles": 50,
+    "InjRElbow": 61
+  },
+  "Deni Avdija": {
+    "InjLFoot": 75,
+    "InjLQuad": 59,
+    "InjRAnkle": 78,
+    "InjRFingers": 62,
+    "InjRKnee": 81
+  },
+  "Dennis Schroder": {
+    "InjLAnkle": 77,
+    "InjLShoulder": 80,
+    "InjRAchilles": 63,
+    "InjRAnkle": 67
+  },
+  "Dereck Lively II": {
+    "InjLAnkle": 68,
+    "InjLHip": 68,
+    "InjRAnkle": 49,
+    "InjRKnee": 64,
+    "InjRShoulder": 69
+  },
+  "Derrick Jones Jr.": {
+    "InjLWrist": 73,
+    "InjRFingers": 80,
+    "InjRHamstring": 70,
+    "InjRHip": 71,
+    "InjRKnee": 84,
+    "InjRShinCalf": 81
+  },
+  "Derrick White": {
+    "InjLAnkle": 67,
+    "InjLHand": 74,
+    "InjLKnee": 74,
+    "InjLowerBack": 79,
+    "InjRFoot": 80,
+    "InjRShinCalf": 78
+  },
+  "Desmond Bane": {
+    "InjLAnkle": 41,
+    "InjLHip": 67,
+    "InjLowerBack": 62,
+    "InjROblique": 66,
+    "InjRToes": 73
+  },
+  "Devin Booker": {
+    "InjLHamstring": 83,
+    "InjLHip": 58,
+    "InjLowerBack": 83,
+    "InjRAnkle": 70
+  },
+  "Devin Carter": {
+    "InjLShoulder": 43,
+    "InjRShoulder": 70
+  },
+  "Devin Vassell": {
+    "InjHead": 42,
+    "InjLAnkle": 61,
+    "InjLHip": 80,
+    "InjLKnee": 65,
+    "InjRFoot": 55
+  },
+  "Dillon Brooks": {
+    "InjLAnkle": 75,
+    "InjLHand": 78,
+    "InjRAnkle": 72,
+    "InjRHip": 80,
+    "InjRKnee": 76,
+    "InjROblique": 74
+  },
+  "Domantas Sabonis": {
+    "InjLHamstring": 64,
+    "InjLKnee": 84,
+    "InjLowerBack": 77,
+    "InjRAnkle": 70
+  },
+  "Dominick Barlow": {
+    "InjLKnee": 74,
+    "InjLowerBack": 74
+  },
+  "Donovan Clingan": {
+    "InjLAnkle": 68,
+    "InjLKnee": 64
+  },
+  "Donovan Mitchell": {
+    "InjHead": 80,
+    "InjLAnkle": 65,
+    "InjLHip": 60,
+    "InjLKnee": 60,
+    "InjLShinCalf": 82,
+    "InjRShoulder": 79
+  },
+  "Donte DiVincenzo": {
+    "InjLAnkle": 69,
+    "InjLToes": 56
+  },
+  "Dorian Finney-Smith": {
+    "InjLAnkle": 19,
+    "InjLKnee": 61,
+    "InjLShinCalf": 72,
+    "InjRShoulder": 75
+  },
+  "Doug McDermott": {
+    "InjRAnkle": 63,
+    "InjRForearm": 76,
+    "InjRKnee": 73,
+    "InjRShinCalf": 65
+  },
+  "Draymond Green": {
+    "InjLAnkle": 80,
+    "InjLShinCalf": 44,
+    "InjLowerBack": 35,
+    "InjRKnee": 67
+  },
+  "Drew Eubanks": {
+    "InjLAnkle": 81
+  },
+  "Dru Smith": {
+    "InjLAchilles": 42,
+    "InjRKnee": 47
+  },
+  "Duncan Robinson": {
+    "InjHead": 49,
+    "InjLAnkle": 74,
+    "InjLShoulder": 61,
+    "InjLowerBack": 62,
+    "InjRFoot": 76
+  },
+  "Dwight Powell": {
+    "InjHead": 76,
+    "InjRHip": 51
+  },
+  "Dyson Daniels": {
+    "InjLKnee": 65,
+    "InjRHip": 69
+  },
+  "E.J. Liddell": {
+    "InjLShinCalf": 82,
+    "InjRKnee": 70
+  },
+  "Elijah Harkless": {
+    "InjLHip": 68
+  },
+  "Evan Mobley": {
+    "InjLAnkle": 42,
+    "InjLKnee": 67,
+    "InjRFoot": 74,
+    "InjRShinCalf": 64
+  },
+  "Franz Wagner": {
+    "InjRAnkle": 51,
+    "InjRKnee": 82,
+    "InjROblique": 60
+  },
+  "Fred VanVleet": {
+    "InjLHamstring": 81,
+    "InjLHip": 57,
+    "InjRAnkle": 40,
+    "InjRHip": 81,
+    "InjRKnee": 55
+  },
+  "GG Jackson": {
+    "InjLKnee": 85,
+    "InjRFoot": 49
+  },
+  "Gabe Vincent": {
+    "InjLKnee": 29,
+    "InjLOblique": 63,
+    "InjRToes": 75
+  },
+  "Garrett Temple": {
+    "InjLowerBack": 71,
+    "InjRAnkle": 78
+  },
+  "Gary Harris": {
+    "InjLHamstring": 49,
+    "InjLKnee": 84,
+    "InjRFoot": 69,
+    "InjRHamstring": 74,
+    "InjRShinCalf": 44
+  },
+  "Gary Payton II": {
+    "InjAbdominals": 82,
+    "InjLAnkle": 81,
+    "InjLElbow": 72,
+    "InjLFingers": 68,
+    "InjLHamstring": 66,
+    "InjLKnee": 65,
+    "InjLShinCalf": 51,
+    "InjRKnee": 78,
+    "InjRShinCalf": 59
+  },
+  "Gary Trent Jr.": {
+    "InjLHip": 63,
+    "InjLKnee": 75,
+    "InjLowerBack": 49,
+    "InjRHip": 69,
+    "InjRKnee": 60
+  },
+  "Giannis Antetokounmpo": {
+    "InjLAchilles": 74,
+    "InjLFoot": 64,
+    "InjLHamstring": 69,
+    "InjLKnee": 76,
+    "InjLShinCalf": 43,
+    "InjLShoulder": 62,
+    "InjLowerBack": 59,
+    "InjRHip": 71,
+    "InjRKnee": 23,
+    "InjRShoulder": 75
+  },
+  "Goga Bitadze": {
+    "InjHead": 59,
+    "InjLFoot": 68,
+    "InjRFoot": 68
+  },
+  "Gradey Dick": {
+    "InjLShinCalf": 68,
+    "InjRHamstring": 79,
+    "InjRKnee": 57
+  },
+  "Grant Williams": {
+    "InjRAnkle": 56,
+    "InjRKnee": 42
+  },
+  "Grayson Allen": {
+    "InjHead": 62,
+    "InjLFoot": 55,
+    "InjLHip": 59,
+    "InjLKnee": 67,
+    "InjRAchilles": 83,
+    "InjRAnkle": 58,
+    "InjRHamstring": 68,
+    "InjRHip": 67
+  },
+  "Guerschon Yabusele": {
+    "InjHead": 77,
+    "InjRKnee": 34
+  },
+  "Gui Santos": {
+    "InjLKnee": 83,
+    "InjRKnee": 78
+  },
+  "Haywood Highsmith": {
+    "InjHead": 69,
+    "InjLAchilles": 69,
+    "InjLKnee": 77,
+    "InjLowerBack": 74
+  },
+  "Herbert Jones": {
+    "InjLowerBack": 83,
+    "InjRHip": 75,
+    "InjRShoulder": 28
+  },
+  "Immanuel Quickley": {
+    "InjLAnkle": 83,
+    "InjLElbow": 36,
+    "InjLHip": 47,
+    "InjRQuad": 70
+  },
+  "Isaac Okoro": {
+    "InjLAnkle": 71,
+    "InjLElbow": 70,
+    "InjLHamstring": 83,
+    "InjLKnee": 64,
+    "InjRShoulder": 49,
+    "InjRToes": 71
+  },
+  "Isaiah Collier": {
+    "InjRHamstring": 44
+  },
+  "Isaiah Crawford": {
+    "InjLAnkle": 73
+  },
+  "Isaiah Hartenstein": {
+    "InjLAchilles": 49,
+    "InjLAnkle": 81,
+    "InjLHand": 55,
+    "InjLShinCalf": 69,
+    "InjLowerBack": 81
+  },
+  "Isaiah Jackson": {
+    "InjHead": 65,
+    "InjLKnee": 84,
+    "InjRAchilles": 43,
+    "InjRAnkle": 81,
+    "InjRFingers": 78,
+    "InjRHip": 74
+  },
+  "Isaiah Joe": {
+    "InjChest": 76,
+    "InjLShinCalf": 71,
+    "InjLowerBack": 70,
+    "InjRAnkle": 83,
+    "InjRKnee": 67
+  },
+  "Isaiah Livers": {
+    "InjRFoot": 65,
+    "InjRHip": 58
+  },
+  "Isaiah Stevens": {
+    "InjLowerBack": 67
+  },
+  "Isaiah Stewart": {
+    "InjLAnkle": 68,
+    "InjLKnee": 69,
+    "InjLShoulder": 70,
+    "InjLowerBack": 77,
+    "InjRHamstring": 65,
+    "InjRKnee": 57,
+    "InjRToes": 51
+  },
+  "Ivica Zubac": {
+    "InjHead": 73,
+    "InjRShinCalf": 58
+  },
+  "JD Davison": {
+    "InjLAnkle": 82
+  },
+  "Ja Morant": {
+    "InjLAnkle": 82,
+    "InjLHamstring": 64,
+    "InjLHip": 79,
+    "InjLKnee": 71,
+    "InjLowerBack": 67,
+    "InjRFoot": 78,
+    "InjRHand": 77,
+    "InjRHip": 57,
+    "InjRKnee": 70,
+    "InjRQuad": 71,
+    "InjRShoulder": 21
+  },
+  "Ja'Kobe Walter": {
+    "InjRHip": 44,
+    "InjRShoulder": 55
+  },
+  "Jabari Smith Jr.": {
+    "InjLAnkle": 66,
+    "InjLHip": 68,
+    "InjLWrist": 48
+  },
+  "Jabari Walker": {
+    "InjHead": 63,
+    "InjLKnee": 71,
+    "InjRAnkle": 82,
+    "InjRHip": 72
+  },
+  "Jaden Hardy": {
+    "InjRAnkle": 24
+  },
+  "Jaden Ivey": {
+    "InjLKnee": 75,
+    "InjLShinCalf": 50,
+    "InjRToes": 76
+  },
+  "Jaden McDaniels": {
+    "InjLAnkle": 79
+  },
+  "Jae'Sean Tate": {
+    "InjLowerBack": 64,
+    "InjRAnkle": 38
+  },
+  "Jaime Jaquez Jr.": {
+    "InjLHip": 72,
+    "InjLowerBack": 78,
+    "InjRAnkle": 63
+  },
+  "Jake LaRavia": {
+    "InjHead": 71,
+    "InjLAnkle": 57,
+    "InjLFingers": 61,
+    "InjLWrist": 63,
+    "InjLowerBack": 71,
+    "InjRAnkle": 72,
+    "InjRKnee": 78,
+    "InjRShinCalf": 72
+  },
+  "Jakob Poeltl": {
+    "InjLAnkle": 66,
+    "InjLFingers": 66,
+    "InjLHip": 63,
+    "InjLowerBack": 68,
+    "InjRHand": 68,
+    "InjRHip": 56,
+    "InjRKnee": 85
+  },
+  "Jalen Brunson": {
+    "InjLKnee": 83,
+    "InjLShinCalf": 81,
+    "InjRAnkle": 44,
+    "InjRFoot": 82,
+    "InjRShinCalf": 69
+  },
+  "Jalen Duren": {
+    "InjLAnkle": 52,
+    "InjLowerBack": 70,
+    "InjRAnkle": 71
+  },
+  "Jalen Green": {
+    "InjLHamstring": 80
+  },
+  "Jalen Johnson": {
+    "InjLForearm": 62,
+    "InjLShoulder": 42,
+    "InjRAnkle": 59,
+    "InjRShoulder": 46
+  },
+  "Jalen Smith": {
+    "InjHead": 62,
+    "InjLAnkle": 59,
+    "InjLKnee": 54,
+    "InjLowerBack": 60
+  },
+  "Jalen Suggs": {
+    "InjLKnee": 56,
+    "InjLQuad": 50,
+    "InjLWrist": 70,
+    "InjLowerBack": 60,
+    "InjRAnkle": 50,
+    "InjRFingers": 75,
+    "InjRQuad": 76
+  },
+  "Jalen Williams": {
+    "InjLAnkle": 80,
+    "InjRAnkle": 68,
+    "InjRHip": 37,
+    "InjRWrist": 55
+  },
+  "Jalen Wilson": {
+    "InjRAnkle": 80
+  },
+  "Jamal Cain": {
+    "InjRAnkle": 76
+  },
+  "Jamal Murray": {
+    "InjHead": 66,
+    "InjLAnkle": 61,
+    "InjLKnee": 40,
+    "InjLShinCalf": 51,
+    "InjRAnkle": 54,
+    "InjRHamstring": 41,
+    "InjRKnee": 69
+  },
+  "Jamal Shead": {
+    "InjRKnee": 72
+  },
+  "James Harden": {
+    "InjLHamstring": 73,
+    "InjLShoulder": 70,
+    "InjRFoot": 60,
+    "InjRHip": 55
+  },
+  "Jamison Battle": {
+    "InjLAnkle": 81
+  },
+  "Jarace Walker": {
+    "InjRAnkle": 57
+  },
+  "Jared McCain": {
+    "InjLKnee": 52
+  },
+  "Jaren Jackson Jr.": {
+    "InjLAnkle": 67,
+    "InjLHamstring": 75,
+    "InjRHip": 77,
+    "InjRKnee": 78,
+    "InjRQuad": 39
+  },
+  "Jarred Vanderbilt": {
+    "InjLFoot": 59,
+    "InjLQuad": 79,
+    "InjLowerBack": 76,
+    "InjRFoot": 29,
+    "InjRHip": 81
+  },
+  "Jarrett Allen": {
+    "InjChest": 71,
+    "InjLFingers": 80
+  },
+  "Jase Richardson": {
+    "InjHead": 64,
+    "InjLFoot": 68,
+    "InjLShinCalf": 82,
+    "InjLowerBack": 69,
+    "InjRAnkle": 83,
+    "InjRFoot": 51,
+    "InjRShoulder": 57
+  },
+  "Javonte Green": {
+    "InjLAnkle": 63,
+    "InjRHip": 79
+  },
+  "Jaxson Hayes": {
+    "InjLAnkle": 64,
+    "InjLElbow": 74,
+    "InjLKnee": 83,
+    "InjRAnkle": 53,
+    "InjRKnee": 69
+  },
+  "Jay Huff": {
+    "InjLAnkle": 69,
+    "InjLKnee": 82
+  },
+  "Jaylen Brown": {
+    "InjLHand": 70,
+    "InjLHip": 52,
+    "InjLQuad": 77,
+    "InjLowerBack": 76,
+    "InjRAnkle": 69,
+    "InjRHamstring": 71,
+    "InjRKnee": 35,
+    "InjRShoulder": 67
+  },
+  "Jaylen Clark": {
+    "InjRAchilles": 57
+  },
+  "Jaylen Wells": {
+    "InjRWrist": 56
+  },
+  "Jaylin Williams": {
+    "InjLAnkle": 70,
+    "InjLHip": 75,
+    "InjLKnee": 82,
+    "InjRHamstring": 49
+  },
+  "Jaylon Tyson": {
+    "InjLHip": 72,
+    "InjLKnee": 69
+  },
+  "Jayson Tatum": {
+    "InjLAnkle": 40,
+    "InjRAchilles": 74,
+    "InjRAnkle": 71,
+    "InjRForearm": 68,
+    "InjRKnee": 33,
+    "InjRShoulder": 79
+  },
+  "Jeff Green": {
+    "InjLKnee": 85,
+    "InjRKnee": 83
+  },
+  "Jerami Grant": {
+    "InjHead": 41,
+    "InjLKnee": 75,
+    "InjLShinCalf": 84,
+    "InjLowerBack": 73,
+    "InjRAnkle": 81,
+    "InjRFingers": 76,
+    "InjRHamstring": 63,
+    "InjRKnee": 50,
+    "InjRQuad": 76
+  },
+  "Jeremy Sochan": {
+    "InjLAnkle": 72,
+    "InjLFingers": 59,
+    "InjLShinCalf": 82,
+    "InjLowerBack": 42
+  },
+  "Jericho Sims": {
+    "InjLowerBack": 81,
+    "InjRAnkle": 73,
+    "InjRElbow": 61,
+    "InjRShoulder": 69
+  },
+  "Jett Howard": {
+    "InjLAnkle": 65
+  },
+  "Jevon Carter": {
+    "InjRShoulder": 75
+  },
+  "Jimmy Butler III": {
+    "InjLowerBack": 81
+  },
+  "Jock Landale": {
+    "InjHead": 74,
+    "InjLShoulder": 76,
+    "InjRKnee": 61
+  },
+  "Joe Ingles": {
+    "InjLAnkle": 68,
+    "InjLKnee": 66,
+    "InjLShinCalf": 59
+  },
+  "Joel Embiid": {
+    "InjLFoot": 51,
+    "InjLKnee": 13,
+    "InjRAnkle": 78,
+    "InjRKnee": 69
+  },
+  "John Collins": {
+    "InjHead": 78,
+    "InjLAnkle": 58,
+    "InjLHip": 54,
+    "InjLowerBack": 44,
+    "InjRFingers": 76,
+    "InjRFoot": 81
+  },
+  "John Konchar": {
+    "InjLAnkle": 77,
+    "InjLFingers": 79,
+    "InjRAnkle": 83,
+    "InjRFoot": 53,
+    "InjRKnee": 84,
+    "InjRQuad": 61,
+    "InjRShinCalf": 74
+  },
+  "Johnny Furphy": {
+    "InjLAnkle": 81
+  },
+  "Jonathan Isaac": {
+    "InjLHip": 64,
+    "InjLKnee": 50,
+    "InjRAnkle": 75,
+    "InjRHamstring": 40
+  },
+  "Jonathan Kuminga": {
+    "InjLKnee": 74,
+    "InjRAnkle": 50,
+    "InjRKnee": 82
+  },
+  "Jordan Clarkson": {
+    "InjLFoot": 22,
+    "InjLowerBack": 78,
+    "InjRHamstring": 72,
+    "InjRHip": 71,
+    "InjRQuad": 70
+  },
+  "Jordan Goodwin": {
+    "InjLAchilles": 80,
+    "InjRAnkle": 67
+  },
+  "Jordan Hawkins": {
+    "InjLowerBack": 37
+  },
+  "Jordan McLaughlin": {
+    "InjLAchilles": 80,
+    "InjLShinCalf": 84,
+    "InjRHip": 66,
+    "InjRKnee": 74
+  },
+  "Jordan Miller": {
+    "InjLHamstring": 61,
+    "InjLHip": 75
+  },
+  "Jordan Poole": {
+    "InjLAnkle": 73,
+    "InjLHip": 47,
+    "InjRElbow": 49
+  },
+  "Jose Alvarado": {
+    "InjLHamstring": 54,
+    "InjROblique": 77,
+    "InjRShinCalf": 60
+  },
+  "Josh Giddey": {
+    "InjLAnkle": 76,
+    "InjLQuad": 73,
+    "InjRAnkle": 44,
+    "InjRElbow": 66,
+    "InjRHip": 60
+  },
+  "Josh Green": {
+    "InjLAchilles": 68,
+    "InjLShoulder": 48,
+    "InjRAnkle": 68,
+    "InjRElbow": 68,
+    "InjRFoot": 76,
+    "InjRShinCalf": 71
+  },
+  "Josh Hart": {
+    "InjLAnkle": 71,
+    "InjLKnee": 61,
+    "InjRKnee": 45
+  },
+  "Josh Okogie": {
+    "InjAbdominals": 70,
+    "InjLHamstring": 52,
+    "InjRAnkle": 72,
+    "InjRHamstring": 61,
+    "InjRHip": 69
+  },
+  "Jrue Holiday": {
+    "InjLAnkle": 66,
+    "InjLKnee": 51,
+    "InjRElbow": 65,
+    "InjRFingers": 62,
+    "InjRHamstring": 68,
+    "InjRShoulder": 22
+  },
+  "Julian Champagnie": {
+    "InjRAnkle": 83
+  },
+  "Julian Phillips": {
+    "InjRFoot": 65,
+    "InjRQuad": 71
+  },
+  "Julian Strawther": {
+    "InjLKnee": 61,
+    "InjRKnee": 65
+  },
+  "Julius Randle": {
+    "InjLAnkle": 74,
+    "InjRHip": 52,
+    "InjRQuad": 77,
+    "InjRShoulder": 57
+  },
+  "Justin Champagnie": {
+    "InjLowerBack": 78
+  },
+  "Justin Edwards": {
+    "InjChest": 67,
+    "InjLAnkle": 60
+  },
+  "Jusuf Nurkic": {
+    "InjLAnkle": 66,
+    "InjLFoot": 77,
+    "InjLShinCalf": 84,
+    "InjLowerBack": 83,
+    "InjNeck": 74,
+    "InjRAnkle": 65,
+    "InjRQuad": 58
+  },
+  "Kam Jones": {
+    "InjLQuad": 57,
+    "InjRHamstring": 74
+  },
+  "Karl-Anthony Towns": {
+    "InjLKnee": 30,
+    "InjRFingers": 68,
+    "InjRKnee": 56
+  },
+  "Karlo Matkovic": {
+    "InjLHamstring": 77,
+    "InjLowerBack": 57
+  },
+  "Kawhi Leonard": {
+    "InjLFoot": 76,
+    "InjLHip": 52,
+    "InjRAnkle": 82,
+    "InjRKnee": 7
+  },
+  "Keaton Wallace": {
+    "InjRShoulder": 62
+  },
+  "Keegan Murray": {
+    "InjLAnkle": 53,
+    "InjLowerBack": 65
+  },
+  "Kel'el Ware": {
+    "InjLKnee": 75,
+    "InjRFoot": 74
+  },
+  "Keldon Johnson": {
+    "InjLHip": 76,
+    "InjRAnkle": 82
+  },
+  "Kelly Olynyk": {
+    "InjLAchilles": 56,
+    "InjLKnee": 79,
+    "InjLowerBack": 54,
+    "InjRShinCalf": 65,
+    "InjRShoulder": 74
+  },
+  "Kelly Oubre Jr.": {
+    "InjLHand": 70,
+    "InjRAnkle": 71,
+    "InjRKnee": 59,
+    "InjRShoulder": 80
+  },
+  "Kenrich Williams": {
+    "InjLKnee": 81,
+    "InjLWrist": 79,
+    "InjRKnee": 57
+  },
+  "Kentavious Caldwell-Pope": {
+    "InjHead": 76,
+    "InjLKnee": 67,
+    "InjRFingers": 80,
+    "InjRHamstring": 74
+  },
+  "Keon Ellis": {
+    "InjRAnkle": 83
+  },
+  "Keshad Johnson": {
+    "InjLShoulder": 76
+  },
+  "Kevin Durant": {
+    "InjLAnkle": 31,
+    "InjLKnee": 81,
+    "InjLShinCalf": 63,
+    "InjRHamstring": 74
+  },
+  "Kevin Huerter": {
+    "InjLAnkle": 73,
+    "InjLShoulder": 46,
+    "InjNeck": 74,
+    "InjRAnkle": 74,
+    "InjRFingers": 61,
+    "InjRKnee": 74,
+    "InjRShinCalf": 81
+  },
+  "Kevin Love": {
+    "InjLKnee": 75,
+    "InjLowerBack": 69,
+    "InjRFingers": 77,
+    "InjRFoot": 66
+  },
+  "Kevin Porter Jr.": {
+    "InjLAnkle": 61,
+    "InjLQuad": 74
+  },
+  "Keyonte George": {
+    "InjLAnkle": 67,
+    "InjLFoot": 31
+  },
+  "Khris Middleton": {
+    "InjLAnkle": 20,
+    "InjLKnee": 76,
+    "InjLWrist": 58,
+    "InjRAnkle": 83,
+    "InjRKnee": 44
+  },
+  "Killian Hayes": {
+    "InjHead": 79,
+    "InjLFingers": 78,
+    "InjRHip": 76
+  },
+  "Klay Thompson": {
+    "InjLAnkle": 75,
+    "InjLFoot": 48,
+    "InjRAchilles": 47,
+    "InjRKnee": 72
+  },
+  "Kobe Brown": {
+    "InjLowerBack": 57
+  },
+  "Kobe Bufkin": {
+    "InjLFingers": 70,
+    "InjLToes": 68,
+    "InjRShoulder": 28
+  },
+  "Kris Dunn": {
+    "InjLFoot": 74,
+    "InjLKnee": 57
+  },
+  "Kris Murray": {
+    "InjChest": 56,
+    "InjLQuad": 73
+  },
+  "Kristaps Porzingis": {
+    "InjLAnkle": 54,
+    "InjLQuad": 80,
+    "InjLShinCalf": 38,
+    "InjLowerBack": 75,
+    "InjRHamstring": 63,
+    "InjRKnee": 59,
+    "InjRShinCalf": 64
+  },
+  "Kyle Anderson": {
+    "InjLHamstring": 81,
+    "InjLKnee": 83,
+    "InjLowerBack": 70,
+    "InjNeck": 71,
+    "InjRShoulder": 74
+  },
+  "Kyle Filipowski": {
+    "InjLShinCalf": 66,
+    "InjRAnkle": 80
+  },
+  "Kyle Kuzma": {
+    "InjChest": 57,
+    "InjLShoulder": 61,
+    "InjRAnkle": 65,
+    "InjRFoot": 80,
+    "InjRHip": 60,
+    "InjRKnee": 82
+  },
+  "Kyle Lowry": {
+    "InjLHamstring": 80,
+    "InjLHand": 78,
+    "InjLKnee": 77,
+    "InjRHip": 17
+  },
+  "Kyrie Irving": {
+    "InjLHamstring": 81,
+    "InjLKnee": 58,
+    "InjLowerBack": 64,
+    "InjRFingers": 65,
+    "InjRFoot": 63,
+    "InjRShoulder": 47
+  },
+  "Kyshawn George": {
+    "InjLAnkle": 46,
+    "InjRAnkle": 80,
+    "InjRKnee": 82
+  },
+  "LaMelo Ball": {
+    "InjLAnkle": 55,
+    "InjLShinCalf": 62,
+    "InjLWrist": 62,
+    "InjRAnkle": 23,
+    "InjRWrist": 64
+  },
+  "Landry Shamet": {
+    "InjChest": 70,
+    "InjHead": 74,
+    "InjLHamstring": 81,
+    "InjLShinCalf": 67,
+    "InjRAnkle": 82
+  },
+  "Larry Nance Jr.": {
+    "InjChest": 67,
+    "InjLAnkle": 77,
+    "InjRHand": 57,
+    "InjRKnee": 44,
+    "InjRWrist": 60
+  },
+  "Lauri Markkanen": {
+    "InjHead": 76,
+    "InjLHamstring": 69,
+    "InjLKnee": 66,
+    "InjLowerBack": 24,
+    "InjRAnkle": 76,
+    "InjRQuad": 61,
+    "InjRShoulder": 69
+  },
+  "LeBron James": {
+    "InjAbdominals": 76,
+    "InjLAnkle": 39,
+    "InjLFoot": 33,
+    "InjLHip": 41,
+    "InjLKnee": 69,
+    "InjLShinCalf": 72,
+    "InjRFoot": 78
+  },
+  "Luguentz Dort": {
+    "InjLAnkle": 79,
+    "InjLShoulder": 73,
+    "InjLowerBack": 81,
+    "InjRHip": 66,
+    "InjRKnee": 82
+  },
+  "Luka Doncic": {
+    "InjHead": 71,
+    "InjLAnkle": 64,
+    "InjLFoot": 73,
+    "InjLHamstring": 80,
+    "InjLHip": 70,
+    "InjLKnee": 73,
+    "InjLQuad": 57,
+    "InjLShinCalf": 46,
+    "InjRAnkle": 35,
+    "InjRKnee": 48,
+    "InjRWrist": 61
+  },
+  "Luka Garza": {
+    "InjLAnkle": 57
+  },
+  "Luke Kennard": {
+    "InjLFoot": 62,
+    "InjLKnee": 42,
+    "InjLowerBack": 77,
+    "InjRHamstring": 72,
+    "InjRShinCalf": 75
+  },
+  "Luke Kornet": {
+    "InjLHamstring": 77,
+    "InjLHip": 76,
+    "InjLWrist": 80,
+    "InjRHamstring": 62,
+    "InjRShinCalf": 70
+  },
+  "Malik Monk": {
+    "InjLShinCalf": 70,
+    "InjLWrist": 70,
+    "InjRAnkle": 62,
+    "InjRHip": 64,
+    "InjRKnee": 71,
+    "InjRToes": 65
+  },
+  "MarJon Beauchamp": {
+    "InjLAnkle": 79,
+    "InjLFoot": 82,
+    "InjLHamstring": 70,
+    "InjLowerBack": 67,
+    "InjNeck": 70
+  },
+  "Marcus Sasser": {
+    "InjRKnee": 78
+  },
+  "Marcus Smart": {
+    "InjLFoot": 67,
+    "InjLShoulder": 76,
+    "InjRAnkle": 47,
+    "InjRFingers": 15,
+    "InjRQuad": 78
+  },
+  "Mark Williams": {
+    "InjLFoot": 15,
+    "InjLowerBack": 59,
+    "InjUpperBack": 76
+  },
+  "Marvin Bagley III": {
+    "InjHead": 68,
+    "InjLAnkle": 77,
+    "InjLowerBack": 46,
+    "InjRAnkle": 76,
+    "InjRKnee": 43
+  },
+  "Mason Plumlee": {
+    "InjLKnee": 70,
+    "InjLQuad": 65
+  },
+  "Matisse Thybulle": {
+    "InjLAnkle": 84,
+    "InjLHip": 79,
+    "InjRAnkle": 35,
+    "InjRFoot": 83,
+    "InjRKnee": 57,
+    "InjRShoulder": 67
+  },
+  "Max Christie": {
+    "InjRAnkle": 71
+  },
+  "Max Strus": {
+    "InjRAnkle": 40,
+    "InjRKnee": 54,
+    "InjRShoulder": 79
+  },
+  "Maxi Kleber": {
+    "InjChest": 80,
+    "InjLKnee": 81,
+    "InjLOblique": 78,
+    "InjLowerBack": 60,
+    "InjRAnkle": 77,
+    "InjRFoot": 48,
+    "InjRHamstring": 57,
+    "InjRShoulder": 67,
+    "InjRToes": 38
+  },
+  "Michael Porter Jr.": {
+    "InjLFoot": 78,
+    "InjLHamstring": 64,
+    "InjLKnee": 83,
+    "InjLShoulder": 72,
+    "InjLowerBack": 68,
+    "InjRKnee": 82
+  },
+  "Mike Conley": {
+    "InjLHamstring": 81,
+    "InjLToes": 70,
+    "InjRFingers": 54,
+    "InjRKnee": 68,
+    "InjRShinCalf": 77
+  },
+  "Miles Bridges": {
+    "InjLHip": 70,
+    "InjLKnee": 83,
+    "InjLowerBack": 79,
+    "InjRKnee": 58,
+    "InjRWrist": 68
+  },
+  "Miles McBride": {
+    "InjLHamstring": 66,
+    "InjLHip": 58,
+    "InjLKnee": 63
+  },
+  "Mitchell Robinson": {
+    "InjLAnkle": 13,
+    "InjRKnee": 85
+  },
+  "Mo Bamba": {
+    "InjLAnkle": 76,
+    "InjLKnee": 53,
+    "InjRKnee": 67
+  },
+  "Moritz Wagner": {
+    "InjChest": 81,
+    "InjLKnee": 52,
+    "InjRFoot": 80
+  },
+  "Moses Moody": {
+    "InjLKnee": 52,
+    "InjLShinCalf": 70,
+    "InjLowerBack": 69
+  },
+  "Mouhamed Gueye": {
+    "InjLowerBack": 61,
+    "InjRElbow": 72
+  },
+  "Moussa Diabate": {
+    "InjHead": 77,
+    "InjLHip": 69,
+    "InjRHand": 78,
+    "InjRWrist": 61
+  },
+  "Myles Turner": {
+    "InjLAnkle": 61,
+    "InjLFoot": 75,
+    "InjLHip": 74,
+    "InjNeck": 62,
+    "InjRAnkle": 80,
+    "InjRFingers": 80,
+    "InjRShinCalf": 78
+  },
+  "Naji Marshall": {
+    "InjLShoulder": 72
+  },
+  "Naz Reid": {
+    "InjHead": 80,
+    "InjLWrist": 72
+  },
+  "Neemias Queta": {
+    "InjRKnee": 78
+  },
+  "Nic Claxton": {
+    "InjLAnkle": 78,
+    "InjLHamstring": 72,
+    "InjLowerBack": 63,
+    "InjRHamstring": 75
+  },
+  "Nick Richards": {
+    "InjChest": 58,
+    "InjLowerBack": 65,
+    "InjRAnkle": 50,
+    "InjRElbow": 72,
+    "InjRShoulder": 75
+  },
+  "Nick Smith Jr.": {
+    "InjLAnkle": 73,
+    "InjLowerBack": 81
+  },
+  "Nicolas Batum": {
+    "InjLHamstring": 72,
+    "InjRAnkle": 75,
+    "InjRFingers": 64,
+    "InjRHamstring": 72,
+    "InjRHip": 71
+  },
+  "Nikola Jokic": {
+    "InjLAnkle": 52,
+    "InjLElbow": 63,
+    "InjLHip": 74,
+    "InjLowerBack": 67,
+    "InjRElbow": 77,
+    "InjRWrist": 70
+  },
+  "Nikola Jovic": {
+    "InjLAnkle": 52,
+    "InjLowerBack": 77,
+    "InjRHamstring": 79,
+    "InjRHand": 53
+  },
+  "Nikola Topic": {
+    "InjLKnee": 48,
+    "InjRKnee": 82
+  },
+  "Nikola Vucevic": {
+    "InjLHip": 68,
+    "InjLowerBack": 83,
+    "InjRShinCalf": 48
+  },
+  "Noah Clowney": {
+    "InjLAnkle": 40,
+    "InjLHip": 79,
+    "InjRAnkle": 47,
+    "InjRShoulder": 82
+  },
+  "Norman Powell": {
+    "InjLFoot": 76,
+    "InjLHamstring": 62,
+    "InjLKnee": 64,
+    "InjLShinCalf": 78,
+    "InjLowerBack": 72,
+    "InjRHamstring": 61,
+    "InjRHip": 72,
+    "InjRShoulder": 82
+  },
+  "OG Anunoby": {
+    "InjLHamstring": 75,
+    "InjLHip": 78,
+    "InjRElbow": 65,
+    "InjRFingers": 56,
+    "InjRFoot": 58
+  },
+  "Obi Toppin": {
+    "InjLAnkle": 56
+  },
+  "Ochai Agbaji": {
+    "InjLAnkle": 64,
+    "InjLHip": 79,
+    "InjRHand": 65,
+    "InjRHip": 74
+  },
+  "Olivier Sarr": {
+    "InjRHip": 77
+  },
+  "Olivier-Maxence Prosper": {
+    "InjLAnkle": 67,
+    "InjRWrist": 48
+  },
+  "Onyeka Okongwu": {
+    "InjHead": 80,
+    "InjLFoot": 67,
+    "InjLKnee": 64,
+    "InjLToes": 42,
+    "InjRShoulder": 75
+  },
+  "Ousmane Dieng": {
+    "InjHead": 73,
+    "InjLShinCalf": 57,
+    "InjLWrist": 77,
+    "InjRFingers": 54,
+    "InjRShinCalf": 64
+  },
+  "P.J. Washington": {
+    "InjLAnkle": 61,
+    "InjLElbow": 73,
+    "InjLShoulder": 77,
+    "InjRAnkle": 52,
+    "InjRFoot": 72,
+    "InjRKnee": 52
+  },
+  "Pacome Dadiet": {
+    "InjRToes": 54
+  },
+  "Paolo Banchero": {
+    "InjLAnkle": 81,
+    "InjRAnkle": 73,
+    "InjROblique": 57
+  },
+  "Pascal Siakam": {
+    "InjLShoulder": 74,
+    "InjRElbow": 68,
+    "InjRHip": 75
+  },
+  "Pat Connaughton": {
+    "InjLShinCalf": 51,
+    "InjRAnkle": 54,
+    "InjRFingers": 73,
+    "InjRShinCalf": 81
+  },
+  "Patrick Baldwin Jr.": {
+    "InjLToes": 77,
+    "InjRAnkle": 68
+  },
+  "Patrick Williams": {
+    "InjLFoot": 38,
+    "InjLWrist": 69,
+    "InjRAnkle": 65,
+    "InjRQuad": 52
+  },
+  "Paul George": {
+    "InjLFingers": 68,
+    "InjLHip": 29,
+    "InjLKnee": 45,
+    "InjRElbow": 77,
+    "InjRHamstring": 80,
+    "InjRKnee": 75
+  },
+  "Payton Pritchard": {
+    "InjLHip": 73
+  },
+  "Pelle Larsson": {
+    "InjRAnkle": 45
+  },
+  "Pete Nance": {
+    "InjLAnkle": 66
+  },
+  "Peyton Watson": {
+    "InjRHip": 71,
+    "InjRKnee": 50
+  },
+  "Precious Achiuwa": {
+    "InjLHamstring": 49,
+    "InjRAnkle": 72,
+    "InjRShoulder": 77
+  },
+  "Quentin Grimes": {
+    "InjLowerBack": 75,
+    "InjRKnee": 52,
+    "InjRShoulder": 66
+  },
+  "Quinten Post": {
+    "InjRAnkle": 79
+  },
+  "RJ Barrett": {
+    "InjHead": 64,
+    "InjLAnkle": 84,
+    "InjLKnee": 59,
+    "InjRShoulder": 69
+  },
+  "Rayan Rupert": {
+    "InjRAnkle": 64
+  },
+  "Reed Sheppard": {
+    "InjRFingers": 54
+  },
+  "Riley Minix": {
+    "InjLShoulder": 63
+  },
+  "Rob Dillingham": {
+    "InjRAnkle": 31
+  },
+  "Robert Williams III": {
+    "InjHead": 56,
+    "InjLAnkle": 73,
+    "InjLHamstring": 64,
+    "InjLKnee": 35,
+    "InjRAnkle": 70,
+    "InjRHand": 65,
+    "InjRKnee": 43
+  },
+  "Royce O'Neale": {
+    "InjLAnkle": 65
+  },
+  "Rudy Gobert": {
+    "InjChest": 71,
+    "InjLAnkle": 74,
+    "InjLShinCalf": 83,
+    "InjLowerBack": 53,
+    "InjRHamstring": 82
+  },
+  "Rui Hachimura": {
+    "InjLAnkle": 82,
+    "InjLKnee": 58,
+    "InjLShinCalf": 55,
+    "InjRAnkle": 61
+  },
+  "Russell Westbrook": {
+    "InjLFoot": 73,
+    "InjLHamstring": 65,
+    "InjLHand": 63
+  },
+  "Ryan Dunn": {
+    "InjLAnkle": 43
+  },
+  "Ryan Rollins": {
+    "InjLShoulder": 50,
+    "InjRFoot": 72,
+    "InjRKnee": 73
+  },
+  "Saddiq Bey": {
+    "InjLAnkle": 80,
+    "InjLKnee": 38,
+    "InjRAnkle": 80
+  },
+  "Sam Hauser": {
+    "InjLAnkle": 82,
+    "InjLowerBack": 49,
+    "InjRAnkle": 57,
+    "InjRHip": 59,
+    "InjRShoulder": 70
+  },
+  "Sam Merrill": {
+    "InjLAnkle": 52,
+    "InjNeck": 61,
+    "InjRAnkle": 68,
+    "InjRWrist": 73
+  },
+  "Santi Aldama": {
+    "InjLAnkle": 59,
+    "InjLElbow": 59,
+    "InjLKnee": 79,
+    "InjRFoot": 67,
+    "InjRKnee": 72,
+    "InjRShinCalf": 51
+  },
+  "Scoot Henderson": {
+    "InjHead": 56,
+    "InjLFoot": 81,
+    "InjLHip": 63,
+    "InjLQuad": 53,
+    "InjLowerBack": 74,
+    "InjRAnkle": 62
+  },
+  "Scottie Barnes": {
+    "InjChest": 56,
+    "InjHead": 57,
+    "InjLHand": 59,
+    "InjLHip": 79,
+    "InjLKnee": 84,
+    "InjLWrist": 59,
+    "InjRAnkle": 70,
+    "InjRHand": 57,
+    "InjRKnee": 84
+  },
+  "Scotty Pippen Jr.": {
+    "InjLShinCalf": 78,
+    "InjLWrist": 77,
+    "InjLowerBack": 61
+  },
+  "Seth Curry": {
+    "InjLAnkle": 54,
+    "InjLowerBack": 58,
+    "InjRAnkle": 55,
+    "InjRKnee": 67
+  },
+  "Shaedon Sharpe": {
+    "InjAbdominals": 60,
+    "InjLHip": 82,
+    "InjLShoulder": 55,
+    "InjRHip": 69,
+    "InjRKnee": 76
+  },
+  "Shai Gilgeous-Alexander": {
+    "InjLShinCalf": 74,
+    "InjRAnkle": 60,
+    "InjRQuad": 67,
+    "InjRWrist": 77
+  },
+  "Sidy Cissoko": {
+    "InjHead": 73,
+    "InjLAnkle": 57
+  },
+  "Simone Fontecchio": {
+    "InjLToes": 55,
+    "InjRFingers": 70
+  },
+  "Spencer Jones": {
+    "InjRHip": 69
+  },
+  "Stephen Curry": {
+    "InjLAnkle": 65,
+    "InjLFoot": 80,
+    "InjLHamstring": 68,
+    "InjLKnee": 43,
+    "InjRAnkle": 70
+  },
+  "Stephon Castle": {
+    "InjLShoulder": 72
+  },
+  "Steven Adams": {
+    "InjLAnkle": 46,
+    "InjLKnee": 74,
+    "InjRKnee": 32,
+    "InjRWrist": 77
+  },
+  "Svi Mykhailiuk": {
+    "InjLFoot": 77,
+    "InjLHip": 70,
+    "InjRFoot": 74
+  },
+  "T.J. McConnell": {
+    "InjRAnkle": 62,
+    "InjRWrist": 70
+  },
+  "Taj Gibson": {
+    "InjRHamstring": 68
+  },
+  "Tari Eason": {
+    "InjHead": 68,
+    "InjLShinCalf": 19
+  },
+  "Taurean Prince": {
+    "InjLAnkle": 77,
+    "InjLKnee": 83,
+    "InjRKnee": 69
+  },
+  "Taylor Hendricks": {
+    "InjLToes": 77,
+    "InjRShinCalf": 41
+  },
+  "Terance Mann": {
+    "InjLFingers": 59
+  },
+  "Terrence Shannon Jr.": {
+    "InjRFoot": 60,
+    "InjRHip": 61
+  },
+  "Terry Rozier": {
+    "InjLAnkle": 62,
+    "InjLKnee": 72,
+    "InjLowerBack": 66,
+    "InjNeck": 60,
+    "InjRKnee": 69
+  },
+  "Thomas Bryant": {
+    "InjLKnee": 78
+  },
+  "Tidjane Salaun": {
+    "InjLAnkle": 70,
+    "InjRAnkle": 51
+  },
+  "Tim Hardaway Jr.": {
+    "InjHead": 68,
+    "InjLFoot": 73,
+    "InjLowerBack": 61,
+    "InjRAnkle": 60
+  },
+  "Tobias Harris": {
+    "InjLHip": 51,
+    "InjLKnee": 82,
+    "InjRAchilles": 70,
+    "InjRAnkle": 75,
+    "InjRFingers": 78,
+    "InjRFoot": 68
+  },
+  "Toumani Camara": {
+    "InjChest": 70,
+    "InjLAnkle": 81,
+    "InjLFoot": 71,
+    "InjRFingers": 80,
+    "InjRKnee": 84,
+    "InjRShinCalf": 81
+  },
+  "Trae Young": {
+    "InjChest": 77,
+    "InjHead": 76,
+    "InjLFingers": 66,
+    "InjLQuad": 67,
+    "InjRAchilles": 25,
+    "InjRFoot": 67,
+    "InjRHamstring": 65,
+    "InjRHand": 83,
+    "InjRShoulder": 75
+  },
+  "Trayce Jackson-Davis": {
+    "InjRKnee": 78
+  },
+  "Tre Jones": {
+    "InjLAnkle": 73,
+    "InjLFoot": 57,
+    "InjLShoulder": 56,
+    "InjRAnkle": 59
+  },
+  "Tre Mann": {
+    "InjLHip": 76,
+    "InjLowerBack": 40
+  },
+  "Trendon Watford": {
+    "InjLHamstring": 24,
+    "InjLKnee": 85
+  },
+  "Trey Murphy III": {
+    "InjLAnkle": 68,
+    "InjLKnee": 60,
+    "InjRHamstring": 54,
+    "InjRShoulder": 56
+  },
+  "Tristan Vukcevic": {
+    "InjLKnee": 50,
+    "InjRAnkle": 63
+  },
+  "Ty Jerome": {
+    "InjAbdominals": 79,
+    "InjLHip": 80,
+    "InjLKnee": 64,
+    "InjRAnkle": 56,
+    "InjRShinCalf": 63
+  },
+  "Tyler Herro": {
+    "InjHead": 59,
+    "InjLAnkle": 72,
+    "InjLHip": 79,
+    "InjLKnee": 69,
+    "InjRAnkle": 70,
+    "InjRFoot": 65,
+    "InjRHand": 70,
+    "InjRHip": 78,
+    "InjRQuad": 54,
+    "InjRShoulder": 63
+  },
+  "Tyler Smith": {
+    "InjLAnkle": 65,
+    "InjLowerBack": 74,
+    "InjRAnkle": 80
+  },
+  "Tyrese Haliburton": {
+    "InjLHamstring": 54,
+    "InjLHip": 51,
+    "InjLowerBack": 42,
+    "InjRAnkle": 75
+  },
+  "Tyrese Maxey": {
+    "InjHead": 74,
+    "InjLAnkle": 78,
+    "InjLFingers": 63,
+    "InjLFoot": 79,
+    "InjLHip": 69,
+    "InjLowerBack": 77,
+    "InjRFingers": 51,
+    "InjRHamstring": 60
+  },
+  "Tyus Jones": {
+    "InjLowerBack": 67
+  },
+  "Victor Wembanyama": {
+    "InjLAnkle": 84,
+    "InjLowerBack": 74,
+    "InjRAnkle": 55,
+    "InjRKnee": 71,
+    "InjRShoulder": 51
+  },
+  "Vit Krejci": {
+    "InjLShoulder": 60,
+    "InjLowerBack": 58,
+    "InjRAnkle": 81,
+    "InjRHip": 56
+  },
+  "Walker Kessler": {
+    "InjHead": 56,
+    "InjLShoulder": 56,
+    "InjRFoot": 66,
+    "InjRHip": 61
+  },
+  "Wendell Carter Jr.": {
+    "InjLFoot": 58,
+    "InjLWrist": 55,
+    "InjRFoot": 77,
+    "InjRHip": 78,
+    "InjRKnee": 57
+  },
+  "Wendell Moore Jr.": {
+    "InjHead": 68
+  },
+  "Xavier Tillman": {
+    "InjLKnee": 33
+  },
+  "Yuki Kawamura": {
+    "InjLShoulder": 63,
+    "InjRHamstring": 72
+  },
+  "Yves Missi": {
+    "InjLAnkle": 57,
+    "InjLShoulder": 76,
+    "InjRHip": 78
+  },
+  "Zaccharie Risacher": {
+    "InjLHamstring": 81,
+    "InjLHip": 60
+  },
+  "Zach Collins": {
+    "InjHead": 64,
+    "InjLAnkle": 73,
+    "InjLKnee": 78,
+    "InjLowerBack": 74,
+    "InjRAnkle": 66
+  },
+  "Zach Edey": {
+    "InjHead": 68,
+    "InjLAnkle": 54,
+    "InjRAnkle": 80
+  },
+  "Zach LaVine": {
+    "InjLKnee": 68,
+    "InjLToes": 78,
+    "InjLowerBack": 66,
+    "InjRAnkle": 69,
+    "InjRFoot": 43,
+    "InjRHip": 62,
+    "InjRKnee": 84
+  },
+  "Zeke Nnaji": {
+    "InjLAnkle": 73,
+    "InjLKnee": 81,
+    "InjLowerBack": 81,
+    "InjRHip": 66
+  },
+  "Ziaire Williams": {
+    "InjLAchilles": 77,
+    "InjLAnkle": 62,
+    "InjLHand": 69,
+    "InjLKnee": 55,
+    "InjLowerBack": 65,
+    "InjRHamstring": 79,
+    "InjRHip": 71,
+    "InjRKnee": 60
+  },
+  "Zion Williamson": {
+    "InjLAnkle": 84,
+    "InjLFoot": 63,
+    "InjLHamstring": 43,
+    "InjLowerBack": 59,
+    "InjRFoot": 62,
+    "InjRHamstring": 73,
+    "InjRQuad": 60
+  },
+  "Zyon Pullin": {
+    "InjRKnee": 56
+  }
+}

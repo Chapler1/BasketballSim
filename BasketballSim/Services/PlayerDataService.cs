@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using BasketballSim.Models;
 
 namespace BasketballSim.Services;
@@ -19,6 +20,31 @@ public class PlayerDataService(IWebHostEnvironment env, Nba2kCacheService nba2k)
         "Inside","Dunks","FreeThrow","MidRange","ThreePoint",
         "oBBIQ","dBBIQ","Hustle","Dribbling","Passing","RebOff","RebDef",
         "PerimDef","IntDef","FoulTend",
+        // Injury system — not sourced from 2K
+        "DomHand",
+        "InjHead","InjNeck",
+        "InjLShoulder","InjRShoulder","InjLUpperArm","InjRUpperArm",
+        "InjLElbow","InjRElbow","InjLForearm","InjRForearm",
+        "InjLWrist","InjRWrist","InjLHand","InjRHand","InjLFingers","InjRFingers",
+        "InjChest","InjUpperBack","InjAbdominals","InjLowerBack","InjLOblique","InjROblique",
+        "InjLHip","InjRHip","InjLHamstring","InjRHamstring","InjLQuad","InjRQuad",
+        "InjLKnee","InjRKnee","InjLShinCalf","InjRShinCalf",
+        "InjLAchilles","InjRAchilles","InjLAnkle","InjRAnkle",
+        "InjLFoot","InjRFoot","InjLToes","InjRToes",
+    ];
+
+    // Keys not sourced from 2K — defaults applied, never overwritten by Re-map.
+    private static readonly HashSet<string> _nonMappedKeys = [
+        "DomHand",
+        "InjHead","InjNeck",
+        "InjLShoulder","InjRShoulder","InjLUpperArm","InjRUpperArm",
+        "InjLElbow","InjRElbow","InjLForearm","InjRForearm",
+        "InjLWrist","InjRWrist","InjLHand","InjRHand","InjLFingers","InjRFingers",
+        "InjChest","InjUpperBack","InjAbdominals","InjLowerBack","InjLOblique","InjROblique",
+        "InjLHip","InjRHip","InjLHamstring","InjRHamstring","InjLQuad","InjRQuad",
+        "InjLKnee","InjRKnee","InjLShinCalf","InjRShinCalf",
+        "InjLAchilles","InjRAchilles","InjLAnkle","InjRAnkle",
+        "InjLFoot","InjRFoot","InjLToes","InjRToes",
     ];
     private static readonly string[] TendKeys = [
         "Touches","Drive","ThreePt","MidRange","PostUp",
@@ -45,8 +71,7 @@ public class PlayerDataService(IWebHostEnvironment env, Nba2kCacheService nba2k)
     public async Task<int> RefreshAttrsAsync(string[] keys)
     {
         var db     = GetDb();
-        var lookup = nba2k.GetPlayers()
-            .ToDictionary(p => EspnTeamFactory.NormalizeName(p.Name), p => p);
+        var lookup = BuildMatchLookup();
 
         // Build (record, PlayerData) pairs for all matched players.
         var matched = db.Players
@@ -54,7 +79,7 @@ public class PlayerDataService(IWebHostEnvironment env, Nba2kCacheService nba2k)
             .Where(x => x.data is not null)
             .ToList();
 
-        foreach (var key in keys)
+        foreach (var key in keys.Where(k => !_nonMappedKeys.Contains(k)))
         {
             // Collect raw source values for this key across all matched players.
             var rawValues = matched
@@ -94,8 +119,7 @@ public class PlayerDataService(IWebHostEnvironment env, Nba2kCacheService nba2k)
     public async Task<(int remapped, int setToTen)> FixDefaultPlayersAsync()
     {
         var db     = GetDb();
-        var lookup = nba2k.GetPlayers()
-            .ToDictionary(p => EspnTeamFactory.NormalizeName(p.Name), p => p);
+        var lookup = BuildMatchLookup();
 
         // Migrate legacy BasketballIQ key → oBBIQ for all players that still have it
         foreach (var record in db.Players)
@@ -120,7 +144,7 @@ public class PlayerDataService(IWebHostEnvironment env, Nba2kCacheService nba2k)
             .ToList();
 
         var normParams = new Dictionary<string, (double min, double median, double max)>();
-        foreach (var key in AttrKeys.Where(k => k != "Height"))
+        foreach (var key in AttrKeys.Where(k => k != "Height" && !_nonMappedKeys.Contains(k)))
         {
             var rawValues = allMatched
                 .Select(x => x.data!.Source.TryGetValue(key, out double v) ? v : 50.0)
@@ -146,7 +170,8 @@ public class PlayerDataService(IWebHostEnvironment env, Nba2kCacheService nba2k)
                 record.Attrs["Height"] = d.Source.TryGetValue("Height", out double hv)
                     ? Math.Clamp((int)Math.Round(hv), 5, 100) : 50;
 
-                foreach (var key in AttrKeys.Where(k => k != "Height"))
+                foreach (var key in _nonMappedKeys) record.Attrs.TryAdd(key, 50);
+                foreach (var key in AttrKeys.Where(k => k != "Height" && !_nonMappedKeys.Contains(k)))
                 {
                     if (!normParams.TryGetValue(key, out var np)) continue;
                     double raw    = d.Source.TryGetValue(key, out double rv) ? rv : 50.0;
@@ -162,8 +187,11 @@ public class PlayerDataService(IWebHostEnvironment env, Nba2kCacheService nba2k)
             }
             else
             {
-                // Genuinely not in 2K — set to 10 across the board
-                foreach (var key in AttrKeys) record.Attrs[key] = 10;
+                // Genuinely not in 2K — set to 10 for game attrs, keep defaults for injury ratings
+                foreach (var key in AttrKeys.Where(k => !_nonMappedKeys.Contains(k)))
+                    record.Attrs[key] = 10;
+                foreach (var key in _nonMappedKeys)
+                    record.Attrs.TryAdd(key, key == "DomHand" ? 0 : 99);
                 foreach (var tk in TendKeys)  record.Tends[tk]  = 25;
                 setToTen++;
             }
@@ -171,6 +199,157 @@ public class PlayerDataService(IWebHostEnvironment env, Nba2kCacheService nba2k)
 
         await SaveAsync();
         return (remapped, setToTen);
+    }
+
+    /// <summary>
+    /// Non-destructively syncs players.json with the latest nba_roster.json:
+    ///   - Updates Team/TeamAbbr for existing players
+    ///   - Adds new players (with 2K attrs if matched, else 50s)
+    ///   - Marks departed players as free agents (Team = "")
+    /// Returns (updated, added, freed) counts.
+    /// </summary>
+    public async Task<(int updated, int added, int freed)> SyncRostersAsync()
+    {
+        if (!File.Exists(RosterPath)) return (0, 0, 0);
+
+        var db = GetDb();
+        var lookup2k = BuildMatchLookup();
+
+        using var doc = JsonDocument.Parse(await File.ReadAllTextAsync(RosterPath));
+
+        // Build current ESPN roster: norm → (originalName, teamName, abbr, espnPos, heightRating)
+        var currentByNorm = new Dictionary<string, (string name, string team, string abbr, string espnPos, int height)>(
+            StringComparer.OrdinalIgnoreCase);
+
+        foreach (var t in doc.RootElement.GetProperty("teams").EnumerateArray())
+        {
+            var teamName = t.GetProperty("name").GetString()!;
+            var abbr     = t.GetProperty("abbreviation").GetString()!;
+            foreach (var p in t.GetProperty("players").EnumerateArray())
+            {
+                var pName   = p.GetProperty("name").GetString()!;
+                var espnPos = p.TryGetProperty("espnPosition", out var ep) ? ep.GetString() ?? "G" : "G";
+                var height  = p.TryGetProperty("heightRating", out var hr) ? hr.GetInt32() : 50;
+                currentByNorm[EspnTeamFactory.NormalizeName(pName)] = (pName, teamName, abbr, espnPos, height);
+            }
+        }
+
+        // Track existing players by normalized name
+        var existingByNorm = db.Players
+            .GroupBy(r => EspnTeamFactory.NormalizeName(r.Name))
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+
+        int updated = 0, freed = 0;
+
+        // Pass 1: update team assignments for existing players
+        foreach (var record in db.Players)
+        {
+            var norm = EspnTeamFactory.NormalizeName(record.Name);
+            if (currentByNorm.TryGetValue(norm, out var cur))
+            {
+                if (record.Team != cur.team || record.TeamAbbr != cur.abbr)
+                {
+                    record.Team    = cur.team;
+                    record.TeamAbbr = cur.abbr;
+                    updated++;
+                }
+            }
+            else if (!string.IsNullOrEmpty(record.Team))
+            {
+                record.Team    = "";
+                record.TeamAbbr = "";
+                freed++;
+            }
+        }
+
+        // Pass 2: add new players not yet in players.json
+        int added = 0;
+        foreach (var (norm, (pName, teamName, abbr, espnPos, heightRating)) in currentByNorm)
+        {
+            if (existingByNorm.ContainsKey(norm)) continue;
+
+            lookup2k.TryGetValue(norm, out var d);
+
+            var positions = d?.Positions.ToList()
+                ?? espnPos switch
+                {
+                    "C" => new List<string> { "C" },
+                    "F" => new List<string> { "SF", "PF" },
+                    _   => new List<string> { "PG", "SG" },
+                };
+
+            var record = new PlayerRecord
+            {
+                Name     = pName,
+                Team     = teamName,
+                TeamAbbr = abbr,
+                Positions = positions,
+                Height   = d?.HeightStr ?? "6'7\"",
+                Overall  = d?.Overall ?? 75,
+            };
+
+            if (d != null)
+            {
+                foreach (var key in AttrKeys)
+                {
+                    if (key == "Height")
+                        record.Attrs[key] = d.Source.TryGetValue("Height", out double hv)
+                            ? Math.Clamp((int)Math.Round(hv), 5, 100) : 50;
+                    else if (_nonMappedKeys.Contains(key))
+                        record.Attrs.TryAdd(key, key == "DomHand" ? 0 : 99);
+                    else
+                        record.Attrs[key] = d.Mapped.TryGetValue(key, out double v)
+                            ? Math.Clamp((int)Math.Round(v), 5, 95) : 50;
+                }
+                foreach (var (k, v) in d.Tendencies) record.Tends[k] = v;
+                foreach (var tk in TendKeys) record.Tends.TryAdd(tk, 50);
+            }
+            else
+            {
+                foreach (var key in AttrKeys)
+                    record.Attrs[key] = _nonMappedKeys.Contains(key)
+                        ? (key == "DomHand" ? 0 : 99)
+                        : (key == "Height" ? heightRating : 50);
+                foreach (var tk in TendKeys) record.Tends[tk] = 50;
+            }
+
+            // Ensure all body-part injury keys present (defaults to 99)
+            foreach (var key in InjuryTables.BodyParts.Keys)
+                record.Attrs.TryAdd(key, 99);
+
+            db.Players.Add(record);
+            added++;
+        }
+
+        await SaveAsync();
+        return (updated, added, freed);
+    }
+
+    // ── Name matching helpers ─────────────────────────────────────────────────
+
+    private static readonly Regex _suffixRe =
+        new(@"\b(jr|sr|ii|iii|iv|v)\b\.?", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    private static string StripSuffix(string normalizedName)
+    {
+        var s = _suffixRe.Replace(normalizedName, "").Trim();
+        return Regex.Replace(s, @"\s+", " ");
+    }
+
+    // Builds a 2K player lookup that resolves both exact AND suffix-stripped names.
+    // Exact keys win (TryAdd): "jimmy butler iii" → ButlerIII data, and also adds
+    // "jimmy butler" → ButlerIII data only if no other entry already claimed that key.
+    private Dictionary<string, PlayerData> BuildMatchLookup()
+    {
+        var dict = new Dictionary<string, PlayerData>(StringComparer.OrdinalIgnoreCase);
+        foreach (var p in nba2k.GetPlayers())
+        {
+            var norm = EspnTeamFactory.NormalizeName(p.Name);
+            dict.TryAdd(norm, p);
+            var stripped = StripSuffix(norm);
+            if (stripped != norm) dict.TryAdd(stripped, p);
+        }
+        return dict;
     }
 
     public async Task SaveAsync()
@@ -182,16 +361,32 @@ public class PlayerDataService(IWebHostEnvironment env, Nba2kCacheService nba2k)
 
     private PlayerDb Load()
     {
+        PlayerDb db;
         if (File.Exists(DataPath))
-            return JsonSerializer.Deserialize<PlayerDb>(File.ReadAllText(DataPath), _opts) ?? new();
-        if (!File.Exists(RosterPath)) return new();
-        return GenerateFromSources();
+            db = JsonSerializer.Deserialize<PlayerDb>(File.ReadAllText(DataPath), _opts) ?? new();
+        else if (!File.Exists(RosterPath))
+            return new();
+        else
+            db = GenerateFromSources();
+
+        // Migrate: ensure all players have the new injury body-part ratings (default 70)
+        // and remove the legacy 3-bucket injury attributes.
+        foreach (var p in db.Players)
+        {
+            p.Attrs.Remove("InjLower");
+            p.Attrs.Remove("InjUpper");
+            p.Attrs.Remove("InjCore");
+            p.Attrs.TryAdd("DomHand", 0);
+            foreach (var key in InjuryTables.BodyParts.Keys)
+                p.Attrs.TryAdd(key, 99);
+        }
+
+        return db;
     }
 
     private PlayerDb GenerateFromSources()
     {
-        var lookup = nba2k.GetPlayers()
-            .ToDictionary(p => EspnTeamFactory.NormalizeName(p.Name), p => p);
+        var lookup = BuildMatchLookup();
 
         using var doc    = JsonDocument.Parse(File.ReadAllText(RosterPath));
         var teamsArr     = doc.RootElement.GetProperty("teams");
@@ -224,7 +419,12 @@ public class PlayerDataService(IWebHostEnvironment env, Nba2kCacheService nba2k)
                     Name     = pName,
                     Team     = teamName,
                     TeamAbbr = abbr,
-                    Positions = d?.Positions.ToList() ?? [Str(p, "espnPosition") == "C" ? "C" : "PG"],
+                    Positions = d?.Positions.ToList() ?? Str(p, "espnPosition") switch
+                    {
+                        "C" => new List<string> { "C" },
+                        "F" => new List<string> { "SF", "PF" },
+                        _   => new List<string> { "PG", "SG" },
+                    },
                     Height   = d?.HeightStr ?? "6'7\"",
                     Overall  = d?.Overall   ?? 75,
                 };

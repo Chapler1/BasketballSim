@@ -10,6 +10,14 @@
 
 <PageTitle>Sim Lab</PageTitle>
 
+<style>
+    @@keyframes lineupFlash {
+        0%   { background-color: rgba(80,200,120,0.30); }
+        100% { background-color: transparent; }
+    }
+    .lineup-entry { animation: lineupFlash 1.8s ease-out forwards; }
+</style>
+
 <div style="max-width:1480px;margin:0 auto;padding:1rem 1rem;color:#d4d4d4;font-family:monospace;">
 
     <!-- Header + action bar -->
@@ -29,9 +37,13 @@
             </button>
             <input type="number" min="100" max="500000" step="100" @bind="_totalGames" disabled="@_simulating"
                    style="width:80px;background:#252525;border:1px solid #2a2a2a;color:#ccc;padding:4px 6px;border-radius:4px;font-size: 0.92rem;font-family:monospace;text-align:right;" />
-            <button @onclick="RunSimulation" disabled="@_simulating"
+            <button @onclick="RunSimulation" disabled="@(_simulating||_watchActive)"
                     style="background:@(_simulating?"#1a2a3a":"#1a3a6a");color:@(_simulating?"#446":"#cdf");border:none;padding:5px 20px;border-radius:4px;cursor:@(_simulating?"wait":"pointer");font-weight:700;font-size: 0.98rem;letter-spacing:0.5px;">
                 @(_simulating ? $"Simulating... {_simProgress * 100 / Math.Max(1,_totalGames)}%" : "Simulate")
+            </button>
+            <button @onclick="WatchGameAsync" disabled="@(_simulating||_watchActive)"
+                    style="background:@(_watchActive?"#1a2a1a":"#1a3a2a");color:@(_watchActive?"#464":"#8f8");border:none;padding:5px 16px;border-radius:4px;cursor:@(_watchActive?"wait":"pointer");font-weight:700;font-size: 0.98rem;letter-spacing:0.5px;">
+                @(_watchActive ? "Watching..." : "Watch Game")
             </button>
         </div>
     </div>
@@ -93,7 +105,7 @@
                         @foreach (var preset in _coachPresets)
                         {
                             var p = preset;
-                            <button @onclick="() => { if (isHome) SetHomeCoach(p.Profile); else SetAwayCoach(p.Profile); }"
+                            <button @onclick="() => { if (isHome) SetHomeCoach(p.Coach); else SetAwayCoach(p.Coach); }"
                                     style="background:#252525;color:#666;border:1px solid #2a2a2a;padding:2px 7px;border-radius:3px;cursor:pointer;font-size: 0.85rem;font-family:monospace;">
                                 @p.Name
                             </button>
@@ -121,9 +133,6 @@
                         }
                     </div>
                     @{
-                        var insideMod  = isHome ? _homeInsideMod  : _awayInsideMod;
-                        var midMod     = isHome ? _homeMidMod     : _awayMidMod;
-                        var threeMod   = isHome ? _homeThreeMod   : _awayThreeMod;
                         var offRat     = isHome ? _homeOffRating  : _awayOffRating;
                         var defRat     = isHome ? _homeDefRating  : _awayDefRating;
                         var pace       = isHome ? _homePace        : _awayPace;
@@ -132,27 +141,6 @@
                         var stBias     = isHome ? _homeStarterBias : _awayStarterBias;
                     }
                     <div style="display:grid;grid-template-columns:72px 1fr 34px;align-items:center;gap:2px 6px;font-size: 0.88rem;">
-                        <span style="color:#555;">Inside</span>
-                        <input type="range" min="80" max="120" step="2"
-                               value="@((int)(insideMod * 100))"
-                               @oninput="e => { if (isHome) _homeInsideMod = int.Parse(e.Value!.ToString()!) / 100.0; else _awayInsideMod = int.Parse(e.Value!.ToString()!) / 100.0; }"
-                               style="width:100%;accent-color:@teamColor;" />
-                        <span style="color:#aaa;text-align:right;">@insideMod.ToString("F2")</span>
-
-                        <span style="color:#555;">Mid</span>
-                        <input type="range" min="80" max="120" step="2"
-                               value="@((int)(midMod * 100))"
-                               @oninput="e => { if (isHome) _homeMidMod = int.Parse(e.Value!.ToString()!) / 100.0; else _awayMidMod = int.Parse(e.Value!.ToString()!) / 100.0; }"
-                               style="width:100%;accent-color:@teamColor;" />
-                        <span style="color:#aaa;text-align:right;">@midMod.ToString("F2")</span>
-
-                        <span style="color:#555;">3-PT</span>
-                        <input type="range" min="80" max="120" step="2"
-                               value="@((int)(threeMod * 100))"
-                               @oninput="e => { if (isHome) _homeThreeMod = int.Parse(e.Value!.ToString()!) / 100.0; else _awayThreeMod = int.Parse(e.Value!.ToString()!) / 100.0; }"
-                               style="width:100%;accent-color:@teamColor;" />
-                        <span style="color:#aaa;text-align:right;">@threeMod.ToString("F2")</span>
-
                         <span style="color:#555;" title="Offensive coaching quality: context selection, ball security">Off Coach</span>
                         <input type="range" min="0" max="100" step="1"
                                value="@((int)offRat)"
@@ -275,6 +263,167 @@
             <div style="background:#252525;border-radius:3px;height:8px;overflow:hidden;">
                 <div style="@($"background:{_homeColor};height:100%;width:{pct}%;transition:width 0.1s ease;")"></div>
             </div>
+        </div>
+    }
+
+    <!-- Watch Game panels -->
+    @if (_watchActive || _watchFinished)
+    {
+        string homeLabel = _homeLoadedTeam?.Name ?? "HOME";
+        string awayLabel = _watchAwayTeam?.Name  ?? "AWAY";
+        double totalMin  = Math.Max(_watchCumMin, 1.0);
+
+        <div style="background:#1e1e1e;border:1px solid #252525;border-radius:6px;padding:1rem;margin-bottom:1rem;">
+
+            <!-- Scoreboard + speed controls -->
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;flex-wrap:wrap;gap:0.5rem;">
+                <div style="font-size:1.05rem;font-weight:700;letter-spacing:0.5px;">
+                    <span style="color:@_homeColor;">@homeLabel</span>
+                    <span style="color:#666;font-size:0.9rem;margin:0 0.4rem;">@(FormatQClock(_liveQuarter,_liveClockSec))</span>
+                    <span style="color:#d4d4d4;font-size:1.15rem;">@_liveHomeScore &ndash; @_liveAwayScore</span>
+                    <span style="color:#666;font-size:0.9rem;margin:0 0.4rem;"></span>
+                    <span style="color:@_awayColor;">@awayLabel</span>
+                </div>
+                <div style="display:flex;gap:0.35rem;align-items:center;">
+                    <span style="color:#555;font-size:0.8rem;margin-right:0.25rem;">SPEED</span>
+                    @foreach (var (label, ms) in new[]{("0.5×",80),("1×",40),("2×",20),("⚡",0)})
+                    {
+                        bool active = _watchDelayMs == ms;
+                        <button @onclick="() => _watchDelayMs = ms"
+                                style="background:@(active?"#2a3a2a":"#252525");color:@(active?"#8f8":"#666");border:1px solid @(active?"#3a5a3a":"#2a2a2a");padding:3px 9px;border-radius:3px;cursor:pointer;font-size:0.85rem;font-family:monospace;">
+                            @label
+                        </button>
+                    }
+                </div>
+            </div>
+
+            <!-- Panel A: Live lineups + Panel B: Sub log -->
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;margin-bottom:0.75rem;">
+
+                <!-- Home lineup -->
+                <div style="background:#181818;border:1px solid #252525;border-radius:5px;padding:0.6rem;">
+                    <div style="font-size:0.78rem;letter-spacing:2px;color:@_homeColor;text-transform:uppercase;margin-bottom:0.5rem;font-weight:700;">@homeLabel</div>
+                    @for (int i = 0; i < _liveHomeLineup.Count; i++)
+                    {
+                        string pname = _liveHomeLineup[i];
+                        bool isNew = _recentEntrants.Contains(pname);
+                        <div @key="pname" class="@(isNew?"lineup-entry":"")"
+                             style="display:flex;gap:0.5rem;align-items:center;padding:3px 4px;border-radius:3px;margin-bottom:1px;font-size:0.88rem;">
+                            <span style="color:#555;font-size:0.75rem;min-width:22px;">@WatchGetPos(pname)</span>
+                            <span style="color:#d4d4d4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;">@pname</span>
+                        </div>
+                    }
+                </div>
+
+                <!-- Away lineup -->
+                <div style="background:#181818;border:1px solid #252525;border-radius:5px;padding:0.6rem;">
+                    <div style="font-size:0.78rem;letter-spacing:2px;color:@_awayColor;text-transform:uppercase;margin-bottom:0.5rem;font-weight:700;">@awayLabel</div>
+                    @for (int i = 0; i < _liveAwayLineup.Count; i++)
+                    {
+                        string pname = _liveAwayLineup[i];
+                        bool isNew = _recentEntrants.Contains(pname);
+                        <div @key="pname" class="@(isNew?"lineup-entry":"")"
+                             style="display:flex;gap:0.5rem;align-items:center;padding:3px 4px;border-radius:3px;margin-bottom:1px;font-size:0.88rem;">
+                            <span style="color:#555;font-size:0.75rem;min-width:22px;">@WatchGetPos(pname)</span>
+                            <span style="color:#d4d4d4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;">@pname</span>
+                        </div>
+                    }
+                </div>
+
+                <!-- Panel B: Substitution log -->
+                <div style="background:#181818;border:1px solid #252525;border-radius:5px;padding:0.6rem;display:flex;flex-direction:column;">
+                    <div style="font-size:0.78rem;letter-spacing:2px;color:#444;text-transform:uppercase;margin-bottom:0.4rem;font-weight:700;">Substitutions</div>
+                    <div id="sublog-scroll" style="flex:1;overflow-y:auto;max-height:170px;">
+                        @if (_subLog.Count == 0)
+                        {
+                            <span style="color:#333;font-size:0.82rem;">None yet</span>
+                        }
+                        @foreach (var s in _subLog)
+                        {
+                            <div style="font-size:0.78rem;padding:2px 0;border-bottom:1px solid #222;display:flex;gap:0.4rem;align-items:baseline;">
+                                <span style="color:#555;min-width:52px;">@FormatQClock(s.Quarter,s.ClockSec)</span>
+                                <span style="color:@s.Color;font-size:0.7rem;font-weight:700;min-width:30px;">@(s.Team=="Home"?"HME":"AWY")</span>
+                                <span style="color:#888;">@s.Out</span>
+                                <span style="color:#555;">→</span>
+                                <span style="color:#ccc;">@s.In</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panel C: Rotation timeline -->
+            @{
+                var allPlayerNames = _rotIntervals.Select(r => r.Name)
+                    .Concat(_openIntervalStarts.Keys).Distinct().ToList();
+                // Order: home rotation first, then away, in roster order
+                var homeRot = _watchHomeTeam?.Roster.Take(_watchHomeTeam.RotationDepth)
+                              .Where(p => allPlayerNames.Contains(p.Name)).Select(p => p.Name).ToList() ?? [];
+                var awayRot = _watchAwayTeam?.Roster.Take(_watchAwayTeam.RotationDepth)
+                              .Where(p => allPlayerNames.Contains(p.Name)).Select(p => p.Name).ToList() ?? [];
+                var orderedNames = homeRot.Concat(awayRot.Where(n => !homeRot.Contains(n))).ToList();
+            }
+            @if (orderedNames.Count > 0)
+            {
+                <div style="background:#181818;border:1px solid #252525;border-radius:5px;padding:0.6rem;">
+                    <div style="font-size:0.78rem;letter-spacing:2px;color:#444;text-transform:uppercase;margin-bottom:0.6rem;font-weight:700;">Rotation Timeline</div>
+
+                    <!-- Minute axis -->
+                    <div style="display:flex;margin-left:130px;margin-bottom:4px;position:relative;">
+                        @foreach (var (minMark, label) in new[]{(0.0,"0"),(12.0,"12"),(24.0,"Q3"),(36.0,"Q4"),(totalMin,$"{totalMin:F0}m")})
+                        {
+                            double pct = minMark / totalMin * 100.0;
+                            <span style="position:absolute;left:@(pct.ToString("F1",System.Globalization.CultureInfo.InvariantCulture))%;font-size:0.7rem;color:#444;transform:translateX(-50%);">@label</span>
+                        }
+                    </div>
+
+                    <!-- Quarter dividers backdrop -->
+                    @foreach (var pname in orderedNames)
+                    {
+                        string rowColor = homeRot.Contains(pname) ? _homeColor : _awayColor;
+                        var intervals = _rotIntervals.Where(r => r.Name == pname).ToList();
+                        // Also show in-progress open interval
+                        double? openStart = _openIntervalStarts.TryGetValue(pname, out double os) ? os : null;
+
+                        <div style="display:flex;align-items:center;margin-bottom:3px;">
+                            <div style="width:130px;min-width:130px;font-size:0.78rem;color:#777;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:6px;text-align:right;">
+                                <span style="color:#444;font-size:0.7rem;margin-right:4px;">@WatchGetPos(pname)</span>@pname
+                            </div>
+                            <div style="flex:1;position:relative;height:18px;background:#222;border-radius:2px;overflow:hidden;">
+                                <!-- Quarter dividers -->
+                                @foreach (var qMin in new[]{12.0,24.0,36.0})
+                                {
+                                    double qPct = qMin / totalMin * 100.0;
+                                    <div style="position:absolute;left:@(qPct.ToString("F1",System.Globalization.CultureInfo.InvariantCulture))%;top:0;width:1px;height:100%;background:#333;z-index:1;"></div>
+                                }
+                                @foreach (var iv in intervals)
+                                {
+                                    double leftPct = iv.Start / totalMin * 100.0;
+                                    double widPct  = (iv.End - iv.Start) / totalMin * 100.0;
+                                    <div style="position:absolute;left:@(leftPct.ToString("F1",System.Globalization.CultureInfo.InvariantCulture))%;width:@(widPct.ToString("F1",System.Globalization.CultureInfo.InvariantCulture))%;height:100%;background:@rowColor;opacity:0.75;border-radius:2px;display:flex;align-items:center;justify-content:center;overflow:hidden;"
+                                         title="@pname @iv.Pos · @((iv.End-iv.Start).ToString("F1")) min">
+                                        @if (widPct > 4)
+                                        {
+                                            <span style="font-size:0.62rem;color:#000;font-weight:700;opacity:0.8;">@iv.Pos</span>
+                                        }
+                                    </div>
+                                }
+                                @if (openStart.HasValue)
+                                {
+                                    double leftPct = openStart.Value / totalMin * 100.0;
+                                    double widPct  = (_watchCumMin - openStart.Value) / totalMin * 100.0;
+                                    <div style="position:absolute;left:@(leftPct.ToString("F1",System.Globalization.CultureInfo.InvariantCulture))%;width:@(widPct.ToString("F1",System.Globalization.CultureInfo.InvariantCulture))%;height:100%;background:@rowColor;opacity:0.75;border-radius:2px;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+                                        @if (widPct > 4)
+                                        {
+                                            <span style="font-size:0.62rem;color:#000;font-weight:700;opacity:0.8;">@WatchGetPos(pname)</span>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
         </div>
     }
 
@@ -501,14 +650,16 @@
         .ToArray();
 
     // ── Coaching presets ────────────────────────────────────────────────────
-    private record CoachPreset(string Name, CoachingProfile Profile);
+    private record CoachPreset(string Name, Coach Coach);
     private static readonly CoachPreset[] _coachPresets =
     [
-        new("Balanced",     CoachingProfiles.Balanced),
-        new("Pace & Space", CoachingProfiles.PaceAndSpace),
-        new("Post-Up",      CoachingProfiles.PostUp),
-        new("Iso Heavy",    CoachingProfiles.IsoHeavy),
-        new("Def. First",   CoachingProfiles.DefenseFirst),
+        new("Balanced",       new Coach { Name="Balanced",       OffStyle=OffensiveStyle.Balanced,         DefStyle=DefensiveStyle.Balanced,         OffensiveRating=60, DefensiveRating=60 }),
+        new("Pace & Space",   new Coach { Name="Pace & Space",   OffStyle=OffensiveStyle.PaceAndSpace,     DefStyle=DefensiveStyle.Balanced,         OffensiveRating=75, DefensiveRating=55, PacePref=105 }),
+        new("Motion / Flow",  new Coach { Name="Motion/Flow",    OffStyle=OffensiveStyle.MotionFlow,       DefStyle=DefensiveStyle.Balanced,         OffensiveRating=75, DefensiveRating=60 }),
+        new("Iso Heavy",      new Coach { Name="Iso Heavy",      OffStyle=OffensiveStyle.IsoHeavy,         DefStyle=DefensiveStyle.Balanced,         OffensiveRating=55, DefensiveRating=55 }),
+        new("P&R Heavy",      new Coach { Name="PnR Heavy",      OffStyle=OffensiveStyle.PickAndRollHeavy, DefStyle=DefensiveStyle.Balanced,         OffensiveRating=70, DefensiveRating=60 }),
+        new("Grit & Grind",   new Coach { Name="Grit&Grind",     OffStyle=OffensiveStyle.GritAndGrind,     DefStyle=DefensiveStyle.ProtectThePaint,  OffensiveRating=55, DefensiveRating=75, PacePref=95 }),
+        new("Def. First",     new Coach { Name="Def. First",     OffStyle=OffensiveStyle.Balanced,         DefStyle=DefensiveStyle.ProtectThePaint,  OffensiveRating=50, DefensiveRating=80 }),
     ];
 
     // ── State ───────────────────────────────────────────────────────────────
@@ -518,22 +669,18 @@
     private string _awayColor  = "#ef5b40";
     private int _homePace = 100;
     private int _awayPace = 100;
-    private double _homeInsideMod    = 1.00;
-    private double _homeMidMod       = 1.00;
-    private double _homeThreeMod     = 1.00;
-    private double _homeOffRating    = 60;
-    private double _homeDefRating    = 60;
-    private DefensiveStyle _homeDefStyle = DefensiveStyle.Balanced;
-    private int    _homeRotationDepth = 8;
-    private int    _homeStarterBias   = 65;
-    private double _awayInsideMod     = 1.00;
-    private double _awayMidMod        = 1.00;
-    private double _awayThreeMod      = 1.00;
-    private double _awayOffRating     = 60;
-    private double _awayDefRating     = 60;
-    private DefensiveStyle _awayDefStyle = DefensiveStyle.Balanced;
-    private int    _awayRotationDepth = 8;
-    private int    _awayStarterBias   = 65;
+    private OffensiveStyle _homeOffStyle   = OffensiveStyle.Balanced;
+    private int    _homeOffRating          = 60;
+    private int    _homeDefRating          = 60;
+    private DefensiveStyle _homeDefStyle   = DefensiveStyle.Balanced;
+    private int    _homeRotationDepth      = 8;
+    private int    _homeStarterBias        = 65;
+    private OffensiveStyle _awayOffStyle   = OffensiveStyle.Balanced;
+    private int    _awayOffRating          = 60;
+    private int    _awayDefRating          = 60;
+    private DefensiveStyle _awayDefStyle   = DefensiveStyle.Balanced;
+    private int    _awayRotationDepth      = 8;
+    private int    _awayStarterBias        = 65;
     private bool _saved = false;
     private bool _simulating = false;
     private int _simProgress = 0;
@@ -542,6 +689,28 @@
 
     private string? _hoverKey = null;
     private string? _hoveredPlayerKey = null;
+
+    // ── Watch Game state ────────────────────────────────────────────────────
+    private bool _watchActive;
+    private bool _watchFinished;
+    private int  _watchDelayMs = 40;
+    private GameResult? _watchResult;
+    private Team? _watchHomeTeam;
+    private Team? _watchAwayTeam;
+
+    private IReadOnlyList<string> _liveHomeLineup = [];
+    private IReadOnlyList<string> _liveAwayLineup = [];
+    private int _liveHomeScore, _liveAwayScore;
+    private int _liveQuarter = 1, _liveClockSec = 720;
+    private HashSet<string> _recentEntrants = [];
+
+    private record SubEvent(int Quarter, int ClockSec, string Team, string Color, string Out, string In);
+    private List<SubEvent> _subLog = [];
+
+    private record RotInterval(string Name, string Team, string Color, string Pos, double Start, double End);
+    private List<RotInterval> _rotIntervals = [];
+    private Dictionary<string, double> _openIntervalStarts = [];
+    private double _watchCumMin;
 
     private static readonly Dictionary<ShotType, ShotContext[]> _shotTypeContexts = new()
     {
@@ -883,24 +1052,22 @@
     ];
 
     // ── Coaching helpers ─────────────────────────────────────────────────────
-    private void SetHomeCoach(CoachingProfile c)
+    private void SetHomeCoach(Coach c)
     {
-        _homeInsideMod = c.InsideMod;
-        _homeMidMod    = c.MidMod;
-        _homeThreeMod  = c.ThreeMod;
+        _homeOffStyle  = c.OffStyle;
         _homeOffRating = c.OffensiveRating;
         _homeDefRating = c.DefensiveRating;
         _homeDefStyle  = c.DefStyle;
+        _homePace      = (int)Math.Round(c.PacePref);
     }
 
-    private void SetAwayCoach(CoachingProfile c)
+    private void SetAwayCoach(Coach c)
     {
-        _awayInsideMod = c.InsideMod;
-        _awayMidMod    = c.MidMod;
-        _awayThreeMod  = c.ThreeMod;
+        _awayOffStyle  = c.OffStyle;
         _awayOffRating = c.OffensiveRating;
         _awayDefRating = c.DefensiveRating;
         _awayDefStyle  = c.DefStyle;
+        _awayPace      = (int)Math.Round(c.PacePref);
     }
 
     // ── Actions ─────────────────────────────────────────────────────────────
@@ -914,10 +1081,10 @@
         _homeStarterBias   = 65;  _awayStarterBias   = 65;
         _homeColor         = "#4a9eff"; _awayColor   = "#ef5b40";
         _homeLoadedTeam    = null; _awayLoadedTeam    = null;
-        SetHomeCoach(CoachingProfiles.Balanced);
-        SetAwayCoach(CoachingProfiles.Balanced);
-        _homeDefStyle = DefensiveStyle.Balanced;
-        _awayDefStyle = DefensiveStyle.Balanced;
+        _homeOffStyle  = OffensiveStyle.Balanced; _awayOffStyle  = OffensiveStyle.Balanced;
+        _homeOffRating = 60; _homeDefRating = 60;
+        _awayOffRating = 60; _awayDefRating = 60;
+        _homeDefStyle  = DefensiveStyle.Balanced; _awayDefStyle  = DefensiveStyle.Balanced;
         _saved = false;
         _results = null;
     }
@@ -942,11 +1109,13 @@
         var accum  = new BatchAccumulator();
         var engine = new GameEngine();
         var home   = BuildTeam(_homeConfigs, "Home", "HME", _homeColor, _homePace,
-                         new CoachingProfile(_homeInsideMod, _homeMidMod, _homeThreeMod, _homeOffRating, _homeDefRating, _homeDefStyle),
-                         _homeRotationDepth, _homeStarterBias);
+                         new Coach { Name="Home", OffStyle=_homeOffStyle, DefStyle=_homeDefStyle,
+                                     OffensiveRating=_homeOffRating, DefensiveRating=_homeDefRating,
+                                     RotationDepthPref=_homeRotationDepth, StarterLoadPref=_homeStarterBias });
         var away   = BuildTeam(_awayConfigs, "Away", "AWY", _awayColor, _awayPace,
-                         new CoachingProfile(_awayInsideMod, _awayMidMod, _awayThreeMod, _awayOffRating, _awayDefRating, _awayDefStyle),
-                         _awayRotationDepth, _awayStarterBias);
+                         new Coach { Name="Away", OffStyle=_awayOffStyle, DefStyle=_awayDefStyle,
+                                     OffensiveRating=_awayOffRating, DefensiveRating=_awayDefRating,
+                                     RotationDepthPref=_awayRotationDepth, StarterLoadPref=_awayStarterBias });
 
         int totalGames = Math.Max(1, _totalGames);
         const int batchSize = 500;
@@ -973,24 +1142,148 @@
         StateHasChanged();
     }
 
+    private Team MakeHomeTeam() => BuildTeam(_homeConfigs,
+        _homeLoadedTeam?.Name ?? "Home", "HME", _homeColor, _homePace,
+        new Coach { Name="Home", OffStyle=_homeOffStyle, DefStyle=_homeDefStyle,
+                    OffensiveRating=_homeOffRating, DefensiveRating=_homeDefRating,
+                    RotationDepthPref=_homeRotationDepth, StarterLoadPref=_homeStarterBias });
+
+    private Team MakeAwayTeam() => BuildTeam(_awayConfigs,
+        _awayLoadedTeam?.Name ?? "Away", "AWY", _awayColor, _awayPace,
+        new Coach { Name="Away", OffStyle=_awayOffStyle, DefStyle=_awayDefStyle,
+                    OffensiveRating=_awayOffRating, DefensiveRating=_awayDefRating,
+                    RotationDepthPref=_awayRotationDepth, StarterLoadPref=_awayStarterBias });
+
+    private async Task WatchGameAsync()
+    {
+        _watchActive = true; _watchFinished = false;
+        _subLog.Clear(); _rotIntervals.Clear();
+        _openIntervalStarts.Clear(); _watchCumMin = 0;
+        _recentEntrants = [];
+        _liveHomeScore = 0; _liveAwayScore = 0;
+        _liveQuarter = 1; _liveClockSec = 720;
+        _liveHomeLineup = []; _liveAwayLineup = [];
+        await InvokeAsync(StateHasChanged);
+
+        var engine = new GameEngine();
+        _watchHomeTeam = MakeHomeTeam();
+        _watchAwayTeam = MakeAwayTeam();
+        _watchResult = engine.SimulateGame(_watchHomeTeam, _watchAwayTeam);
+
+        IReadOnlyList<string> prevHome = [], prevAway = [];
+
+        foreach (var poss in _watchResult.Possessions)
+        {
+            var homeNames = poss.HomeLineup.Count > 0 ? poss.HomeLineup : prevHome;
+            var awayNames = poss.AwayLineup.Count > 0 ? poss.AwayLineup : prevAway;
+            double possMin = poss.SecondsElapsed / 60.0;
+
+            var newEntrants = new HashSet<string>();
+            WatchAppendSubs(prevHome, homeNames, poss.Quarter, poss.ClockSeconds, "Home", _homeColor, newEntrants);
+            WatchAppendSubs(prevAway, awayNames, poss.Quarter, poss.ClockSeconds, "Away", _awayColor, newEntrants);
+            WatchUpdateIntervals(prevHome, homeNames, _watchCumMin, "Home", _homeColor);
+            WatchUpdateIntervals(prevAway, awayNames, _watchCumMin, "Away", _awayColor);
+
+            _watchCumMin += possMin;
+            _liveHomeLineup = homeNames;
+            _liveAwayLineup = awayNames;
+            _liveHomeScore = poss.HomeScore;
+            _liveAwayScore = poss.AwayScore;
+            _liveQuarter = poss.Quarter;
+            _liveClockSec = poss.ClockSeconds;
+            _recentEntrants = newEntrants;
+            prevHome = homeNames;
+            prevAway = awayNames;
+
+            if (_watchDelayMs > 0)
+            {
+                await Task.Delay(_watchDelayMs);
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+
+        // Close any still-open intervals
+        foreach (var (name, start) in _openIntervalStarts)
+        {
+            string col  = _watchHomeTeam.Roster.Any(p => p.Name == name) ? _homeColor : _awayColor;
+            string team = _watchHomeTeam.Roster.Any(p => p.Name == name) ? "Home" : "Away";
+            _rotIntervals.Add(new(name, team, col, WatchGetPos(name), start, _watchCumMin));
+        }
+        _openIntervalStarts.Clear();
+
+        _watchActive = false;
+        _watchFinished = true;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void WatchAppendSubs(
+        IReadOnlyList<string> prev, IReadOnlyList<string> curr,
+        int quarter, int clock, string team, string color, HashSet<string> newEntrants)
+    {
+        var entered = curr.Except(prev).ToList();
+        var exited  = prev.Except(curr).ToList();
+        for (int i = 0; i < Math.Min(entered.Count, exited.Count); i++)
+        {
+            _subLog.Add(new SubEvent(quarter, clock, team, color, exited[i], entered[i]));
+            newEntrants.Add(entered[i]);
+        }
+        foreach (var e in entered.Skip(exited.Count)) newEntrants.Add(e);
+    }
+
+    private void WatchUpdateIntervals(
+        IReadOnlyList<string> prev, IReadOnlyList<string> curr, double cumMin, string team, string color)
+    {
+        // Open intervals for players newly on court
+        foreach (var name in curr.Except(prev))
+            _openIntervalStarts[name] = cumMin;
+
+        // Close intervals for players leaving
+        foreach (var name in prev.Except(curr))
+        {
+            if (_openIntervalStarts.TryGetValue(name, out double start))
+            {
+                _rotIntervals.Add(new(name, team, color, WatchGetPos(name), start, cumMin));
+                _openIntervalStarts.Remove(name);
+            }
+        }
+    }
+
+    private string WatchGetPos(string name)
+    {
+        var p = _watchHomeTeam?.Roster.FirstOrDefault(r => r.Name == name)
+             ?? _watchAwayTeam?.Roster.FirstOrDefault(r => r.Name == name);
+        return p?.Position.ToString() ?? "?";
+    }
+
+    private static string FormatQClock(int quarter, int clockSec)
+    {
+        int min = clockSec / 60, sec = clockSec % 60;
+        string q = quarter switch { 1 => "Q1", 2 => "Q2", 3 => "Q3", 4 => "Q4", _ => $"OT{quarter-4}" };
+        return $"{q} {min}:{sec:D2}";
+    }
+
     private static Dictionary<string, double> ComputeExpectedMinutes(
         List<PlayerConfig> configs, int rotDepth, int starterBias)
     {
         if (configs.Count < 5) return new();
+        var coach = new Coach
+        {
+            Name = "tmp",
+            RotationDepthPref = Math.Clamp((int)((rotDepth - 7) / 4.0 * 100), 0, 100),
+            StarterLoadPref   = Math.Clamp(starterBias, 0, 100),
+        };
         var team = new Team
         {
             Name = "tmp", Abbreviation = "TMP", PrimaryColor = "#fff", SecondaryColor = "#888",
-            Roster        = configs.Select(c => c.ToPlayer()).ToList(),
-            RotationDepth = Math.Clamp(rotDepth,    5, configs.Count),
-            StarterBias   = Math.Clamp(starterBias, 0, 100),
+            Roster = configs.Select(c => c.ToPlayer()).ToList(),
+            Coach  = coach,
         };
         return RotationManager.ComputeTargetMinutes(team);
     }
 
     private static Team BuildTeam(List<PlayerConfig> configs, string name, string abbr,
-                                   string color, int pace, CoachingProfile coach,
-                                   int rotationDepth = 8, int starterBias = 65) =>
-        EspnTeamFactory.BuildTeam(configs, name, abbr, color, pace, coach, rotationDepth, starterBias);
+                                   string color, int pace, Coach coach) =>
+        EspnTeamFactory.BuildTeam(configs, name, abbr, color, pace, coach);
 
     // ── Styling helpers ─────────────────────────────────────────────────────
     private static string InputStyle(int v) =>

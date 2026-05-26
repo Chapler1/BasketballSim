@@ -12,14 +12,13 @@ public class Team
     public string Conference { get; init; } = "";
 
     public double Pace { get; init; } = 100.0;
-    public CoachingProfile Coach { get; set; } = CoachingProfiles.Balanced;
+    public Coach  Coach { get; set; } = new Coach { Name = "Staff Coach" };
 
-    // How many players the coach uses in their rotation (5 = starters only, up to full roster).
-    public int RotationDepth { get; init; } = 8;
+    // Derived from coach — how many players the rotation uses (7–11)
+    public int RotationDepth => Math.Clamp(7 + (int)(Coach.RotationDepthPref / 100.0 * 4), 5, Roster.Count);
 
-    // Bias toward playing starters over bench (0 = equal minutes for all, 100 = max starter load).
-    // Blends between equal-share allocation and gap-based allocation.
-    public int StarterBias { get; init; } = 65;
+    // Derived from coach — bias toward starters (0=equal, 100=max starter load)
+    public int StarterBias => Coach.StarterLoadPref;
 
     public List<Player> Starters => Roster.Take(5).ToList();
     public List<Player> Bench    => Roster.Skip(5).ToList();

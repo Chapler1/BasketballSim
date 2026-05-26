@@ -1,4 +1,5 @@
 using BasketballSim.Models;
+using BasketballSim.Services;
 
 namespace BasketballSim.Simulation;
 
@@ -21,6 +22,17 @@ public record GameState(
         && Math.Abs(HomeScore - AwayScore) <= 5;
 }
 
+public record InjuryEvent(
+    string PlayerName,
+    string Team,
+    string BodyPartKey,
+    string InjuryName,
+    string BodyPartDisplay,
+    int    Grade,
+    int    Quarter,
+    int    ClockSeconds
+);
+
 public record GameResult(
     List<PossessionResult> Possessions,
     Dictionary<string, PlayerGameStats> Stats,
@@ -28,7 +40,8 @@ public record GameResult(
     Team AwayTeam,
     int FinalHomeScore,
     int FinalAwayScore,
-    IReadOnlyDictionary<string, int> PlayerFouls
+    IReadOnlyDictionary<string, int> PlayerFouls,
+    List<InjuryEvent> InjuryEvents
 );
 
 public class GameEngine
@@ -37,13 +50,32 @@ public class GameEngine
     private Dictionary<string, PlayerGameStats> _stats = new();
 
     public bool DebugMode { get; set; }
+    public bool DisableInjuries { get; set; }
     private PossessionState _possessionState = PossessionState.HalfCourt;
     private int _lastChainPasses;
+
+    // ── Target-minutes cache (invalidated when roster composition changes) ─
+    private readonly Dictionary<string, (string RosterHash, Dictionary<string, double> Targets)>
+        _targetMinCache = new();
 
     // ── Foul tracking ─────────────────────────────────────────────────────
     private int _homeFoulsQ;
     private int _awayFoulsQ;
     private Dictionary<string, int> _playerFouls = new();
+
+    // ── Season fatigue / DNP state ────────────────────────────────────────
+    private HashSet<string> _dnpPlayers = [];
+
+    // ── In-game injury events ─────────────────────────────────────────────
+    private List<InjuryEvent> _injuryEvents = [];
+
+    // ── Defensive focus multipliers (recomputed every possession against current lineup) ──
+    // _homeFocusMults: homeTeam.Coach's focus on the 5 away players currently on court
+    // _awayFocusMults: awayTeam.Coach's focus on the 5 home players currently on court
+    // Lookup: when home is shooting → away is defending → use _awayFocusMults; vice versa
+    // Recomputed each possession so a star playing with bench draws MORE focus than with starters.
+    private Dictionary<string, double> _homeFocusMults = new();
+    private Dictionary<string, double> _awayFocusMults = new();
 
     // ── Rotation / substitution state ─────────────────────────────────────
     private List<Player> _homeLineup = [];
@@ -76,9 +108,14 @@ public class GameEngine
         public double      ContestRoll1 = 1.0; // first of two contest dice — rolled at menu generation, visible to player
     }
 
-    public GameResult SimulateGame(Team homeTeam, Team awayTeam)
+    public GameResult SimulateGame(
+        Team homeTeam, Team awayTeam,
+        IReadOnlyDictionary<string, double>? startingFatigue = null,
+        IReadOnlyCollection<string>? dnpPlayers = null)
     {
-        _stats = new Dictionary<string, PlayerGameStats>();
+        _stats         = new Dictionary<string, PlayerGameStats>();
+        _dnpPlayers    = dnpPlayers?.Count > 0 ? [.. dnpPlayers] : [];
+        _injuryEvents  = [];
         _possessionState = PossessionState.HalfCourt;
 
         foreach (var p in homeTeam.Roster.Concat(awayTeam.Roster))
@@ -92,14 +129,19 @@ public class GameEngine
         }
 
         foreach (var p in homeTeam.Roster.Concat(awayTeam.Roster))
-            p.Energy = 100.0;
+            p.Energy = startingFatigue != null && startingFatigue.TryGetValue(p.Name, out double sf)
+                ? Math.Clamp(sf, 20.0, 100.0)
+                : 100.0;
         _playerFouls = new Dictionary<string, int>();
 
         InitRotation(homeTeam, awayTeam);
+        // Defensive focus dicts are populated per-possession against the current 5-man lineup.
 
         var results = new List<PossessionResult>(300);
         int homeScore = 0, awayScore = 0;
-        int possessionsPerQuarter = (int)((homeTeam.Pace + awayTeam.Pace) / 2.0 / 4.0 * 1.09);
+        double homePace = homeTeam.Pace * 0.65 + homeTeam.Coach.PacePref * 0.35;
+        double awayPace = awayTeam.Pace * 0.65 + awayTeam.Coach.PacePref * 0.35;
+        int possessionsPerQuarter = (int)((homePace + awayPace) / 2.0 / 4.0 * 1.09);
 
         for (int quarter = 1; quarter <= 4; quarter++)
         {
@@ -138,6 +180,13 @@ public class GameEngine
 
                 var lineup    = isHome ? _homeLineup : _awayLineup;
                 var defLineup = isHome ? _awayLineup : _homeLineup;
+
+                // Per-possession defensive focus: normalize threat against the current 5-man
+                // offensive lineup. SGA with bench draws far more focus than SGA with starters.
+                if (isHome)
+                    _awayFocusMults = ComputeDefensiveFocus(awayTeam.Coach, _homeLineup);
+                else
+                    _homeFocusMults = ComputeDefensiveFocus(homeTeam.Coach, _awayLineup);
 
                 int clockBefore   = clockSeconds;
                 int resultsBefore = results.Count;
@@ -191,6 +240,12 @@ public class GameEngine
                 var lineup    = isHome ? _homeLineup : _awayLineup;
                 var defLineup = isHome ? _awayLineup : _homeLineup;
 
+                // Per-possession defensive focus (OT — same logic as regulation)
+                if (isHome)
+                    _awayFocusMults = ComputeDefensiveFocus(awayTeam.Coach, _homeLineup);
+                else
+                    _homeFocusMults = ComputeDefensiveFocus(homeTeam.Coach, _awayLineup);
+
                 int clockBefore   = clockSeconds;
                 int resultsBefore = results.Count;
                 int homeBefore    = homeScore, awayBefore = awayScore;
@@ -219,24 +274,79 @@ public class GameEngine
             if (otPeriod > 5) break;
         }
 
-        return new GameResult(results, _stats, homeTeam, awayTeam, homeScore, awayScore, _playerFouls);
+        return new GameResult(results, _stats, homeTeam, awayTeam, homeScore, awayScore, _playerFouls, _injuryEvents);
     }
 
     // ── Rotation helpers ──────────────────────────────────────────────────────
 
     private void InitRotation(Team homeTeam, Team awayTeam)
     {
-        _homeLineup    = homeTeam.Starters.ToList();
-        _awayLineup    = awayTeam.Starters.ToList();
-        _homeTargetMin = RotationManager.ComputeTargetMinutes(homeTeam);
-        _awayTargetMin = RotationManager.ComputeTargetMinutes(awayTeam);
-        _homeGameMin   = homeTeam.Roster.ToDictionary(p => p.Name, _ => 0.0);
-        _awayGameMin   = awayTeam.Roster.ToDictionary(p => p.Name, _ => 0.0);
-        _homeStintMin  = homeTeam.Roster.ToDictionary(p => p.Name, _ => 0.0);
-        _awayStintMin  = awayTeam.Roster.ToDictionary(p => p.Name, _ => 0.0);
+        _homeLineup     = BuildStartingLineup(homeTeam);
+        _awayLineup     = BuildStartingLineup(awayTeam);
+        _homeTargetMin  = GetOrComputeTargetMinutes(homeTeam);
+        _awayTargetMin  = GetOrComputeTargetMinutes(awayTeam);
+        _homeGameMin    = homeTeam.Roster.ToDictionary(p => p.Name, _ => 0.0);
+        _awayGameMin    = awayTeam.Roster.ToDictionary(p => p.Name, _ => 0.0);
+        _homeStintMin   = homeTeam.Roster.ToDictionary(p => p.Name, _ => 0.0);
+        _awayStintMin   = awayTeam.Roster.ToDictionary(p => p.Name, _ => 0.0);
         _homeEligibleAt = homeTeam.Roster.ToDictionary(p => p.Name, _ => 0.0);
         _awayEligibleAt = awayTeam.Roster.ToDictionary(p => p.Name, _ => 0.0);
         _totalGameMinutes = 0.0;
+    }
+
+    private Dictionary<string, double> GetOrComputeTargetMinutes(Team team)
+    {
+        // DNP players change each game (injury/rest) — always recompute when any are active.
+        // For a healthy roster, reuse the cached result until the roster composition changes.
+        if (_dnpPlayers.Count == 0)
+        {
+            string hash = string.Join(",", team.Roster.Take(team.RotationDepth).Select(p => p.Name));
+            if (_targetMinCache.TryGetValue(team.Name, out var cached) && cached.RosterHash == hash)
+                return cached.Targets;
+
+            var fresh = RotationManager.ComputeTargetMinutes(team);
+            _targetMinCache[team.Name] = (hash, fresh);
+            return fresh;
+        }
+
+        return RotationManager.ComputeTargetMinutes(team, dnp: _dnpPlayers);
+    }
+
+    // Builds a 5-player starting lineup, replacing any DNP-listed starters with
+    // the best available bench player (by overall rating).
+    private List<Player> BuildStartingLineup(Team team)
+    {
+        if (_dnpPlayers.Count == 0) return team.Starters.ToList();
+
+        var lineup = new List<Player>(5);
+        var bench  = team.Roster.Skip(5).Where(p => !_dnpPlayers.Contains(p.Name)).ToList();
+
+        foreach (var starter in team.Starters)
+        {
+            if (!_dnpPlayers.Contains(starter.Name))
+            {
+                lineup.Add(starter);
+            }
+            else if (bench.Count > 0)
+            {
+                var rep = bench.MaxBy(RotationManager.ComputeOverall)!;
+                lineup.Add(rep);
+                bench.Remove(rep);
+            }
+        }
+
+        // Fallback: if still short of 5 (deep injury depletion), fill from anyone
+        // not already in lineup and not currently DNP (IsPlaying == false).
+        if (lineup.Count < 5)
+        {
+            var emergency = team.Roster
+                .Where(p => !lineup.Contains(p) && p.CurrentInjury?.IsPlaying != false)
+                .OrderByDescending(RotationManager.ComputeOverall)
+                .Take(5 - lineup.Count);
+            lineup.AddRange(emergency);
+        }
+
+        return lineup;
     }
 
     private void ResetQuarterBreakEligibility(Team homeTeam, Team awayTeam)
@@ -264,89 +374,203 @@ public class GameEngine
         Dictionary<string, double> targetMin, Dictionary<string, double> gameMin,
         Dictionary<string, double> stintMin, Dictionary<string, double> eligibleAt)
     {
-        if (team.RotationDepth <= 5) return currentLineup;
-
-        var newLineup = currentLineup.ToList();
         int depth = Math.Clamp(team.RotationDepth, 5, team.Roster.Count);
+        if (depth <= 5) return currentLineup;
 
-        var available = team.Roster
-            .Take(depth)
-            .Where(p => !newLineup.Contains(p) &&
-                        _totalGameMinutes >= eligibleAt.GetValueOrDefault(p.Name))
-            .OrderByDescending(p => RotationManager.ComputeOverall(p))
-            .ToList();
+        var lineup = currentLineup.ToList();
+        bool isClutch  = quarter >= 4 && clockSeconds <= 150 && Math.Abs(scoreDiff) <= 5;
+        bool isBlowout = quarter >= 4 && Math.Abs(scoreDiff) >= 20;
 
-        if (available.Count == 0) return newLineup;
+        // Build unavailable set: pre-game DNP + fouled out
+        var unavailable = new HashSet<string>(_dnpPlayers);
+        foreach (var (name, fouls) in _playerFouls)
+            if (fouls >= 6) unavailable.Add(name);
 
-        bool isClutch  = quarter >= 4 && clockSeconds <= 300 && Math.Abs(scoreDiff) <= 5;
-        bool isGarbage = quarter >= 4 && clockSeconds <= 240 && Math.Abs(scoreDiff) > 15;
-
+        // ── STEP 1: Force out fouled-out players ──────────────────────────
         for (int slot = 0; slot < 5; slot++)
         {
-            if (available.Count == 0) break;
+            var p = lineup[slot];
+            if (_playerFouls.GetValueOrDefault(p.Name) < 6) continue;
 
-            var current = newLineup[slot];
-            string name = current.Name;
-
-            bool fouledOut = _playerFouls.GetValueOrDefault(name) >= 6;
-
-            bool foulTrouble = !isClutch && quarter switch
-            {
-                1 => _playerFouls.GetValueOrDefault(name) >= 2,
-                2 => _playerFouls.GetValueOrDefault(name) >= 3,
-                3 => _playerFouls.GetValueOrDefault(name) >= 4,
-                _ => false
-            };
-
-            double tgtMin   = targetMin.GetValueOrDefault(name, 24.0);
-            double tgtStint = RotationManager.TargetStintMinutes(current, tgtMin);
-            bool stintExpired = !isClutch && stintMin.GetValueOrDefault(name) >= tgtStint;
-            bool exhausted    = !isClutch && gameMin.GetValueOrDefault(name)  >= tgtMin;
-
-            bool garbageSub = isGarbage && slot >= 2 &&
-                              available.Any(p => team.Roster.IndexOf(p) >= 7);
-
-            bool needsSub = fouledOut || foulTrouble || stintExpired || exhausted || garbageSub;
-
-            if (!needsSub) continue;
-
-            Player? sub;
-            if (fouledOut || foulTrouble)
-            {
-                sub = RotationManager.FindDesignatedBackup(current, available)
-                      ?? available.FirstOrDefault();
-            }
-            else if (isClutch)
-            {
-                sub = available.OrderByDescending(p => RotationManager.ComputeOverall(p))
-                               .FirstOrDefault();
-            }
-            else if (garbageSub)
-            {
-                sub = available.Where(p => team.Roster.IndexOf(p) >= 7)
-                               .OrderByDescending(p => RotationManager.ComputeOverall(p))
-                               .FirstOrDefault()
-                      ?? available.FirstOrDefault();
-            }
-            else
-            {
-                sub = RotationManager.FindDesignatedBackup(current, available)
-                      ?? available.FirstOrDefault();
-            }
+            var sub = RotationManager.FindDesignatedBackup(p,
+                          team.Roster.Take(depth).Where(r =>
+                              !unavailable.Contains(r.Name) && !lineup.Contains(r) &&
+                              _totalGameMinutes >= eligibleAt.GetValueOrDefault(r.Name)))
+                      ?? team.Roster.Take(depth)
+                             .Where(r => !unavailable.Contains(r.Name) && !lineup.Contains(r))
+                             .OrderByDescending(RotationManager.ComputeOverall)
+                             .FirstOrDefault();
 
             if (sub == null) continue;
-
-            newLineup[slot] = sub;
-            available.Remove(sub);
-            available.Add(current);
-
+            lineup[slot] = sub;
             stintMin[sub.Name] = 0.0;
-
-            double restNeeded = Math.Clamp(tgtStint * 0.6, 3.0, 6.0);
-            eligibleAt[name] = _totalGameMinutes + restNeeded;
         }
 
-        return newLineup;
+        // ── STEP 2: Foul trouble (non-clutch) ────────────────────────────
+        if (!isClutch)
+        {
+            for (int slot = 0; slot < 5; slot++)
+            {
+                var p = lineup[slot];
+                int fouls = _playerFouls.GetValueOrDefault(p.Name);
+                bool trouble = quarter switch
+                {
+                    1 => fouls >= 2,
+                    2 => fouls >= 3,
+                    3 => fouls >= 4,
+                    _ => false
+                };
+                if (!trouble) continue;
+
+                var sub = RotationManager.FindDesignatedBackup(p,
+                              team.Roster.Take(depth).Where(r =>
+                                  !unavailable.Contains(r.Name) && !lineup.Contains(r)));
+                if (sub == null) continue;
+
+                lineup[slot] = sub;
+                stintMin[sub.Name] = 0.0;
+                double tgt = targetMin.GetValueOrDefault(p.Name, 20.0);
+                eligibleAt[p.Name] = _totalGameMinutes +
+                    Math.Clamp(RotationManager.TargetStintMinutes(p, tgt) * 0.6, 3.0, 6.0);
+            }
+        }
+
+        // ── STEP 3a: Blowout — rest starters, give deep bench their minutes ──
+        if (isBlowout)
+        {
+            for (int slot = 0; slot < 5; slot++)
+            {
+                var p = lineup[slot];
+                if (team.Roster.IndexOf(p) >= 5) continue; // bench player, already in
+
+                var sub = team.Roster.Take(depth)
+                              .Where(r => team.Roster.IndexOf(r) >= 7 &&
+                                          !unavailable.Contains(r.Name) && !lineup.Contains(r))
+                              .OrderByDescending(RotationManager.ComputeOverall)
+                              .FirstOrDefault()
+                          ?? team.Roster.Take(depth)
+                                 .Where(r => !unavailable.Contains(r.Name) && !lineup.Contains(r))
+                                 .OrderByDescending(RotationManager.ComputeOverall)
+                                 .FirstOrDefault();
+
+                if (sub == null) continue;
+                lineup[slot] = sub;
+                stintMin[sub.Name] = 0.0;
+                eligibleAt[p.Name] = 999.0; // starters don't re-enter
+            }
+            return lineup;
+        }
+
+        // ── STEP 3b: Clutch — best rested lineup, ignore shortfall ────────
+        if (isClutch)
+        {
+            var clutchPool = team.Roster.Take(depth)
+                .Where(p => !unavailable.Contains(p.Name) &&
+                            _totalGameMinutes >= eligibleAt.GetValueOrDefault(p.Name))
+                .OrderByDescending(RotationManager.ComputeOverall)
+                .ToList();
+
+            var clutchLineup = RotationManager.BuildPositionalLineup(clutchPool);
+            if (clutchLineup != null)
+            {
+                var entering = clutchLineup.Where(d => !lineup.Any(p => p.Name == d.Name)).ToList();
+                var exiting  = lineup.Where(p => !clutchLineup.Any(d => d.Name == p.Name)).ToList();
+                for (int i = 0; i < Math.Min(entering.Count, exiting.Count); i++)
+                {
+                    int slot = lineup.FindIndex(p => p.Name == exiting[i].Name);
+                    if (slot < 0) continue;
+                    lineup[slot] = entering[i];
+                    stintMin[entering[i].Name] = 0.0;
+                    double tgt = targetMin.GetValueOrDefault(exiting[i].Name, 20.0);
+                    eligibleAt[exiting[i].Name] = _totalGameMinutes +
+                        Math.Clamp(RotationManager.TargetStintMinutes(exiting[i], tgt) * 0.6, 3.0, 6.0);
+                }
+            }
+
+            // Safety net: hard cap even in clutch
+            ForceOutOverTarget(lineup, team, depth, unavailable, targetMin, gameMin, stintMin,
+                eligibleAt, overBy: 2.0);
+            return lineup;
+        }
+
+        // ── STEP 4: Normal proportional rotation ──────────────────────────
+
+        // Safety net: anyone ≥ tgtMin + 3 gets yanked before shortfall logic
+        ForceOutOverTarget(lineup, team, depth, unavailable, targetMin, gameMin, stintMin,
+            eligibleAt, overBy: 2.0);
+
+        // Build the desired lineup from proportional shortfall
+        var desired = RotationManager.BuildDesiredLineup(
+            team, targetMin, gameMin, eligibleAt, _totalGameMinutes, unavailable);
+
+        if (desired == null) return lineup; // can't fill all 5 positions — keep current
+
+        // Compute diff and sort by shortfall magnitude
+        var toExit = lineup
+            .Where(p => !desired.Any(d => d.Name == p.Name))
+            .OrderBy(p => RotationManager.ComputeShortfall(_totalGameMinutes,
+                targetMin.GetValueOrDefault(p.Name, 20.0),
+                gameMin.GetValueOrDefault(p.Name)))  // most negative first
+            .ToList();
+
+        var toEnter = desired
+            .Where(d => !lineup.Any(p => p.Name == d.Name))
+            .OrderByDescending(d => RotationManager.ComputeShortfall(_totalGameMinutes,
+                targetMin.GetValueOrDefault(d.Name, 20.0),
+                gameMin.GetValueOrDefault(d.Name)))  // most positive first
+            .ToList();
+
+        int swaps = 0;
+        for (int i = 0; i < Math.Min(toExit.Count, toEnter.Count) && swaps < 2; i++)
+        {
+            var exitPlayer  = toExit[i];
+            var enterPlayer = toEnter[i];
+
+            // Minimum-stint lock: don't pull a player who hasn't played their min yet
+            double tgtExit  = targetMin.GetValueOrDefault(exitPlayer.Name, 20.0);
+            double minStint = Math.Clamp(tgtExit * 0.13, 2.0, 5.0);
+            if (stintMin.GetValueOrDefault(exitPlayer.Name) < minStint) continue;
+
+            int slot = lineup.FindIndex(p => p.Name == exitPlayer.Name);
+            if (slot < 0) continue;
+
+            lineup[slot] = enterPlayer;
+            stintMin[enterPlayer.Name] = 0.0;
+            eligibleAt[exitPlayer.Name] = _totalGameMinutes +
+                Math.Clamp(RotationManager.TargetStintMinutes(exitPlayer, tgtExit) * 0.6, 3.0, 6.0);
+            swaps++;
+        }
+
+        return lineup;
+    }
+
+    // Force out any player who has exceeded their target minutes by overBy,
+    // replacing with the best available rested player.
+    private void ForceOutOverTarget(
+        List<Player> lineup, Team team, int depth, HashSet<string> unavailable,
+        Dictionary<string, double> targetMin, Dictionary<string, double> gameMin,
+        Dictionary<string, double> stintMin, Dictionary<string, double> eligibleAt,
+        double overBy)
+    {
+        for (int slot = 0; slot < 5; slot++)
+        {
+            var p = lineup[slot];
+            if (gameMin.GetValueOrDefault(p.Name) < targetMin.GetValueOrDefault(p.Name, 24.0) + overBy)
+                continue;
+
+            var sub = team.Roster.Take(depth)
+                .Where(r => !unavailable.Contains(r.Name) && !lineup.Contains(r) &&
+                            _totalGameMinutes >= eligibleAt.GetValueOrDefault(r.Name))
+                .OrderByDescending(RotationManager.ComputeOverall)
+                .FirstOrDefault();
+
+            if (sub == null) continue;
+            lineup[slot] = sub;
+            stintMin[sub.Name] = 0.0;
+            double tgt = targetMin.GetValueOrDefault(p.Name, 20.0);
+            eligibleAt[p.Name] = _totalGameMinutes +
+                Math.Clamp(RotationManager.TargetStintMinutes(p, tgt) * 0.6, 3.0, 6.0);
+        }
     }
 
     private void SimulatePossessionChain(
@@ -366,6 +590,18 @@ public class GameEngine
         {
             foreach (var pl in lineup)    pl.DrainEnergy(isOffense: true);
             foreach (var pl in defLineup) pl.DrainEnergy(isOffense: false);
+
+            // ── Per-possession injury rolls ───────────────────────────
+            CheckInjuries(lineup,    offTeam, state.Quarter, clockSeconds);
+            CheckInjuries(defLineup, defTeam, state.Quarter, clockSeconds);
+
+            // If an injury removed the prev rebounder from the lineup, clear the stale ref
+            if (prevRebounder != null && !lineup.Contains(prevRebounder))
+            {
+                prevRebounder = null;
+                orbCount = 0;
+            }
+
             if (orbCount == 0) RecordPossession(lineup, defLineup);
 
             // ── Stage 1: Possession Context ──────────────────────────
@@ -529,11 +765,13 @@ public class GameEngine
 
             // timeUsed = pre-decision setup time (inbound, positioning, initial screens).
             // Shot execution time is tracked separately as execTime after the decision loop.
+            // Reduced ~1s from Early/Mid vs previous calibration: earlyClockGate eliminates
+            // short first-touch possessions that previously brought the average down.
             int timeUsed = phase switch
             {
-                ShotClockPhase.Early        => _rng.Next(4, 9),   // avg 6.5s (was 8–14)
-                ShotClockPhase.Mid          => _rng.Next(3, 7),   // avg 5s   (was 5–10)
-                ShotClockPhase.Late         => _rng.Next(1, 5),   // avg 3s   (was 2–8)
+                ShotClockPhase.Early        => _rng.Next(3, 8),   // avg 5.5s (was 4–9)
+                ShotClockPhase.Mid          => _rng.Next(2, 6),   // avg 4s   (was 3–7)
+                ShotClockPhase.Late         => _rng.Next(1, 5),   // avg 3s   (unchanged)
                 ShotClockPhase.BuzzerBeater => _rng.Next(1, 4),
                 _                           => 5
             };
@@ -542,14 +780,16 @@ public class GameEngine
             // Determine possession state first so shot clock starting value can reflect it.
             PossessionState curState = orbCount > 0 ? PossessionState.SecondChance : possState;
 
-            // Shot clock remaining: varies by possession type with noise.
-            // FastBreak ≈ 22–24 (full clock, running), HalfCourt ≈ 15–21, SecondChance ≈ 7–13.
+            // Shot clock remaining: varies by possession type.
+            // FastBreak ≈ 22–24 (full clock, running), HalfCourt = 24 (full reset),
+            // Transition ≈ 19–24, SecondChance ≈ 7–13.
+            // HalfCourt uses the full 24-second clock; earlyClockGate + dribble model advancement.
             int shotClockRemaining = curState switch
             {
                 PossessionState.FastBreak    => Math.Min(24, 23 + _rng.Next(-1, 2)),
                 PossessionState.Transition   => Math.Min(24, 21 + _rng.Next(-2, 3)),
                 PossessionState.SecondChance => Math.Max(4,  10 + _rng.Next(-3, 4)),
-                _                            => 18 + _rng.Next(-3, 4)   // HalfCourt
+                _                            => 24   // HalfCourt — full clock; earlyClockGate models advancement
             };
 
             // ── Stage 3: Select Action Player ────────────────────────
@@ -585,13 +825,6 @@ public class GameEngine
             }
 
             actionPlayer.Energy = Math.Max(0.0, actionPlayer.Energy - 0.05);
-
-            // ── Heliocentric override ─────────────────────────────────
-            if (offTeam.Coach.OffStyle == OffensiveStyle.Heliocentric && _rng.NextDouble() < 0.80)
-            {
-                var star = lineup.MaxBy(p => p.Tendencies.Touches);
-                if (star != null) actionPlayer = star;
-            }
 
             RecordBallTouch(actionPlayer, lineup);
 
@@ -738,6 +971,29 @@ public class GameEngine
             double teamSag     = Math.Max(0.0, -netPerimPressure);
             double teamGravity = Math.Max(0.0,  netPerimPressure);
 
+            // Offensive cohesion: every threat on the floor prevents defensive concentration,
+            // opening better looks for all shot types. Symmetric — good teams get a boost,
+            // limited offensive teams take a penalty. Centers at 0 when all attrs = 50.
+            double teamOffCohesion = lineup.Average(p =>
+            {
+                double score =
+                    p.Attr_ThreePoint     * 0.16 +  // forces defense to the arc
+                    p.Attr_Inside         * 0.14 +  // forces help into the paint
+                    p.Attr_Passing        * 0.12 +  // punishes help rotations
+                    p.Attr_MidRange       * 0.10 +  // mid-range pull-up threat
+                    p.Attr_oBBIQ          * 0.10 +  // reads and exploits advantages
+                    p.Attr_Dribbling      * 0.08 +  // creates off the dribble
+                    p.Speed               * 0.10 +  // creates separation on drives
+                    p.Attr_Dunks          * 0.05 +  // athletic finishing threat
+                    p.Jumping             * 0.05 +  // vertical explosiveness
+                    p.Strength            * 0.03 +  // physical finishing / post threat
+                    p.Attr_FreeThrow      * 0.03 +  // bonus situation threat
+                    p.Attr_Rebounding_Off * 0.02 +  // second-chance threat
+                    p.Endurance           * 0.01 +  // sustained effectiveness
+                    p.Height              * 0.01;   // size mismatch / paint presence
+                return (score - 50.0) / 50.0;
+            });
+
             // ── Stage 5-6: PPS Menu + Threshold Pass Loop ─────────────────────
             double clockDecay = Math.Clamp(0.75 + (shotClockRemaining / 22.0) * 0.25, 0.75, 1.00);
 
@@ -792,8 +1048,7 @@ public class GameEngine
             {
                 // Noise floor of 0.08 ensures even elite IQ players occasionally misread a shot;
                 // low-IQ players have much wider error (~0.35 stddev ≈ can confuse .70 for 1.05).
-                double bbiqStddev = 0.08 + 0.27 * (1.0 - ballHandler.Attr_oBBIQ / 100.0);
-                if (offTeam.Coach.OffStyle == OffensiveStyle.MotionFlow) bbiqStddev *= 0.6;
+                double bbiqStddev = 0.06 + 0.31 * (1.0 - ballHandler.Attr_oBBIQ / 100.0);
 
                 // Own shots — 100% visible, apply BBIQ noise
                 var combinedMenu = new List<MenuEntry>();
@@ -940,6 +1195,85 @@ public class GameEngine
                     break;
                 }
 
+                // ── Dribble: hold ball when no options qualify (post-first-pass only) ─────
+                // When the menu is empty mid-possession, the ball-handler can choose to dribble
+                // (hold ball, burn clock, wait for play to develop) vs blind pass.
+                // Requires passesThisPossession > 0: on first touch (PG initiating) the play
+                // hasn't been called yet — they should always advance via blind pass, never ISO hold.
+                if (!doPass && !doShoot && !desperateClock && passesThisPossession > 0)
+                {
+                    double isoMult = offTeam.Coach.OffStyle switch
+                    {
+                        OffensiveStyle.Heliocentric     => 1.40,
+                        OffensiveStyle.IsoHeavy         => 1.20,
+                        OffensiveStyle.GritAndGrind     => 1.10,
+                        OffensiveStyle.Balanced         => 1.00,
+                        OffensiveStyle.PickAndRollHeavy => 0.90,
+                        OffensiveStyle.PaceAndSpace     => 0.80,
+                        OffensiveStyle.MotionFlow       => 0.70,
+                        _                               => 1.00
+                    };
+                    double dribW = (ballHandler.Attr_Dribbling / 100.0) * isoMult * 0.5;
+                    double passW = ballHandler.Attr_Passing / 100.0;
+
+                    if (_rng.NextDouble() < dribW / (dribW + passW))
+                    {
+                        int dribSec = Math.Clamp((int)Math.Round(NextGaussian(2.0, 1.0)), 1, 4);
+                        clockSeconds       = Math.Max(0, clockSeconds - dribSec);
+                        shotClockRemaining = Math.Max(0, shotClockRemaining - dribSec);
+                        clockDecay         = Math.Clamp(0.75 + (shotClockRemaining / 22.0) * 0.25, 0.75, 1.00);
+
+                        if (clockSeconds <= 0)
+                        {
+                            EnsureStats(ballHandler).Turnovers++;
+                            if (dbgStep != null) dbgStep.Action = "TO: shot clock violation (dribble)";
+                            results.Add(new PossessionResult
+                            {
+                                Team         = offTeam.Name,
+                                Narrative    = $"{offTeam.Abbreviation} — shot clock violation",
+                                HomeScore    = homeScore, AwayScore = awayScore,
+                                Quarter      = state.Quarter, ClockSeconds = 0,
+                                PointsScored = 0,
+                                Event        = PossessionEvent.TurnoverDeadBall,
+                                Scorer       = ballHandler.Name, Context = ShotContext.None,
+                                Debug        = dbg
+                            });
+                            return;
+                        }
+
+                        // Rare ball-handling turnover — worse for poor dribblers
+                        double dribTOV = 0.015 * (1.0 - ballHandler.Attr_Dribbling / 100.0);
+                        if (_rng.NextDouble() < dribTOV)
+                        {
+                            EnsureStats(ballHandler).Turnovers++;
+                            if (dbgStep != null) dbgStep.Action = $"TO: lost dribble — {ballHandler.Name}";
+                            results.Add(new PossessionResult
+                            {
+                                Team         = offTeam.Name,
+                                Narrative    = $"{offTeam.Abbreviation} — {ballHandler.Name} lost the ball",
+                                HomeScore    = homeScore, AwayScore = awayScore,
+                                Quarter      = state.Quarter, ClockSeconds = clockSeconds,
+                                PointsScored = 0,
+                                Event        = PossessionEvent.TurnoverDeadBall,
+                                Scorer       = ballHandler.Name, Context = ShotContext.None,
+                                Debug        = dbg
+                            });
+                            return;
+                        }
+
+                        // Regenerate all menus with updated shot clock
+                        foreach (var p in lineup)
+                        {
+                            playerMenus[p] = GenerateMenu(p, lineup, defLineup, allMatchups, curState,
+                                offTeam, defTeam, spacingLevel, teamSag, teamGravity,
+                                clockDecay, phase, clockSeconds, shotClockRemaining, scoreDiff, state.IsHomePossession);
+                        }
+
+                        if (dbgStep != null) dbgStep.Action = $"Dribble ({dribSec}s) — {ballHandler.Name}";
+                        continue; // restart decision loop with same ball-handler
+                    }
+                }
+
                 // ── Execute a pass (smart or blind) ───────────────────────────────
                 bool isBlindPass = !doPass;
                 if (!doPass)
@@ -973,8 +1307,8 @@ public class GameEngine
                         : $"Pass → {passReceiver.Name}";
                 }
 
-                // 1. Drain clock for pass
-                int passTime = Math.Max(1, (int)Math.Round(NextGaussian(1.8, 0.6)));
+                // 1. Drain clock for pass — wide variance: quick skips (1s) to slow entries (4s)
+                int passTime = Math.Clamp((int)Math.Round(NextGaussian(1.5, 1.0)), 1, 4);
                 clockSeconds       = Math.Max(0, clockSeconds - passTime);
                 shotClockRemaining = Math.Max(0, shotClockRemaining - passTime);
                 clockDecay         = Math.Clamp(0.75 + (shotClockRemaining / 22.0) * 0.25, 0.75, 1.00);
@@ -997,40 +1331,15 @@ public class GameEngine
                     return;
                 }
 
-                // 2. MotionFlow interception check (applies to all passes for MotionFlow teams)
-                if (offTeam.Coach.OffStyle == OffensiveStyle.MotionFlow)
-                {
-                    double totalStealThreatPass = defLineup.Sum(d => d.StealMod * (d.Tendencies.Steal / 50.0));
-                    double passStealChance = totalStealThreatPass / (totalStealThreatPass + 0.20) * 0.35;
-                    if (_rng.NextDouble() < passStealChance)
-                    {
-                        var stealer = WeightedRandom(defLineup,
-                            d => Math.Max(d.StealMod * (d.Tendencies.Steal / 50.0), 0.01));
-                        EnsureStats(ballHandler).Turnovers++;
-                        EnsureStats(stealer).Steals++;
-                        possState = PossessionState.FastBreak;
-                        if (dbgStep != null) dbgStep.Action = $"TO: intercepted by {stealer.Name}";
-                        results.Add(new PossessionResult
-                        {
-                            Team         = offTeam.Name,
-                            Narrative    = $"{offTeam.Abbreviation} — {ballHandler.Name} pass intercepted by {stealer.Name}!",
-                            HomeScore    = homeScore, AwayScore = awayScore,
-                            Quarter      = state.Quarter, ClockSeconds = clockSeconds,
-                            PointsScored = 0,
-                            Event        = PossessionEvent.TurnoverStolen,
-                            Scorer       = ballHandler.Name, Stealer = stealer.Name,
-                            Context      = ShotContext.None,
-                            Debug        = dbg
-                        });
-                        return;
-                    }
-                }
-
-                // 3a. Deflection / loose ball scramble — ~6.7% per pass → ~18 events/team/game.
+                // 3a. Deflection / loose ball scramble — ~3.3% per pass → ~9 events/team/game.
                 // All 10 on-court players compete; offense gets 1.2× positional bias (anticipating
                 // the ball). Hustle compressed to ±15% boost so best/worst spread ~1.31×.
-                const double DeflectionChance = 0.067;
-                if (_rng.NextDouble() < DeflectionChance)
+                // First-touch halfcourt pass: defense not yet engaged — deflection much less likely.
+                const double DeflectionChance = 0.033;
+                double deflChance = (passesThisPossession == 0 && curState == PossessionState.HalfCourt)
+                    ? DeflectionChance * 0.25
+                    : DeflectionChance;
+                if (_rng.NextDouble() < deflChance)
                 {
                     double offWeight = lineup.Sum(p  => Math.Max(p.LooseBallWeight * 1.2, 0.01));
                     double defWeight = defLineup.Sum(p => Math.Max(p.LooseBallWeight,       0.01));
@@ -1082,8 +1391,13 @@ public class GameEngine
                     }
                 }
 
-                // 3. Universal pass turnover check (2–8% based on Passing attribute)
-                if (_rng.NextDouble() < actualPassTO)
+                // 3. Universal pass turnover check (2–8% based on Passing attribute).
+                // First-touch halfcourt pass (clock-24 inbound → wing) is a simple setup pass —
+                // defense isn't set yet, so turnover rate is much lower.
+                double passToCheck = (passesThisPossession == 0 && curState == PossessionState.HalfCourt)
+                    ? actualPassTO * 0.25
+                    : actualPassTO;
+                if (_rng.NextDouble() < passToCheck)
                 {
                     // Determine stolen vs dead ball using defender positions
                     var recipientDef = allMatchups.TryGetValue(passReceiver, out var rd) ? rd : defLineup[0];
@@ -1151,9 +1465,12 @@ public class GameEngine
                 passesThisPossession++;
                 assisterName = ballHandler.Name;
 
-                // Regenerate menus for all players except the receiver (defense rotated)
+                // Regenerate menus for all players with updated shot clock.
+                // The receiver's menu must also be refreshed so earlyClockGate reflects the
+                // current shot clock value — keeping the old menu would leave the receiver
+                // with gate=0 shots even after clock has advanced and plays have developed.
                 clockDecay = Math.Clamp(0.75 + (shotClockRemaining / 22.0) * 0.25, 0.75, 1.00);
-                foreach (var p in lineup.Where(p => p != passReceiver))
+                foreach (var p in lineup)
                 {
                     playerMenus[p] = GenerateMenu(p, lineup, defLineup, allMatchups, curState,
                         offTeam, defTeam, spacingLevel, teamSag, teamGravity,
@@ -1209,6 +1526,12 @@ public class GameEngine
             // ── Stage 8: Defense Response ─────────────────────────────
             var defender = allMatchups.TryGetValue(actionPlayer, out var am) ? am : defLineup[0];
 
+            // Defensive focus: how much extra contest this player draws relative to equal coverage.
+            // isHomePossession=true → home team shooting → away team defending → _awayFocusMults
+            // isHomePossession=false → away team shooting → home team defending → _homeFocusMults
+            double focusMult = (state.IsHomePossession ? _awayFocusMults : _homeFocusMults)
+                .GetValueOrDefault(actionPlayer.Name, 1.0);
+
             double contestMod = shotContext switch
             {
                 // Very open inside shots — defender is trailing or out of position
@@ -1234,7 +1557,9 @@ public class GameEngine
             double contestRoll2   = Math.Clamp(NextGaussian(1.0, 0.30), 0.15, 1.85);
             double contestPenalty  = defender.ContestPenalty(shotType) * contestMod
                 * Math.Clamp(1.5 - blockTendFactor * 0.5, 0.6, 1.2)
-                * (knownContestRoll + contestRoll2) / 2.0;
+                * (knownContestRoll + contestRoll2) / 2.0
+                * (1.0 + (defender.Attr_Hustle - 50) / 100.0 * 0.06)
+                * focusMult;
 
             isDunkContext = shotContext is ShotContext.AlleyOop or ShotContext.CutDunk
                                        or ShotContext.TransitionDunk or ShotContext.PickAndRollDunk
@@ -1261,7 +1586,8 @@ public class GameEngine
                 _ => 0.0
             };
             double blockChance = onBallBlockBase * blockability * contestMod * blockTendFactor
-                                 * defender.EnergyFactor_Physical;
+                                 * defender.EnergyFactor_Physical
+                                 * (1.0 + (defender.Attr_Hustle - 50) / 100.0 * 0.08);
 
             // ── Stage 9: Outcome Roll ─────────────────────────────────
             double baseMake = shotType switch
@@ -1286,7 +1612,7 @@ public class GameEngine
             if (shotType == ShotType.Inside)
             {
                 if (teamSag     > 0) baseMake -= teamSag     * 0.42;
-                if (teamGravity > 0) baseMake += teamGravity * 0.16;
+                if (teamGravity > 0) baseMake += teamGravity * 0.20;
             }
 
             double adjMake = baseMake - contestPenalty;
@@ -1296,20 +1622,49 @@ public class GameEngine
 
             adjMake += (offTeam.Coach.OffensiveRating - 50.0) / 50.0 * 0.013;
 
-            double defCoachMod = 0.80 + defTeam.Coach.DefensiveRating / 100.0 * 0.40;
+            // Fixed at calibrated baseline (DefRating=60 avg → 1.04 in original tuning).
+            // Individual coach DefRating variation is expressed through DefStyle (openPerim/openInt),
+            // not through direct shot-math scaling — keeps player attributes as sole efficiency driver.
+            double defCoachMod = 1.04;
             adjMake -= contestPenalty * (defCoachMod - 1.0);
+
+            // Paint deterrence: elite help-side interior defenders force worse inside attempts
+            // even when they don't block — best off-ball big (not the matched defender).
+            if (shotType == ShotType.Inside)
+            {
+                var bestHelper = defLineup.Where(d => d != defender)
+                                          .MaxBy(d => d.Attr_InteriorDefense);
+                if (bestHelper != null)
+                {
+                    double deterrence = Math.Max(0.0, (bestHelper.Attr_InteriorDefense - 50) / 100.0)
+                        * 0.10
+                        * bestHelper.EnergyFactor_Physical
+                        * bestHelper.InjuryFactor_Physical;
+                    adjMake -= deterrence;
+                }
+            }
+
+            // Team offensive cohesion: multiple threats create better looks for every shooter
+            adjMake += teamOffCohesion * 0.09;
+
+            // Defensive focus: multiplicative make% scaling by threat level.
+            // Stars (focusMult > 1.0): penalty proportional to their adjMake → scales with shot
+            //   difficulty so 3PT isn't crushed disproportionately vs inside (unlike additive).
+            // Bench (focusMult < 1.0): small bonus as defense cheats toward the star — realistic.
+            adjMake *= 1.0 - (focusMult - 1.0) * 0.30;
 
             adjMake = Math.Clamp(adjMake, 0.05, 0.95);
 
             // ── Pre-shot Shooting Foul (contest-based) ────────────────────────
             // Hard contact check before the shot resolves — inside-weighted as in real NBA.
             // Probability scales with how tightly the defender contests the shot.
-            double preShotFoulBase = shotType switch
+            double foulTendMult    = 0.75 + defender.Attr_FoulTendency / 100.0 * 0.50;
+            double preShotFoulBase = (shotType switch
             {
-                ShotType.Inside   => 0.005 + defender.ContestPenalty(ShotType.Inside) * 0.030,
-                ShotType.MidRange => 0.001 + defender.ContestPenalty(ShotType.MidRange) * 0.012,
+                ShotType.Inside   => 0.005 + defender.ContestPenalty(ShotType.Inside)   * 0.030 * focusMult,
+                ShotType.MidRange => 0.001 + defender.ContestPenalty(ShotType.MidRange) * 0.012 * focusMult,
                 _                 => 0.0
-            };
+            }) * foulTendMult;
             double preShotFoulChance = preShotFoulBase * (shotContext switch
             {
                 ShotContext.DrivingLayup or ShotContext.PickAndRollRoll or ShotContext.FloaterLayup => 1.6,
@@ -1388,7 +1743,8 @@ public class GameEngine
                     };
                     double helpChance = helpBase * blockability * contestMod
                         * Math.Clamp(helpDef.Tendencies.Block / 50.0, 0.4, 2.0)
-                        * helpDef.EnergyFactor_Physical;
+                        * helpDef.EnergyFactor_Physical
+                        * (1.0 + (helpDef.Attr_Hustle - 50) / 100.0 * 0.08);
                     if (_rng.NextDouble() < helpChance)
                     {
                         isBlocked   = true;
@@ -1475,7 +1831,8 @@ public class GameEngine
                     or ShotContext.PostMove or ShotContext.PostMoveMidRange
                     or ShotContext.CutLayup or ShotContext.FastBreakLayup)
                 {
-                    double foulChance = 0.18 + (actionPlayer.Attr_Inside - 50) / 50.0 * 0.08;
+                    double and1FoulTendMult = 0.75 + defender.Attr_FoulTendency / 100.0 * 0.50;
+                    double foulChance = (0.18 + (actionPlayer.Attr_Inside - 50) / 50.0 * 0.08) * and1FoulTendMult;
                     if (_rng.NextDouble() < foulChance)
                     {
                         var and1Fouler = PickFouler(defLineup, ShotType.Inside);
@@ -1807,35 +2164,46 @@ public class GameEngine
     {
         return (style, ctx) switch
         {
-            // PACE & SPACE
-            (OffensiveStyle.PaceAndSpace, ShotContext.AlleyOop or ShotContext.CutDunk
-                or ShotContext.FastBreakLayup or ShotContext.TransitionDunk or ShotContext.PickAndRollDunk) => 1.4,
+            // PACE & SPACE — 3PT spacing + rim runs; suppress post/iso/mid creation
             (OffensiveStyle.PaceAndSpace, ShotContext.CatchAndShootCorner or ShotContext.CatchAndShootWing
-                or ShotContext.TransitionThree or ShotContext.PickAndRollThree) => 1.5,
-            (OffensiveStyle.PaceAndSpace, ShotContext.IsolationMidRange or ShotContext.PullUpMidRange
-                or ShotContext.FadeawayMidRange or ShotContext.LateClockMidRange) => 0.4,
-            (OffensiveStyle.PaceAndSpace, ShotContext.PostMove or ShotContext.PostMoveMidRange) => 0.3,
-            (OffensiveStyle.PaceAndSpace, ShotContext.DrivingLayup or ShotContext.PickAndRollRoll) => 1.2,
+                or ShotContext.TransitionThree or ShotContext.PickAndRollThree) => 1.06,
+            (OffensiveStyle.PaceAndSpace, ShotContext.AlleyOop or ShotContext.CutDunk
+                or ShotContext.FastBreakLayup or ShotContext.TransitionDunk or ShotContext.PickAndRollDunk) => 1.05,
+            (OffensiveStyle.PaceAndSpace, ShotContext.PostMove or ShotContext.PostMoveMidRange
+                or ShotContext.IsolationMidRange or ShotContext.ContactDunk) => 0.94,
 
-            // HELIOCENTRIC
+            // HELIOCENTRIC — star creator; off-ball spacing/cuts mildly suppressed
             (OffensiveStyle.Heliocentric, ShotContext.IsolationMidRange or ShotContext.StepBackThree
-                or ShotContext.PullUpThree or ShotContext.PullUpMidRange) => 1.6,
-            (OffensiveStyle.Heliocentric, ShotContext.CatchAndShootCorner or ShotContext.CatchAndShootWing
-                or ShotContext.CutLayup or ShotContext.AlleyOop) => 0.5,
+                or ShotContext.PullUpThree or ShotContext.PullUpMidRange) => 1.06,
+            (OffensiveStyle.Heliocentric, ShotContext.CatchAndShootCorner or ShotContext.CatchAndShootWing) => 0.96,
+            (OffensiveStyle.Heliocentric, ShotContext.CutLayup or ShotContext.CutDunk or ShotContext.AlleyOop) => 0.95,
 
-            // MOTION / FLOW
-            (OffensiveStyle.MotionFlow, ShotContext.CatchAndShootCorner or ShotContext.CatchAndShootWing) => 1.8,
-            (OffensiveStyle.MotionFlow, ShotContext.CutLayup or ShotContext.CutDunk or ShotContext.AlleyOop) => 1.5,
-            (OffensiveStyle.MotionFlow, ShotContext.IsolationMidRange or ShotContext.StepBackThree
-                or ShotContext.PullUpThree) => 0.4,
+            // MOTION / FLOW — off-ball 3s and cuts; iso/creation suppressed
+            (OffensiveStyle.MotionFlow, ShotContext.CatchAndShootCorner or ShotContext.CatchAndShootWing
+                or ShotContext.CutLayup or ShotContext.CutDunk or ShotContext.AlleyOop
+                or ShotContext.PickAndRollThree) => 1.06,
+            (OffensiveStyle.MotionFlow, ShotContext.IsolationMidRange or ShotContext.PullUpMidRange
+                or ShotContext.PostMove or ShotContext.PostMoveMidRange) => 0.94,
 
-            // GRIT & GRIND
+            // GRIT & GRIND — post/paint; transition and perimeter suppressed
             (OffensiveStyle.GritAndGrind, ShotContext.PostMove or ShotContext.PostMoveMidRange
-                or ShotContext.ContactDunk or ShotContext.PickAndRollRoll) => 1.8,
-            (OffensiveStyle.GritAndGrind, ShotContext.DrivingLayup or ShotContext.ContactDunk) => 1.3,
-            (OffensiveStyle.GritAndGrind, ShotContext.FloaterLayup) => 0.6,
-            (OffensiveStyle.GritAndGrind, ShotContext.CatchAndShootCorner or ShotContext.CatchAndShootWing
-                or ShotContext.PullUpThree or ShotContext.StepBackThree) => 0.5,
+                or ShotContext.ContactDunk or ShotContext.PickAndRollRoll or ShotContext.DrivingLayup) => 1.06,
+            (OffensiveStyle.GritAndGrind, ShotContext.TransitionThree or ShotContext.TransitionDunk
+                or ShotContext.FastBreakLayup or ShotContext.CatchAndShootCorner
+                or ShotContext.CatchAndShootWing) => 0.94,
+
+            // ISO HEAVY — creator-forward; off-ball cuts mildly suppressed
+            (OffensiveStyle.IsoHeavy, ShotContext.IsolationMidRange or ShotContext.PullUpMidRange
+                or ShotContext.PullUpThree or ShotContext.StepBackThree) => 1.05,
+            (OffensiveStyle.IsoHeavy, ShotContext.CutLayup or ShotContext.CutDunk
+                or ShotContext.AlleyOop) => 0.96,
+
+            // PICK AND ROLL HEAVY — system through ball screens; post/iso creation suppressed
+            (OffensiveStyle.PickAndRollHeavy, ShotContext.PickAndRollRoll or ShotContext.PickAndRollDunk
+                or ShotContext.PickAndRollThree or ShotContext.PickAndRollMidRange
+                or ShotContext.AlleyOop or ShotContext.DrivingLayup) => 1.06,
+            (OffensiveStyle.PickAndRollHeavy, ShotContext.PostMove or ShotContext.PostMoveMidRange
+                or ShotContext.IsolationMidRange or ShotContext.StepBackThree) => 0.94,
 
             // STATE-BASED (only FastBreak for high-tempo dunks; Transition gets moderate boost)
             _ when state == PossessionState.FastBreak && (ctx is ShotContext.FastBreakLayup
@@ -1862,7 +2230,7 @@ public class GameEngine
     }
 
     private static double ComputeContextThreshold(
-        ShotContext ctx, ShotType shotType, Player player, int clockSeconds, CoachingProfile coach,
+        ShotContext ctx, ShotType shotType, Player player, int clockSeconds, Coach coach,
         int shotClockRemaining)
     {
         // Base threshold decays as shot clock winds down: fresh possession → very selective,
@@ -1878,23 +2246,22 @@ public class GameEngine
         };
 
         // Heliocentric offenses operate at slightly lower selectivity (ISO-heavy)
-        if (coach.OffStyle == OffensiveStyle.Heliocentric) T *= 0.88;
 
-        // Context/tendency modifiers — player's comfort-zone shots need less convincing
+        // Context/tendency modifiers — player's comfort-zone shots need less convincing.
+        // Drive and Post only affect shot menu appearance (not threshold), so removed here.
+        // Divisor 250 gives ±20% range ([0.80,1.20]) vs old 400 (±12.5%) — meaningful separation
+        // between tendency=24 (Robinson) and tendency=76 (Curry) in 3PT/Mid/PullUp selection.
         T *= ctx switch
         {
             ShotContext.IsolationMidRange or ShotContext.PickAndRollMidRange
-                or ShotContext.FadeawayMidRange =>
-                1.0 - (player.Tendencies.MidRange - 50) / 400.0,
+                or ShotContext.FadeawayMidRange or ShotContext.PostMoveMidRange =>
+                1.0 - (player.Tendencies.MidRange - 50) / 250.0,
             ShotContext.CatchAndShootCorner or ShotContext.CatchAndShootWing
-                or ShotContext.StepBackThree or ShotContext.PickAndRollThree or ShotContext.TransitionThree =>
-                1.0 - (player.Tendencies.ThreePt - 50) / 400.0,
-            ShotContext.DrivingLayup or ShotContext.PickAndRollRoll or ShotContext.FastBreakLayup =>
-                1.0 - (player.Tendencies.Drive - 50) / 400.0,
-            ShotContext.PostMove or ShotContext.PostMoveMidRange =>
-                1.0 - (player.Tendencies.PostUp - 50) / 400.0,
-            ShotContext.PullUpMidRange or ShotContext.PullUpThree =>
-                1.0 - (player.Tendencies.PullUp - 50) / 400.0,
+                or ShotContext.PickAndRollThree or ShotContext.TransitionThree =>
+                1.0 - (player.Tendencies.ThreePt - 50) / 250.0,
+            // PullUp covers all pull-up/step-back shots off the dribble
+            ShotContext.PullUpMidRange or ShotContext.PullUpThree or ShotContext.StepBackThree =>
+                1.0 - (player.Tendencies.PullUp - 50) / 250.0,
             ShotContext.ContactDunk =>
                 1.0 - (player.Strength - 50) / 150.0,
             _ => 1.0
@@ -1921,8 +2288,8 @@ public class GameEngine
         var style    = coach.OffStyle;
         double cm    = coach.OffensiveRating / 100.0;
         var defender = matchups[player];
-        double defCoachMod  = 0.80 + defTeam.Coach.DefensiveRating / 100.0 * 0.40;
-        double coachQualMod = 0.90 + cm * 0.10;
+        double defCoachMod  = 1.04;   // calibrated baseline; DefStyle handles team-level defensive identity
+        double coachQualMod = 1.0;
 
         // Rubber-band via defensive intensity: leading defense coasts, trailing defense fights harder.
         // scoreDiff > 0 = offense leading → defense (trailing) more desperate → tighter contests.
@@ -1931,8 +2298,13 @@ public class GameEngine
         defCoachMod *= 1.0 + Math.Clamp(scoreDiff, -20, 20) / 20.0 * 0.035;
 
         // Defensive suppression of shot availability
-        double intDefSup   = Math.Clamp(1.0 - (defender.Attr_InteriorDefense - 50) / 100.0 * 0.35, 0.3, 1.3);
-        double perimDefSup = Math.Clamp(1.0 - (defender.Attr_PerimeterDefense - 50) / 100.0 * 0.35, 0.3, 1.3);
+        // Team quality compounds individual matchup: a roster of elite defenders suppresses more than one elite + four mediocre.
+        double teamAvgIntDef   = matchups.Values.Average(d => d.Attr_InteriorDefense);
+        double teamAvgPerimDef = matchups.Values.Average(d => d.Attr_PerimeterDefense);
+        double teamIntMod      = 1.0 + (50.0 - teamAvgIntDef)   / 100.0 * 0.35;
+        double teamPerimMod    = 1.0 + (50.0 - teamAvgPerimDef) / 100.0 * 0.35;
+        double intDefSup   = Math.Clamp((1.0 - (defender.Attr_InteriorDefense  - 50) / 100.0 * 0.68) * teamIntMod,  0.25, 1.40);
+        double perimDefSup = Math.Clamp((1.0 - (defender.Attr_PerimeterDefense - 50) / 100.0 * 0.68) * teamPerimMod, 0.25, 1.40);
         double driveCont   = 1.0 - Math.Clamp((defender.Speed - player.Speed) / 100.0, 0, 0.20);
         double postCont    = Math.Clamp(1.0 - Math.Clamp((defender.Strength - player.Strength) / 100.0, 0, 0.25)
                                               - Math.Clamp((defender.Height  - player.Height)  / 100.0, 0, 0.10), 0.3, 1.3);
@@ -1940,13 +2312,22 @@ public class GameEngine
         double opensPerim  = defTeam.Coach.DefStyle == DefensiveStyle.ProtectThePaint ? 1.30 : 1.0;
         double opensInt    = defTeam.Coach.DefStyle == DefensiveStyle.StopTheThree    ? 1.20 : 1.0;
 
+        // Reverse decay: at shot clock 24 (ball just inbounded) no shots exist; by clock 21
+        // (3s elapsed, quick play initiated) shots are fully available. Linear ramp between.
+        // timeUsed already models pre-decision setup time; this gate only suppresses the
+        // very first catch so PG can't shoot immediately off the inbound.
+        // Transition/FastBreak/SecondChance excluded — their clocks already reflect urgency.
+        double earlyClockGate = possState == PossessionState.HalfCourt
+            ? Math.Clamp((24.0 - shotClockRemaining) / 3.0, 0.0, 1.0)
+            : 1.0;
+
         var entries = new List<MenuEntry>();
 
         // TryAdd: rolls a dice against appearanceProb. Only adds if the opportunity presents itself.
         void TryAdd(ShotContext ctx, ShotType st, double appearanceProb, bool isDunk = false)
         {
             double styleMult = GetStyleMultiplier(ctx, style, possState);
-            double p = Math.Clamp(appearanceProb * styleMult, 0.0, 0.99);
+            double p = Math.Clamp(appearanceProb * styleMult * earlyClockGate, 0.0, 0.99);
             if (p < 0.001 || _rng.NextDouble() >= p) return;
 
             // Base make%
@@ -1981,8 +2362,12 @@ public class GameEngine
             baseMake *= isHome ? 1.012 : 0.988;
             baseMake = Math.Clamp(baseMake, 0.05, 0.95);
 
-            double ctxMod   = ShotContextMakeModifier(ctx, phase);
-            double contest  = defender.ContestPenalty(st);
+            double ctxMod      = ShotContextMakeModifier(ctx, phase);
+            // Defensive focus: clamp to ≥1.0 so we only SUPPRESS star shots in the menu,
+            // never BOOST bench shot appearance (that inflated PPG by adding extra FGA).
+            double defFocusMult = Math.Max(1.0,
+                (isHome ? _awayFocusMults : _homeFocusMults).GetValueOrDefault(player.Name, 1.0));
+            double contest  = defender.ContestPenalty(st) * defFocusMult;
             double physMod  = GetPhysicalMod(player, defender, ctx);
 
             double sagMod = 1.0;
@@ -2035,7 +2420,9 @@ public class GameEngine
 
             // First of two contest dice — player sees this roll when deciding whether to shoot.
             // Simulates the "read": is the defender in position or closing out late?
-            double contestRoll1 = Math.Clamp(NextGaussian(1.0, 0.30), 0.15, 1.85);
+            // dBBIQ shifts the mean: smart defenders are more consistently in good position.
+            double dbbiqShift   = (defender.Attr_dBBIQ - 50) / 100.0 * 0.20;
+            double contestRoll1 = Math.Clamp(NextGaussian(1.0 + dbbiqShift, 0.30), 0.15, 1.85);
             double contestMod = Math.Clamp(1.0 - contest * contestRoll1 * defCoachMod - physMod, 0.30, 1.0);
             int    pts        = st == ShotType.ThreePointer ? 3 : 2;
 
@@ -2045,16 +2432,16 @@ public class GameEngine
             // Compress PPS spread toward the baseline reference so star players' shots
             // don't dominate the decision menu as heavily. Preserves relative shot quality
             // rankings but shrinks the gap between elite and average options.
-            actualPPS = 0.95 + (actualPPS - 0.95) * 0.52;
+            actualPPS = 0.95 + (actualPPS - 0.95) * 0.65;
 
             actualPPS = Math.Max(actualPPS, 0.01);
 
             double ctxThreshold = ComputeContextThreshold(ctx, st, player, clockSeconds, coach, shotClockRemaining);
 
-            // Selection weight: raw shot value × style preference.
-            // Dunks (baseMake~0.88) are strongly preferred; layups and 3PT roughly equal by EV;
-            // mid-range slightly deprioritized. Appearance probability already controls frequency.
-            double selectionWeight = baseMake * pts * styleMult;
+            // Selection weight: raw shot quality only. Style identity is expressed through
+            // appearance probability (styleMult in TryAdd gate), not through selection bias.
+            // The decision is MaxBy(PerceivedPPS), so this weight is used for display/debug only.
+            double selectionWeight = baseMake * pts;
 
             entries.Add(new MenuEntry
             {
@@ -2087,80 +2474,112 @@ public class GameEngine
             return entries;
         }
 
-        // ── Dunks (gated by DunkTendency; selection weight baseMake~0.88 makes them strongly preferred) ─
-        TryAdd(ShotContext.AlleyOop,        ShotType.Inside,
-            0.006 * (dunkTend / 0.5) * (player.AlleyOopTendency / 0.5) * (player.Tendencies.Cut / 50.0) * (1.0 + cm * 0.4),
-            isDunk: true);
-        TryAdd(ShotContext.CutDunk,         ShotType.Inside,
-            0.004 * (dunkTend / 0.5) * (player.CutTendency / 0.5) * (player.Tendencies.Cut / 50.0),
-            isDunk: true);
+        // ── Normalized distribution pool: Drive / Cut / Post / Iso ─────────────────
+        // These four tendency groups compete for a fixed appearance budget so that high
+        // tendency values redistribute shots rather than inflating total menu size.
+        // Floor at 0.1 prevents any group from vanishing entirely for extreme builds.
+        double wDrive = Math.Max(0.1, player.Tendencies.Drive  / 50.0);
+        double wCut   = Math.Max(0.1, player.Tendencies.Cut    / 50.0);
+        double wPost  = Math.Max(0.1, player.Tendencies.PostUp / 50.0);
+        double wIso   = Math.Max(0.1, player.Tendencies.Iso    / 50.0);
+
+        // Base game-state probabilities — DRIVE/ATHLETICISM driven for finishes, not skill attributes.
+        // Attribute (MidRange, ThreePoint) affects shot QUALITY (make%) and threshold, not FREQUENCY.
+        // Removing attribute from pooled appearance prevents elite shooters from dominating menus
+        // with mid/3PT shots at the expense of inside drives that match their tendency group.
+        double gsDrivingLayup  = 0.085 * (player.DriveGravity / 0.5) * intDefSup * driveCont * opensInt;
+        double gsPickRollRoll  = 0.043 * (player.DriveGravity / 0.5) * Math.Max(spacingLevel / 3.0, 0.5) * (1.0 + cm * 0.18);
+        double gsFloaterLayup  = 0.026 * (player.Speed / 50.0) * (player.Attr_Dribbling / 50.0);
+        double gsPickRollDunk  = 0.004 * (dunkTend / 0.5) * (player.DriveGravity / 0.5) * Math.Max(spacingLevel / 3.0, 0.5);
+        double gsPickRollMid   = 0.068 * (player.DriveGravity / 0.5) * (1.0 + cm * 0.12);   // removed Attr_MidRange factor
+        // ThreePt tendency affects the THRESHOLD only (willingness to take 3s that appear),
+        // not how often 3PT shots appear in the menu. Shot menu composition is driven entirely
+        // by the normalized Drive/Cut/Post/Iso pool — players with heavy Drive/Post/Cut tendencies
+        // naturally get fewer 3PT opportunities without any explicit 3PT appearance factor.
+        double gsPickRollThree = 0.045 * (player.DriveGravity / 0.5);
+        double gsPullUpMid     = 0.077 * (player.DriveGravity / 0.5) * perimDefSup;           // removed Attr_MidRange factor
+        double gsPullUpThree   = 0.032 * (player.DriveGravity / 0.5);
+        double gsStepBackThree = 0.019 * (player.Attr_Dribbling / 50.0);
+
+        double gsAlleyOop      = 0.006 * (dunkTend / 0.5) * (player.AlleyOopTendency / 0.5) * (1.0 + cm * 0.25);
+        double gsCutDunk       = 0.004 * (dunkTend / 0.5) * (player.CutTendency / 0.5);
+        double gsCutLayup      = 0.043 * (player.CutTendency / 0.5) * (1.0 + cm * 0.30);
+
+        double gsPostMove      = player.Position is Position.PF or Position.C
+            ? 0.051 * (player.Attr_Inside / 50.0) * postCont : 0.003;
+        double gsPostMoveMid   = player.Position is Position.PF or Position.C
+            ? 0.051 * (player.Attr_MidRange / 50.0) : 0.003;  // post mid still attribute-driven (skill-designed plays)
+
+        double gsIsoMid        = 0.051 * (1.0 - cm * 0.18);                                   // removed Attr_MidRange factor
+        double gsFadeaway      = 0.034 * (player.Strength / 50.0);                             // removed Attr_MidRange factor (keep Strength)
+
+        double gsPoolDrive = gsDrivingLayup + gsPickRollRoll + gsFloaterLayup + gsPickRollDunk
+                           + gsPickRollMid  + gsPickRollThree + gsPullUpMid   + gsPullUpThree
+                           + gsStepBackThree;
+        double gsPoolCut   = gsAlleyOop  + gsCutDunk   + gsCutLayup;
+        double gsPoolPost  = gsPostMove  + gsPostMoveMid;
+        double gsPoolIso   = gsIsoMid    + gsFadeaway;
+
+        double tendBaseTotal     = gsPoolDrive + gsPoolCut + gsPoolPost + gsPoolIso;
+        double tendWeightedTotal = gsPoolDrive * wDrive + gsPoolCut * wCut
+                                 + gsPoolPost  * wPost  + gsPoolIso * wIso;
+        double normFactor        = tendWeightedTotal > 0 ? tendBaseTotal / tendWeightedTotal : 1.0;
+
+        // ── Dunks ─────────────────────────────────────────────────────────────────
+        TryAdd(ShotContext.AlleyOop,        ShotType.Inside,   gsAlleyOop     * wCut   * normFactor, isDunk: true);
+        TryAdd(ShotContext.CutDunk,         ShotType.Inside,   gsCutDunk      * wCut   * normFactor, isDunk: true);
         TryAdd(ShotContext.TransitionDunk,  ShotType.Inside,
             possState == PossessionState.FastBreak
                 ? 0.006 * (dunkTend / 0.5)
                 : 0.002 * (dunkTend / 0.5),
             isDunk: true);
-        TryAdd(ShotContext.PickAndRollDunk, ShotType.Inside,
-            0.004 * (dunkTend / 0.5) * (player.DriveGravity / 0.5) * Math.Max(spacingLevel / 3.0, 0.5),
-            isDunk: true);
+        TryAdd(ShotContext.PickAndRollDunk, ShotType.Inside,   gsPickRollDunk * wDrive * normFactor, isDunk: true);
         TryAdd(ShotContext.ContactDunk,     ShotType.Inside,
             0.003 * (dunkTend / 0.5) * (player.Strength / 50.0),
             isDunk: true);
 
-        // ── Layups (frequency driven by DriveGravity, defense, spacing) ─────────
-        TryAdd(ShotContext.DrivingLayup,    ShotType.Inside,
-            0.085 * (player.DriveGravity / 0.5) * intDefSup * driveCont * opensInt);
-        TryAdd(ShotContext.CutLayup,        ShotType.Inside,
-            0.043 * (player.CutTendency / 0.5) * (player.Tendencies.Cut / 50.0) * (1.0 + cm * 0.5));
+        // ── Layups ────────────────────────────────────────────────────────────────
+        TryAdd(ShotContext.DrivingLayup,    ShotType.Inside, gsDrivingLayup * wDrive * normFactor);
+        TryAdd(ShotContext.CutLayup,        ShotType.Inside, gsCutLayup     * wCut   * normFactor);
         TryAdd(ShotContext.FastBreakLayup,  ShotType.Inside,
             possState == PossessionState.FastBreak
                 ? 0.05 * (player.Speed / 50.0) : 0.012);
-        TryAdd(ShotContext.PickAndRollRoll, ShotType.Inside,
-            0.043 * (player.DriveGravity / 0.5) * Math.Max(spacingLevel / 3.0, 0.5) * (1.0 + cm * 0.3));
-        TryAdd(ShotContext.PostMove,        ShotType.Inside,
-            player.Position is Position.PF or Position.C
-                ? 0.051 * (player.Attr_Inside / 50.0) * (player.Tendencies.PostUp / 50.0) * postCont
-                : 0.003);
-        TryAdd(ShotContext.FloaterLayup,    ShotType.Inside,
-            0.026 * (player.Speed / 50.0) * (player.Attr_Dribbling / 50.0));
+        TryAdd(ShotContext.PickAndRollRoll, ShotType.Inside,  gsPickRollRoll * wDrive * normFactor);
+        TryAdd(ShotContext.PostMove,        ShotType.Inside,  gsPostMove     * wPost  * normFactor);
+        TryAdd(ShotContext.FloaterLayup,    ShotType.Inside,  gsFloaterLayup * wDrive * normFactor);
 
-        // ── Mid-Range (attribute-driven; specialists get many looks) ─────────────
-        TryAdd(ShotContext.PullUpMidRange,      ShotType.MidRange,
-            0.077 * (player.Attr_MidRange / 50.0) * (player.Tendencies.PullUp / 50.0) * (player.DriveGravity / 0.5) * perimDefSup);
-        TryAdd(ShotContext.IsolationMidRange,   ShotType.MidRange,
-            0.051 * (player.Attr_MidRange / 50.0) * (player.Tendencies.Iso / 50.0) * (1.0 - cm * 0.3));
-        TryAdd(ShotContext.PickAndRollMidRange, ShotType.MidRange,
-            0.068 * (player.Attr_MidRange / 50.0) * (player.DriveGravity / 0.5) * (1.0 + cm * 0.2));
-        TryAdd(ShotContext.FadeawayMidRange,    ShotType.MidRange,
-            0.034 * (player.Attr_MidRange / 50.0) * (player.Strength / 50.0));
-        TryAdd(ShotContext.PostMoveMidRange,    ShotType.MidRange,
-            player.Position is Position.PF or Position.C
-                ? 0.051 * (player.Attr_MidRange / 50.0) * (player.Tendencies.PostUp / 50.0)
-                : 0.003);
-        TryAdd(ShotContext.LateClockMidRange,   ShotType.MidRange,
-            shotClockRemaining < 6 ? 0.09 : 0.001);
+        // ── Mid-Range ─────────────────────────────────────────────────────────────
+        TryAdd(ShotContext.PullUpMidRange,      ShotType.MidRange, gsPullUpMid   * wDrive * normFactor);
+        TryAdd(ShotContext.IsolationMidRange,   ShotType.MidRange, gsIsoMid      * wIso   * normFactor);
+        TryAdd(ShotContext.PickAndRollMidRange, ShotType.MidRange, gsPickRollMid * wDrive * normFactor);
+        TryAdd(ShotContext.FadeawayMidRange,    ShotType.MidRange, gsFadeaway    * wIso   * normFactor);
+        TryAdd(ShotContext.PostMoveMidRange,    ShotType.MidRange, gsPostMoveMid * wPost  * normFactor);
+        TryAdd(ShotContext.LateClockMidRange,   ShotType.MidRange, shotClockRemaining < 6 ? 0.09 : 0.001);
 
-        // ── Three-Point (frequency driven by 3PT attribute + spacing + defense) ──
+        // ── Three-Point ───────────────────────────────────────────────────────────
+        // 3PT appearance is driven purely by game-state probability + spacing/defender factors.
+        // ThreePt TENDENCY affects only the threshold (player willingness to pull the trigger).
+        // ThreePoint ATTRIBUTE affects make% (PPS). High-attribute players are more likely to
+        // clear the threshold naturally; pool-heavy players (Drive/Post/Cut) get fewer 3PT
+        // opportunities because the normalized budget skews their menu toward their pool shots.
         TryAdd(ShotContext.CatchAndShootCorner, ShotType.ThreePointer,
-            0.050 * (player.Attr_ThreePoint / 50.0) * (1.0 + spacingLevel * 0.06) * (1.0 + cm * 0.3) * perimDefSup * opensPerim);
+            0.054 * (1.0 + spacingLevel * 0.06) * (1.0 + cm * 0.18) * perimDefSup * opensPerim);
         TryAdd(ShotContext.CatchAndShootWing,   ShotType.ThreePointer,
-            0.056 * (player.Attr_ThreePoint / 50.0) * (1.0 + cm * 0.2) * perimDefSup * opensPerim);
-        TryAdd(ShotContext.PullUpThree,         ShotType.ThreePointer,
-            0.030 * (player.Attr_ThreePoint / 50.0) * (player.Tendencies.PullUp / 50.0) * (player.DriveGravity / 0.5));
-        TryAdd(ShotContext.StepBackThree,       ShotType.ThreePointer,
-            0.018 * (player.Attr_ThreePoint / 50.0) * (player.Tendencies.PullUp / 50.0) * (player.Attr_Dribbling / 50.0));
+            0.060 * (1.0 + cm * 0.12) * perimDefSup * opensPerim);
+        TryAdd(ShotContext.PullUpThree,         ShotType.ThreePointer, gsPullUpThree   * wDrive * normFactor);
+        TryAdd(ShotContext.StepBackThree,       ShotType.ThreePointer, gsStepBackThree * wDrive * normFactor);
         TryAdd(ShotContext.TransitionThree,     ShotType.ThreePointer,
             possState is PossessionState.FastBreak or PossessionState.Transition
-                ? 0.042 * (player.Attr_ThreePoint / 50.0)
-                : 0.018 * (player.Attr_ThreePoint / 50.0));
-        TryAdd(ShotContext.PickAndRollThree,    ShotType.ThreePointer,
-            0.042 * (player.Attr_ThreePoint / 50.0) * (player.DriveGravity / 0.5));
+                ? 0.045
+                : 0.019);
+        TryAdd(ShotContext.PickAndRollThree,    ShotType.ThreePointer, gsPickRollThree * wDrive * normFactor);
 
         return entries;
     }
 
     // ── Old context-selection methods (kept for reference, unused) ────────────
 
-    private ShotContext SelectInsideContext(Player p, ShotClockPhase phase, int spacingLevel, CoachingProfile coach)
+    private ShotContext SelectInsideContext(Player p, ShotClockPhase phase, int spacingLevel, Coach coach)
     {
         double cm        = coach.OffensiveRating / 100.0;
         double dunkTend  = p.DunkTendency;
@@ -2186,7 +2605,7 @@ public class GameEngine
         return WeightedRandom(weights.Keys, k => weights[k]);
     }
 
-    private ShotContext SelectMidRangeContext(Player p, ShotClockPhase phase, CoachingProfile coach)
+    private ShotContext SelectMidRangeContext(Player p, ShotClockPhase phase, Coach coach)
     {
         double cm = coach.OffensiveRating / 100.0;
 
@@ -2203,7 +2622,7 @@ public class GameEngine
         return WeightedRandom(weights.Keys, k => weights[k]);
     }
 
-    private ShotContext SelectThreeContext(Player p, ShotClockPhase phase, int spacingLevel, CoachingProfile coach)
+    private ShotContext SelectThreeContext(Player p, ShotClockPhase phase, int spacingLevel, Coach coach)
     {
         double cm = coach.OffensiveRating / 100.0;
 
@@ -2316,9 +2735,51 @@ public class GameEngine
         return matchups;
     }
 
-    // Pass turnover rate: 95 Passing → 1.2%, 50 Passing → 2.6%, 5 Passing → 4.0%
+    /// <summary>
+    /// Per-possession defensive focus: compute a contest multiplier for each player in the
+    /// current 5-man offensive lineup based on their threat level relative to their teammates.
+    ///
+    /// Called once per possession (after substitutions) so the normalization reflects exactly
+    /// who is on the court. SGA with bench players normalizes at ~1.6-1.8× (heavy focus);
+    /// SGA with fellow starters normalizes closer to 1.2-1.3× (focus distributed across threats).
+    ///
+    /// Formula: focusMult = pow(focusRatio, 0.90) where focusRatio = 1 + (normThreat-1)*helpFactor.
+    /// Jensen's inequality: sum(x^0.90) &lt; n for any non-uniform mean-1.0 distribution →
+    /// total contest always ≤ equal coverage (dead weight loss from over-focusing).
+    /// </summary>
+    private static Dictionary<string, double> ComputeDefensiveFocus(
+        Coach defCoach, IEnumerable<Player> offLineup)
+    {
+        var lineup = offLineup.ToList();
+        if (lineup.Count == 0) return new();
+
+        // Offensive threat = equal-weight average of the five scoring/creation attributes
+        static double ThreatScore(Player p) =>
+            (p.Attr_ThreePoint + p.Attr_MidRange + p.Attr_Inside
+             + p.Attr_Dribbling + p.Attr_oBBIQ) / 5.0;
+
+        // Normalize against the actual 5-man lineup on the court — no roster-wide averaging.
+        // This is the key mechanic: a star's normalized threat is much higher when surrounded
+        // by bench players than when every teammate is also a scoring threat.
+        double avgThreat = lineup.Average(ThreatScore);
+        if (avgThreat <= 0) return lineup.ToDictionary(p => p.Name, _ => 1.0);
+
+        double helpFactor = Math.Clamp(defCoach.HelpDefenseAmount, 0, 100) / 100.0;
+
+        return lineup.ToDictionary(p => p.Name, p =>
+        {
+            double normalizedThreat = ThreatScore(p) / avgThreat;
+            // Blend between equal coverage (1.0) and threat-proportional coverage
+            double focusRatio = Math.Max(0.25,
+                1.0 + (normalizedThreat - 1.0) * helpFactor);
+            // Concave power function (exponent 0.90): sum < n for any non-uniform distribution
+            return Math.Pow(focusRatio, 0.90);
+        });
+    }
+
+    // Pass turnover rate: 95 Passing → 1.0%, 50 Passing → 2.1%, 5 Passing → 3.2%
     private static double PassTurnoverRate(Player passer) =>
-        0.012 + (95.0 - passer.Attr_Passing) / 90.0 * 0.028;
+        0.010 + (95.0 - passer.Attr_Passing) / 90.0 * 0.022;
 
     private T WeightedRandom<T>(IEnumerable<T> items, Func<T, double> weightFn)
     {
@@ -2332,6 +2793,57 @@ public class GameEngine
             if (r <= cumulative) return item;
         }
         return list.Last();
+    }
+
+    // ── Injury helpers ────────────────────────────────────────────────────────
+
+    private void CheckInjuries(List<Player> lineup, Team team, int quarter, int clockSeconds)
+    {
+        if (DisableInjuries) return;
+        for (int i = 0; i < lineup.Count; i++)
+        {
+            var player = lineup[i];
+            ActiveInjury? newInjury = player.CurrentInjury is null
+                ? InjuryService.RollForInjury(player, player.Energy, _rng)
+                : InjuryService.RollReInjury(player, _rng);
+
+            if (newInjury is null) continue;
+
+            if (!newInjury.IsPlaying)
+            {
+                // Player cannot continue — find a replacement before applying.
+                // Covers both G3 (always DNP) and G2 when IsPlaying rolled false.
+                var replacement = team.Roster
+                    .Where(p => !_dnpPlayers.Contains(p.Name)
+                             && !lineup.Contains(p)
+                             && p.CurrentInjury?.IsPlaying != false)
+                    .OrderByDescending(RotationManager.ComputeOverall)
+                    .FirstOrDefault();
+                if (replacement is null) continue; // bypass: 5-healthy-player floor
+
+                player.CurrentInjury = newInjury;
+                _injuryEvents.Add(new InjuryEvent(
+                    player.Name, player.Team,
+                    newInjury.BodyPartKey,
+                    newInjury.Definition.Name,
+                    newInjury.BodyPartDisplay,
+                    newInjury.Definition.Grade,
+                    quarter, clockSeconds));
+                _dnpPlayers.Add(player.Name);
+                lineup[i] = replacement;
+            }
+            else
+            {
+                player.CurrentInjury = newInjury;
+                _injuryEvents.Add(new InjuryEvent(
+                    player.Name, player.Team,
+                    newInjury.BodyPartKey,
+                    newInjury.Definition.Name,
+                    newInjury.BodyPartDisplay,
+                    newInjury.Definition.Grade,
+                    quarter, clockSeconds));
+            }
+        }
     }
 
     private PlayerGameStats EnsureStats(Player p) => _stats[p.Name];

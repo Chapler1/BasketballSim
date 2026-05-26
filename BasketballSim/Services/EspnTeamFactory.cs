@@ -329,6 +329,11 @@ public static class EspnTeamFactory
             PerimeterDefense = A(r.Attrs, "PerimDef"),
             InteriorDefense  = A(r.Attrs, "IntDef"),
             FoulTendency     = A(r.Attrs, "FoulTend"),
+            DominantHand     = r.Attrs.GetValueOrDefault("DomHand", 0) == 1
+                                   ? DominantHand.Left : DominantHand.Right,
+            InjuryRatings    = InjuryTables.BodyParts.Keys
+                                   .ToDictionary(k => k, k => Math.Clamp(
+                                       r.Attrs.GetValueOrDefault(k, 70), 1, 99)),
             Tend_Touches  = A(r.Tends, "Touches"),
             Tend_Drive    = A(r.Tends, "Drive"),
             Tend_ThreePt  = A(r.Tends, "ThreePt"),
@@ -345,8 +350,7 @@ public static class EspnTeamFactory
 
     // ── Team builder ──────────────────────────────────────────────────────────
     public static Team BuildTeam(List<PlayerConfig> configs, string name, string abbr,
-                                  string color, double pace = 100, CoachingProfile? coach = null,
-                                  int rotationDepth = 9, int starterBias = 80,
+                                  string color, double pace = 100, Coach? coach = null,
                                   string division = "", string conference = "",
                                   string secondaryColor = "#888888") => new()
     {
@@ -355,9 +359,7 @@ public static class EspnTeamFactory
         PrimaryColor   = color,
         SecondaryColor = secondaryColor,
         Pace           = pace,
-        Coach          = coach ?? CoachingProfiles.Balanced,
-        RotationDepth  = Math.Clamp(rotationDepth, 5, configs.Count),
-        StarterBias    = Math.Clamp(starterBias, 0, 100),
+        Coach          = coach ?? new Coach { Name = "Staff Coach" },
         Roster         = configs.Select(c => c.ToPlayer()).ToList(),
         Division       = division,
         Conference     = conference,
