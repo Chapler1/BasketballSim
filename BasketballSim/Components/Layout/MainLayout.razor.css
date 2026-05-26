@@ -8,26 +8,67 @@ main {
     flex: 1;
 }
 
+/* Sidebar — hidden by default, slides in as a fixed overlay */
 .sidebar {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 220px;
+    height: 100vh;
     background-color: #111111;
     border-right: 1px solid #2a2a2a;
+    z-index: 1500;
+    overflow-y: auto;
+}
+
+.sidebar.nav-open {
+    display: block;
+}
+
+/* Backdrop — hidden by default */
+.nav-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 1499;
+    cursor: pointer;
+}
+
+.nav-overlay.visible {
+    display: block;
+}
+
+/* Toggle button — always pinned to bottom-left */
+.nav-toggle-btn {
+    position: fixed;
+    bottom: 16px;
+    left: 16px;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 1px solid #444;
+    background: #1e1e1e;
+    color: #ccc;
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+    z-index: 1600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: background 0.15s, color 0.15s;
+}
+
+.nav-toggle-btn:hover {
+    background: #2e2e2e;
+    color: #fff;
 }
 
 .content {
     padding-top: 1.1rem;
-}
-
-@media (min-width: 641px) {
-    .page {
-        flex-direction: row;
-    }
-
-    .sidebar {
-        width: 220px;
-        height: 100vh;
-        position: sticky;
-        top: 0;
-    }
 }
 
 #blazor-error-ui {

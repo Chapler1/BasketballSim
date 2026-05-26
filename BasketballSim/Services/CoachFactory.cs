@@ -21,7 +21,7 @@ public static class CoachFactory
         {
             Name = "Joe Mazzulla", Age = 36, YearsCoached = 3, Potential = 88,
             OffStyle = OffensiveStyle.PaceAndSpace,  DefStyle = DefensiveStyle.StopTheThree,
-            PacePref = 102, RotationDepthPref = 40, VetPreference = 55, StarterLoadPref = 65,
+            PacePref = 102, RotationDepthPref = 50, VetPreference = 55, StarterLoadPref = 65,
             OffensiveRating = 80, DefensiveRating = 78, HelpDefenseAmount = 75,
         },
         "Brooklyn Nets" => new Coach
@@ -56,7 +56,7 @@ public static class CoachFactory
         {
             Name = "J.B. Bickerstaff", Age = 44, YearsCoached = 5, Potential = 58,
             OffStyle = OffensiveStyle.GritAndGrind,  DefStyle = DefensiveStyle.ProtectThePaint,
-            PacePref = 96, RotationDepthPref = 30, VetPreference = 72, StarterLoadPref = 68,
+            PacePref = 96, RotationDepthPref = 50, VetPreference = 72, StarterLoadPref = 68,
             OffensiveRating = 50, DefensiveRating = 72, HelpDefenseAmount = 65,
         },
         "Indiana Pacers" => new Coach
@@ -84,7 +84,7 @@ public static class CoachFactory
         {
             Name = "Mike Brown", Age = 55, YearsCoached = 8, Potential = 72,
             OffStyle = OffensiveStyle.MotionFlow,    DefStyle = DefensiveStyle.ProtectThePaint,
-            PacePref = 99, RotationDepthPref = 45, VetPreference = 62, StarterLoadPref = 62,
+            PacePref = 99, RotationDepthPref = 50, VetPreference = 62, StarterLoadPref = 62,
             OffensiveRating = 70, DefensiveRating = 74, HelpDefenseAmount = 68,
         },
         "Orlando Magic" => new Coach
@@ -161,7 +161,7 @@ public static class CoachFactory
         {
             Name = "Tyronn Lue", Age = 47, YearsCoached = 5, Potential = 68,
             OffStyle = OffensiveStyle.IsoHeavy,      DefStyle = DefensiveStyle.Balanced,
-            PacePref = 100, RotationDepthPref = 45, VetPreference = 62, StarterLoadPref = 60,
+            PacePref = 100, RotationDepthPref = 50, VetPreference = 62, StarterLoadPref = 60,
             OffensiveRating = 66, DefensiveRating = 60, HelpDefenseAmount = 55,
         },
         "Los Angeles Lakers" => new Coach
@@ -189,7 +189,7 @@ public static class CoachFactory
         {
             Name = "Jason Kidd", Age = 52, YearsCoached = 6, Potential = 65,
             OffStyle = OffensiveStyle.Heliocentric,  DefStyle = DefensiveStyle.Balanced,
-            PacePref = 101, RotationDepthPref = 45, VetPreference = 60, StarterLoadPref = 65,
+            PacePref = 101, RotationDepthPref = 50, VetPreference = 60, StarterLoadPref = 65,
             OffensiveRating = 62, DefensiveRating = 56, HelpDefenseAmount = 52,
         },
         "Houston Rockets" => new Coach

@@ -1121,14 +1121,32 @@ Every constant in the engine is derived from a mechanical argument — no "multi
 
 ---
 
-## Running the App
+## Getting Started
+
+### Prerequisites
+
+- [.NET 10 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/10.0) — download and install the latest .NET 10 SDK for your platform
+
+### Clone & Run
 
 ```bash
-# HTTP
+# 1. Clone the repo
+git clone https://github.com/Chapler1/BasketballSim.git
+cd BasketballSim
+
+# 2. Run the app (HTTP)
 dotnet run --project BasketballSim/BasketballSim.csproj --launch-profile http
+```
+
+Then open **http://localhost:5094** in your browser. The Season Sim page loads by default.
+
+### Other run modes
+
+```bash
 # HTTPS
 dotnet run --project BasketballSim/BasketballSim.csproj --launch-profile https
-# Watch (hot reload)
+
+# Watch mode (hot reload — restarts on file save)
 dotnet watch --project BasketballSim/BasketballSim.csproj
 ```
 

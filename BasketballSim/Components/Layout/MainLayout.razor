@@ -1,9 +1,11 @@
 @inherits LayoutComponentBase
 
 <div class="page">
-    <div class="sidebar">
+    <div id="main-sidebar" class="sidebar">
         <NavMenu />
     </div>
+
+    <div id="nav-overlay" class="nav-overlay" onclick="closeNav()"></div>
 
     <main>
         <article class="content px-4">
@@ -11,6 +13,8 @@
         </article>
     </main>
 </div>
+
+<button id="nav-toggle" class="nav-toggle-btn" onclick="toggleNav()" title="Open menu">☰</button>
 
 <div id="blazor-error-ui" data-nosnippet>
     An unhandled error has occurred.
