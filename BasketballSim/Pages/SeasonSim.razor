@@ -60,6 +60,14 @@
         100% { background-color: transparent; }
     }
     .watch-entry { animation: watchEntryFlash 1.8s ease-out forwards; }
+    .wm-tab { background:none;border:none;padding:7px 18px;font-family:monospace;font-size:0.82rem;cursor:pointer;letter-spacing:0.5px;border-bottom:2px solid transparent;color:#444; }
+    .wm-tab.active { color:#c8c8c8;border-bottom-color:#fca; }
+    .wm-tab:not(.active):hover { color:#777; }
+    .wm-oncourt { background:#111a11; }
+    .wm-bench   { background:transparent; }
+    .wm-player-row td { padding:3px 6px;border-bottom:1px solid #141414;white-space:nowrap; }
+    .wm-player-row:hover td { background:#1a1a1a; }
+    .wm-team-hdr { font-size:0.72rem;color:#333;letter-spacing:1.5px;padding:4px 8px;border-bottom:1px solid #141414;background:#0a0a0a; }
 </style>
 
 <div class="ssim">
@@ -1684,173 +1692,317 @@ else if (_phase == Phase.Done && _season is not null)
     var wg = _watchGame;
     string wHomeAbbr = _liveState?.Teams.TryGetValue(wg.HomeTeam.Name, out var _wht) == true ? _wht.Abbreviation : wg.HomeTeam.Abbreviation;
     string wAwayAbbr = _liveState?.Teams.TryGetValue(wg.AwayTeam.Name, out var _wat) == true ? _wat.Abbreviation : wg.AwayTeam.Abbreviation;
+    bool wAwayWins   = _watchDone && wg.FinalAwayScore > wg.FinalHomeScore;
+    bool wHomeWins   = _watchDone && wg.FinalHomeScore > wg.FinalAwayScore;
 
-    <div style="position:fixed;inset:0;background:rgba(0,0,0,0.97);z-index:2000;display:flex;flex-direction:column;font-family:monospace;color:#d4d4d4;overflow:hidden;">
+    <div style="position:fixed;inset:0;background:#111;z-index:2000;display:flex;flex-direction:column;font-family:monospace;color:#c8c8c8;overflow:hidden;">
 
-        <!-- ── Score bar ── -->
-        <div style="display:flex;align-items:center;gap:0.75rem;padding:0.65rem 1.25rem;background:#0a0a0a;border-bottom:1px solid #1e1e1e;flex-shrink:0;">
-            <!-- Away -->
-            <img src="/logos/teams/@(LogoSlug(wg.AwayTeam.Name)).svg" style="width:28px;height:28px;object-fit:contain;flex-shrink:0;" onerror="this.style.display='none'" />
-            <span style="font-size:0.78rem;color:#666;min-width:30px;">@wAwayAbbr</span>
-            <span style="font-size:1.9rem;font-weight:800;color:@(_watchAwayScore>_watchHomeScore?"#4af080":"#c8c8c8");min-width:44px;text-align:right;">@_watchAwayScore</span>
-            <!-- Quarter / Clock -->
-            <div style="flex:1;text-align:center;min-width:80px;">
-                <div style="font-size:0.58rem;color:#2a2a2a;letter-spacing:1px;">@WatchQuarterLabel()</div>
-                <div style="font-size:0.82rem;color:#444;font-weight:600;margin-top:1px;">@WatchClockLabel()</div>
+        <!-- ══ SCOREBOARD ══ -->
+        <div style="background:#0d0d0d;border-bottom:2px solid #1e1e1e;flex-shrink:0;position:relative;padding:1.25rem 4rem 1.1rem;">
+
+            <!-- Close -->
+            <button @onclick="CloseWatchModal"
+                    style="position:absolute;top:12px;right:16px;background:none;border:none;color:#555;font-size:1.4rem;cursor:pointer;line-height:1;padding:4px;">✕</button>
+
+            <!-- Speed controls (bottom-right, only when in progress) -->
+            @if (_watchStarted && !_watchDone)
+            {
+                <div style="position:absolute;bottom:10px;right:60px;display:flex;align-items:center;gap:6px;">
+                    <span style="font-size:0.6rem;color:#444;">FAST</span>
+                    <input type="range" min="0" max="800" step="50"
+                           value="@_watchDelayMs"
+                           @oninput="@((e) => { _watchDelayMs = int.Parse(e.Value?.ToString() ?? "400"); })"
+                           style="width:100px;accent-color:#fca;cursor:pointer;" />
+                    <span style="font-size:0.6rem;color:#444;">SLOW</span>
+                </div>
+            }
+
+            <!-- Score row -->
+            <div style="display:flex;align-items:center;justify-content:center;gap:0;">
+
+                <!-- Away team -->
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;opacity:@(_watchDone&&!wAwayWins?"0.35":"1");">
+                    <img src="/logos/teams/@(LogoSlug(wg.AwayTeam.Name)).svg"
+                         style="width:52px;height:52px;object-fit:contain;" onerror="this.style.display='none'" />
+                    <div style="font-size:0.85rem;font-weight:700;color:@(wAwayWins?"#e8e8e8":"#888");letter-spacing:1px;">@wAwayAbbr</div>
+                    <div style="font-size:3.2rem;font-weight:900;line-height:1;color:@(wAwayWins?"#4af080":"#c8c8c8");">@_watchAwayScore</div>
+                    @if (wAwayWins) { <div style="font-size:0.65rem;color:#4af080;letter-spacing:2px;font-weight:700;">WINNER</div> }
+                </div>
+
+                <!-- Center: quarter + clock -->
+                <div style="min-width:140px;text-align:center;">
+                    <div style="font-size:0.72rem;color:#555;letter-spacing:2px;margin-bottom:2px;">@WatchQuarterLabel()</div>
+                    <div style="font-size:1.6rem;font-weight:700;color:@(_watchDone?"#4af080":"#777");letter-spacing:1px;">@WatchClockLabel()</div>
+                    @if (!_watchStarted)
+                    {
+                        <div style="margin-top:10px;">
+                            <button @onclick="() => _ = StartWatchGame()"
+                                    style="background:#0d2a0d;color:#4af080;border:1px solid #1a4a1a;padding:9px 28px;border-radius:5px;cursor:pointer;font-family:monospace;font-size:0.95rem;font-weight:700;letter-spacing:1px;">
+                                ▶ START GAME
+                            </button>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:6px;justify-content:center;margin-top:8px;">
+                            <span style="font-size:0.6rem;color:#333;">FAST</span>
+                            <input type="range" min="0" max="800" step="50"
+                                   value="@_watchDelayMs"
+                                   @oninput="@((e) => { _watchDelayMs = int.Parse(e.Value?.ToString() ?? "400"); })"
+                                   style="width:100px;accent-color:#fca;cursor:pointer;" />
+                            <span style="font-size:0.6rem;color:#333;">SLOW</span>
+                        </div>
+                    }
+                </div>
+
+                <!-- Home team -->
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;opacity:@(_watchDone&&!wHomeWins?"0.35":"1");">
+                    <img src="/logos/teams/@(LogoSlug(wg.HomeTeam.Name)).svg"
+                         style="width:52px;height:52px;object-fit:contain;" onerror="this.style.display='none'" />
+                    <div style="font-size:0.85rem;font-weight:700;color:@(wHomeWins?"#e8e8e8":"#888");letter-spacing:1px;">@wHomeAbbr</div>
+                    <div style="font-size:3.2rem;font-weight:900;line-height:1;color:@(wHomeWins?"#4af080":"#c8c8c8");">@_watchHomeScore</div>
+                    @if (wHomeWins) { <div style="font-size:0.65rem;color:#4af080;letter-spacing:2px;font-weight:700;">WINNER</div> }
+                </div>
+
             </div>
-            <!-- Home -->
-            <span style="font-size:1.9rem;font-weight:800;color:@(_watchHomeScore>_watchAwayScore?"#4af080":"#c8c8c8");min-width:44px;text-align:left;">@_watchHomeScore</span>
-            <span style="font-size:0.78rem;color:#666;min-width:30px;">@wHomeAbbr</span>
-            <img src="/logos/teams/@(LogoSlug(wg.HomeTeam.Name)).svg" style="width:28px;height:28px;object-fit:contain;flex-shrink:0;" onerror="this.style.display='none'" />
-            <!-- Speed slider -->
-            <div style="display:flex;align-items:center;gap:6px;margin-left:1rem;flex-shrink:0;">
-                <span style="font-size:0.6rem;color:#2a2a2a;">FAST</span>
-                <input type="range" min="0" max="200" step="10"
-                       value="@_watchDelayMs"
-                       @oninput="@((e) => { _watchDelayMs = int.Parse(e.Value?.ToString() ?? "70"); })"
-                       style="width:84px;accent-color:#fca;cursor:pointer;" />
-                <span style="font-size:0.6rem;color:#2a2a2a;">SLOW</span>
-            </div>
-            <button @onclick="CloseWatchModal" style="background:none;border:none;color:#2a2a2a;font-size:1.3rem;cursor:pointer;margin-left:0.5rem;padding:0 4px;flex-shrink:0;line-height:1;">✕</button>
         </div>
 
-        <!-- ── Main content ── -->
-        <div style="flex:1;display:flex;overflow:hidden;min-height:0;">
+        <!-- ══ GAME LOG (small, auto-scroll) ══ -->
+        <div style="background:#0e0e0e;border-bottom:1px solid #1a1a1a;height:154px;flex-shrink:0;display:flex;flex-direction:column;">
+            <div style="font-size:0.6rem;color:#3a3a3a;letter-spacing:1.5px;padding:4px 1rem 3px;border-bottom:1px solid #141414;flex-shrink:0;">PLAY BY PLAY</div>
+            <div style="flex:1;overflow-y:auto;display:flex;flex-direction:column-reverse;padding:0 0.5rem;">
+                @if (!_watchStarted)
+                {
+                    <div style="color:#2a2a2a;font-size:0.8rem;padding:8px 8px;font-style:italic;">Press Start Game to begin.</div>
+                }
+                @foreach (var poss in ((IEnumerable<PossessionResult>)_watchPossessions).Reverse())
+                {
+                    bool wIsScore = poss.PointsScored > 0;
+                    bool wIsTov   = poss.Event is PossessionEvent.TurnoverStolen or PossessionEvent.TurnoverDeadBall;
+                    bool wIsFoul  = poss.Event == PossessionEvent.FreeThrows;
+                    string wTextColor = wIsScore ? "#d4d4d4" : wIsTov ? "#d07070" : wIsFoul ? "#7090cc" : "#666";
+                    string wScoreStr  = $"{poss.AwayScore}–{poss.HomeScore}";
+                    <div style="display:flex;align-items:baseline;gap:0;padding:3px 6px;border-bottom:1px solid #111;font-size:0.8rem;">
+                        <span style="color:#444;font-size:0.68rem;white-space:nowrap;min-width:76px;">@WatchQtrStr(poss.Quarter) @FormatClock(poss.ClockSeconds)</span>
+                        <span style="color:#3a3a3a;font-size:0.68rem;min-width:52px;text-align:right;padding-right:8px;">@wScoreStr</span>
+                        <span style="color:@wTextColor;flex:1;">@poss.Narrative</span>
+                    </div>
+                }
+            </div>
+        </div>
 
-            <!-- Left: Play-by-play log -->
-            <div style="flex:1;display:flex;flex-direction:column;border-right:1px solid #111;overflow:hidden;min-width:0;">
-                <div style="font-size:0.6rem;color:#252525;letter-spacing:1.5px;padding:5px 1rem 3px;flex-shrink:0;border-bottom:1px solid #111;">PLAY BY PLAY</div>
-                <div style="flex:1;overflow-y:auto;padding:0 1rem 0.5rem;display:flex;flex-direction:column-reverse;">
-                    @if (!_watchDone && _watchPossessions.Count == 0)
-                    {
-                        <div style="color:#1e1e1e;font-size:0.78rem;padding:4px 0;">…</div>
-                    }
-                    @foreach (var poss in ((IEnumerable<PossessionResult>)_watchPossessions).Reverse())
-                    {
-                        bool wIsScore = poss.PointsScored > 0;
-                        bool wIsTov   = poss.Event is PossessionEvent.TurnoverStolen or PossessionEvent.TurnoverDeadBall;
-                        bool wIsFoul  = poss.Event == PossessionEvent.FreeThrows;
-                        string wRowColor = wIsScore ? "#c8c8c8" : wIsTov ? "#b05050" : wIsFoul ? "#7090bb" : "#333";
-                        <div style="font-size:0.78rem;color:@wRowColor;padding:3px 0;border-bottom:1px solid #0f0f0f;">
-                            <span style="color:#1e1e1e;margin-right:5px;font-size:0.7rem;">Q@poss.Quarter @FormatClock(poss.ClockSeconds)</span>@poss.Narrative
-                        </div>
-                    }
-                </div>
+        <!-- ══ BOX SCORE ══ -->
+        <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;">
+
+            <!-- Tabs -->
+            <div style="display:flex;border-bottom:1px solid #1a1a1a;flex-shrink:0;background:#0d0d0d;padding:0 0.5rem;">
+                <button class="wm-tab @(_watchBoxTab=="players"?"active":"")" @onclick='() => _watchBoxTab = "players"'>PLAYER STATS</button>
+                <button class="wm-tab @(_watchBoxTab=="teams"?"active":"")"   @onclick='() => _watchBoxTab = "teams"'>TEAM STATS</button>
             </div>
 
-            <!-- Right panel: lineup + subs + box score -->
-            <div style="width:330px;flex-shrink:0;display:flex;flex-direction:column;overflow:hidden;">
-
-                <!-- Lineups: home | away -->
-                <div style="flex-shrink:0;border-bottom:1px solid #111;">
-                    <div style="display:grid;grid-template-columns:1fr 1fr;">
-                        <div style="padding:5px 8px;border-right:1px solid #111;">
-                            <div style="font-size:0.6rem;color:#2a2a2a;letter-spacing:1px;margin-bottom:3px;">@wHomeAbbr ON COURT</div>
-                            @if (_watchHomeLineup.Count == 0)
-                            {
-                                <div style="font-size:0.72rem;color:#1e1e1e;">—</div>
-                            }
-                            @foreach (var n in _watchHomeLineup)
-                            {
-                                string lastName = n.Contains(' ') ? n[(n.LastIndexOf(' ')+1)..] : n;
-                                <div style="font-size:0.73rem;color:#777;padding:1px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">@lastName</div>
-                            }
+            <!-- ── PLAYER STATS TAB ── -->
+            @if (_watchBoxTab == "players")
+            {
+                <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;overflow:hidden;min-height:0;">
+                @foreach (var (side, sideAbbr, sideScore, sideOppScore, sideLineup) in new[]{
+                    (wg.HomeTeam, wHomeAbbr, _watchHomeScore, _watchAwayScore, _watchHomeLineup),
+                    (wg.AwayTeam, wAwayAbbr, _watchAwayScore, _watchHomeScore, _watchAwayLineup)})
+                {
+                    var allPlayers = wg.Stats.Values
+                        .Where(p => p.Team == side.Name)
+                        .ToList();
+                    var onCourt = allPlayers
+                        .Where(p => sideLineup.Contains(p.Name))
+                        .OrderByDescending(p => p.Points)
+                        .ToList();
+                    var bench = allPlayers
+                        .Where(p => !sideLineup.Contains(p.Name) && p.MinutesPlayed > 0)
+                        .OrderByDescending(p => p.MinutesPlayed)
+                        .ToList();
+                    bool isSideHome = side.Name == wg.HomeTeam.Name;
+                    bool sideWins = _watchDone && sideScore > sideOppScore;
+                    <div style="display:flex;flex-direction:column;overflow:hidden;border-right:@(isSideHome?"1px solid #1a1a1a":"none");">
+                        <!-- Team header -->
+                        <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:#0a0a0a;border-bottom:1px solid #1a1a1a;flex-shrink:0;">
+                            <img src="/logos/teams/@(LogoSlug(side.Name)).svg" style="width:18px;height:18px;object-fit:contain;" onerror="this.style.display='none'" />
+                            <span style="font-size:0.88rem;font-weight:700;color:#c8c8c8;">@sideAbbr</span>
+                            <span style="font-size:1.1rem;font-weight:800;color:@(sideWins?"#4af080":_watchDone?"#888":"#c8c8c8");">@sideScore</span>
+                            @if (sideWins) { <span style="font-size:0.65rem;color:#4af080;font-weight:700;letter-spacing:1px;">WIN</span> }
                         </div>
-                        <div style="padding:5px 8px;">
-                            <div style="font-size:0.6rem;color:#2a2a2a;letter-spacing:1px;margin-bottom:3px;">@wAwayAbbr ON COURT</div>
-                            @if (_watchAwayLineup.Count == 0)
+                        <!-- Stats table -->
+                        <div style="flex:1;overflow-y:auto;overflow-x:auto;">
+                        <table style="font-size:0.78rem;border-collapse:collapse;width:100%;min-width:540px;">
+                            <thead style="position:sticky;top:0;background:#0d0d0d;z-index:1;">
+                                <tr style="border-bottom:1px solid #1a1a1a;">
+                                    <th style="text-align:left;padding:4px 6px 4px 10px;color:#555;font-weight:500;min-width:110px;">PLAYER</th>
+                                    <th style="text-align:center;color:#555;font-weight:500;width:34px;" title="Minutes">MIN</th>
+                                    <th style="text-align:center;color:#c8a040;font-weight:600;width:30px;" title="Points">PTS</th>
+                                    <th style="text-align:center;color:#555;font-weight:500;width:30px;" title="Rebounds">REB</th>
+                                    <th style="text-align:center;color:#60b8d8;font-weight:500;width:30px;" title="Assists">AST</th>
+                                    <th style="text-align:center;color:#555;font-weight:500;width:52px;" title="Field Goals">FG</th>
+                                    <th style="text-align:center;color:#555;font-weight:500;width:46px;" title="Three Pointers">3PT</th>
+                                    <th style="text-align:center;color:#555;font-weight:500;width:40px;" title="Free Throws">FT</th>
+                                    <th style="text-align:center;color:#88cc88;font-weight:500;width:30px;" title="Steals">STL</th>
+                                    <th style="text-align:center;color:#cc9860;font-weight:500;width:30px;" title="Blocks">BLK</th>
+                                    <th style="text-align:center;color:#cc6060;font-weight:500;width:30px;" title="Turnovers">TOV</th>
+                                    <th style="text-align:center;color:#888;font-weight:500;width:34px;" title="Plus/Minus">+/-</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            @if (onCourt.Count > 0)
                             {
-                                <div style="font-size:0.72rem;color:#1e1e1e;">—</div>
-                            }
-                            @foreach (var n in _watchAwayLineup)
-                            {
-                                string lastName = n.Contains(' ') ? n[(n.LastIndexOf(' ')+1)..] : n;
-                                <div style="font-size:0.73rem;color:#777;padding:1px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">@lastName</div>
-                            }
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Sub log -->
-                <div style="max-height:96px;overflow-y:auto;border-bottom:1px solid #111;flex-shrink:0;">
-                    <div style="font-size:0.58rem;color:#1e1e1e;letter-spacing:1.5px;padding:3px 8px 2px;">SUBSTITUTIONS</div>
-                    @if (_watchSubLog.Count == 0)
-                    {
-                        <div style="color:#161616;font-size:0.7rem;padding:2px 8px;">—</div>
-                    }
-                    @foreach (var sub in ((IEnumerable<WatchSubEvent>)_watchSubLog).Reverse().Take(10))
-                    {
-                        string subOut = sub.Out.Contains(' ') ? sub.Out[(sub.Out.LastIndexOf(' ')+1)..] : sub.Out;
-                        string subIn  = sub.In.Contains(' ')  ? sub.In[(sub.In.LastIndexOf(' ')+1)..]  : sub.In;
-                        <div style="font-size:0.7rem;padding:2px 8px;color:#333;display:flex;gap:4px;align-items:center;">
-                            <span style="color:#1e1e1e;font-size:0.62rem;flex-shrink:0;">Q@sub.Quarter @FormatClock(sub.ClockSec)</span>
-                            <span style="color:@(sub.Side=="HOME"?"#5580aa":"#aa7050");font-size:0.62rem;flex-shrink:0;">@sub.Side</span>
-                            <span style="color:#884444;">↓@subOut</span>
-                            <span style="color:#448844;">↑@subIn</span>
-                        </div>
-                    }
-                </div>
-
-                <!-- Box score (live, updates during game) -->
-                <div style="flex:1;overflow-y:auto;">
-                    @foreach (var side in new[]{wg.HomeTeam, wg.AwayTeam})
-                    {
-                        var bsStats = wg.Stats.Values
-                            .Where(p => p.Team == side.Name && p.MinutesPlayed > 0)
-                            .OrderByDescending(p => p.Points)
-                            .ToList();
-                        int bsScore = side.Name == wg.HomeTeam.Name ? _watchHomeScore : _watchAwayScore;
-                        string bsAbbr = side.Name == wg.HomeTeam.Name ? wHomeAbbr : wAwayAbbr;
-                        int bsOpp = side.Name == wg.HomeTeam.Name ? _watchAwayScore : _watchHomeScore;
-                        <div>
-                            <div style="display:flex;align-items:baseline;gap:6px;padding:4px 8px;background:#090909;border-bottom:1px solid #111;position:sticky;top:0;z-index:1;">
-                                <span style="font-size:0.76rem;font-weight:700;color:#aaa;">@bsAbbr</span>
-                                <span style="font-size:1.05rem;font-weight:800;color:@(bsScore>=bsOpp?"#4af080":"#888");">@bsScore</span>
-                            </div>
-                            <table style="font-size:0.7rem;width:100%;border-collapse:collapse;">
-                                <thead><tr style="border-bottom:1px solid #0f0f0f;">
-                                    <th style="text-align:left;padding:2px 4px 2px 8px;color:#1e1e1e;font-weight:400;min-width:72px;">NAME</th>
-                                    <th style="text-align:center;color:#1e1e1e;font-weight:400;width:20px;">M</th>
-                                    <th style="text-align:center;color:#c8a040;font-weight:400;width:20px;">P</th>
-                                    <th style="text-align:center;color:#1e1e1e;font-weight:400;width:20px;">R</th>
-                                    <th style="text-align:center;color:#3a88a0;font-weight:400;width:20px;">A</th>
-                                    <th style="text-align:center;color:#1e1e1e;font-weight:400;width:28px;">FG</th>
-                                    <th style="text-align:center;color:#1e1e1e;font-weight:400;width:24px;">3</th>
-                                    <th style="text-align:center;color:#1e1e1e;font-weight:400;width:22px;">±</th>
-                                </tr></thead>
-                                <tbody>
-                                @foreach (var ps in bsStats)
+                                <tr><td colspan="12" class="wm-team-hdr">ON COURT</td></tr>
+                                @foreach (var ps in onCourt)
                                 {
-                                    string bsName = ps.Name.Contains(' ') ? ps.Name[(ps.Name.LastIndexOf(' ')+1)..] : ps.Name;
-                                    double bsPm = ps.PlusMinus;
-                                    <tr style="border-bottom:1px solid #0c0c0c;">
-                                        <td style="color:#666;padding:2px 4px 2px 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:72px;">@bsName</td>
-                                        <td style="text-align:center;color:#333;">@ps.MinutesPlayed.ToString("F0")</td>
-                                        <td style="text-align:center;color:#b8900a;font-weight:600;">@ps.Points</td>
-                                        <td style="text-align:center;color:#444;">@(ps.OffRebounds+ps.DefRebounds)</td>
-                                        <td style="text-align:center;color:#3a6878;">@ps.Assists</td>
-                                        <td style="text-align:center;color:#333;">@ps.FGMade-@ps.FGAttempts</td>
-                                        <td style="text-align:center;color:#333;">@ps.ThreeMade-@ps.ThreeAttempts</td>
-                                        <td style="text-align:center;color:@PmColor(bsPm);">@bsPm.ToString("+0;-0;0")</td>
+                                    string pName = ps.Name.Contains(' ') ? ps.Name[(ps.Name.LastIndexOf(' ')+1)..] : ps.Name;
+                                    double pm = ps.PlusMinus;
+                                    <tr class="wm-player-row wm-oncourt">
+                                        <td style="color:#e8e8e8;font-weight:600;padding:4px 6px 4px 10px;">@pName</td>
+                                        <td style="text-align:center;color:#888;">@ps.MinutesPlayed.ToString("F0")</td>
+                                        <td style="text-align:center;color:#e8c060;font-weight:700;">@ps.Points</td>
+                                        <td style="text-align:center;color:#c8c8c8;">@(ps.OffRebounds+ps.DefRebounds)</td>
+                                        <td style="text-align:center;color:#60b8d8;">@ps.Assists</td>
+                                        <td style="text-align:center;color:#c8c8c8;">@ps.FGDisplay</td>
+                                        <td style="text-align:center;color:#c8c8c8;">@ps.ThreeDisplay</td>
+                                        <td style="text-align:center;color:#c8c8c8;">@ps.FTDisplay</td>
+                                        <td style="text-align:center;color:#88cc88;">@ps.Steals</td>
+                                        <td style="text-align:center;color:#cc9860;">@ps.Blocks</td>
+                                        <td style="text-align:center;color:#cc6060;">@ps.Turnovers</td>
+                                        <td style="text-align:center;color:@PmColor(pm);">@pm.ToString("+0;-0;0")</td>
                                     </tr>
                                 }
-                                </tbody>
-                            </table>
+                            }
+                            @if (bench.Count > 0)
+                            {
+                                <tr><td colspan="12" class="wm-team-hdr">BENCH</td></tr>
+                                @foreach (var ps in bench)
+                                {
+                                    string pName = ps.Name.Contains(' ') ? ps.Name[(ps.Name.LastIndexOf(' ')+1)..] : ps.Name;
+                                    double pm = ps.PlusMinus;
+                                    <tr class="wm-player-row wm-bench">
+                                        <td style="color:#aaa;padding:4px 6px 4px 10px;">@pName</td>
+                                        <td style="text-align:center;color:#666;">@ps.MinutesPlayed.ToString("F0")</td>
+                                        <td style="text-align:center;color:#c8a040;font-weight:600;">@ps.Points</td>
+                                        <td style="text-align:center;color:#888;">@(ps.OffRebounds+ps.DefRebounds)</td>
+                                        <td style="text-align:center;color:#4a98b8;">@ps.Assists</td>
+                                        <td style="text-align:center;color:#888;">@ps.FGDisplay</td>
+                                        <td style="text-align:center;color:#888;">@ps.ThreeDisplay</td>
+                                        <td style="text-align:center;color:#888;">@ps.FTDisplay</td>
+                                        <td style="text-align:center;color:#68a868;">@ps.Steals</td>
+                                        <td style="text-align:center;color:#a87848;">@ps.Blocks</td>
+                                        <td style="text-align:center;color:#a84848;">@ps.Turnovers</td>
+                                        <td style="text-align:center;color:@PmColor(pm);">@pm.ToString("+0;-0;0")</td>
+                                    </tr>
+                                }
+                            }
+                            @if (onCourt.Count == 0 && bench.Count == 0)
+                            {
+                                <tr><td colspan="12" style="text-align:center;color:#333;padding:1.5rem;">No stats yet.</td></tr>
+                            }
+                            </tbody>
+                        </table>
                         </div>
-                    }
+                    </div>
+                }
                 </div>
-            </div>
+            }
+
+            @{
+                int tsHomePts   = WatchTeamStat(wg, wg.HomeTeam.Name, p => p.Points);
+                int tsAwayPts   = WatchTeamStat(wg, wg.AwayTeam.Name, p => p.Points);
+                int tsHomeFGM   = WatchTeamStat(wg, wg.HomeTeam.Name, p => p.FGMade);
+                int tsHomeFGA   = WatchTeamStat(wg, wg.HomeTeam.Name, p => p.FGAttempts);
+                int tsAwayFGM   = WatchTeamStat(wg, wg.AwayTeam.Name, p => p.FGMade);
+                int tsAwayFGA   = WatchTeamStat(wg, wg.AwayTeam.Name, p => p.FGAttempts);
+                int tsHome3PM   = WatchTeamStat(wg, wg.HomeTeam.Name, p => p.ThreeMade);
+                int tsHome3PA   = WatchTeamStat(wg, wg.HomeTeam.Name, p => p.ThreeAttempts);
+                int tsAway3PM   = WatchTeamStat(wg, wg.AwayTeam.Name, p => p.ThreeMade);
+                int tsAway3PA   = WatchTeamStat(wg, wg.AwayTeam.Name, p => p.ThreeAttempts);
+                int tsHomeFTM   = WatchTeamStat(wg, wg.HomeTeam.Name, p => p.FTMade);
+                int tsHomeFTA   = WatchTeamStat(wg, wg.HomeTeam.Name, p => p.FTAttempts);
+                int tsAwayFTM   = WatchTeamStat(wg, wg.AwayTeam.Name, p => p.FTMade);
+                int tsAwayFTA   = WatchTeamStat(wg, wg.AwayTeam.Name, p => p.FTAttempts);
+                int tsHomeREB   = WatchTeamStat(wg, wg.HomeTeam.Name, p => p.OffRebounds + p.DefRebounds);
+                int tsAwayREB   = WatchTeamStat(wg, wg.AwayTeam.Name, p => p.OffRebounds + p.DefRebounds);
+                int tsHomeOREB  = WatchTeamStat(wg, wg.HomeTeam.Name, p => p.OffRebounds);
+                int tsAwayOREB  = WatchTeamStat(wg, wg.AwayTeam.Name, p => p.OffRebounds);
+                int tsHomeDREB  = WatchTeamStat(wg, wg.HomeTeam.Name, p => p.DefRebounds);
+                int tsAwayDREB  = WatchTeamStat(wg, wg.AwayTeam.Name, p => p.DefRebounds);
+                int tsHomeAST   = WatchTeamStat(wg, wg.HomeTeam.Name, p => p.Assists);
+                int tsAwayAST   = WatchTeamStat(wg, wg.AwayTeam.Name, p => p.Assists);
+                int tsHomeSTL   = WatchTeamStat(wg, wg.HomeTeam.Name, p => p.Steals);
+                int tsAwaySTL   = WatchTeamStat(wg, wg.AwayTeam.Name, p => p.Steals);
+                int tsHomeBLK   = WatchTeamStat(wg, wg.HomeTeam.Name, p => p.Blocks);
+                int tsAwayBLK   = WatchTeamStat(wg, wg.AwayTeam.Name, p => p.Blocks);
+                int tsHomeTOV   = WatchTeamStat(wg, wg.HomeTeam.Name, p => p.Turnovers);
+                int tsAwayTOV   = WatchTeamStat(wg, wg.AwayTeam.Name, p => p.Turnovers);
+                int tsHomeFOUL  = WatchTeamStat(wg, wg.HomeTeam.Name, p => p.Fouls);
+                int tsAwayFOUL  = WatchTeamStat(wg, wg.AwayTeam.Name, p => p.Fouls);
+                double tsFGHome = tsHomeFGA > 0 ? (double)tsHomeFGM / tsHomeFGA : 0;
+                double tsFGAway = tsAwayFGA > 0 ? (double)tsAwayFGM / tsAwayFGA : 0;
+                double ts3Home  = tsHome3PA > 0 ? (double)tsHome3PM / tsHome3PA : 0;
+                double ts3Away  = tsAway3PA > 0 ? (double)tsAway3PM / tsAway3PA : 0;
+                double tsFTHome = tsHomeFTA > 0 ? (double)tsHomeFTM / tsHomeFTA : 0;
+                double tsFTAway = tsAwayFTA > 0 ? (double)tsAwayFTM / tsAwayFTA : 0;
+            }
+
+            <!-- ── TEAM STATS TAB ── -->
+            @if (_watchBoxTab == "teams")
+            {
+                <div style="flex:1;overflow-y:auto;padding:1rem 2rem;">
+                <table style="font-size:0.88rem;border-collapse:collapse;width:100%;max-width:520px;margin:0 auto;">
+                    <thead>
+                        <tr style="border-bottom:1px solid #1e1e1e;">
+                            <th style="text-align:left;padding:6px 12px 6px 0;color:#444;font-weight:400;min-width:160px;"></th>
+                            <th style="text-align:center;padding:6px 16px;min-width:120px;">
+                                <div style="display:flex;align-items:center;justify-content:center;gap:6px;">
+                                    <img src="/logos/teams/@(LogoSlug(wg.HomeTeam.Name)).svg" style="width:18px;height:18px;object-fit:contain;" onerror="this.style.display='none'" />
+                                    <span style="font-size:0.9rem;font-weight:700;color:@(wHomeWins?"#c8c8c8":"#888");">@wHomeAbbr</span>
+                                </div>
+                            </th>
+                            <th style="text-align:center;padding:6px 16px;min-width:120px;">
+                                <div style="display:flex;align-items:center;justify-content:center;gap:6px;">
+                                    <img src="/logos/teams/@(LogoSlug(wg.AwayTeam.Name)).svg" style="width:18px;height:18px;object-fit:contain;" onerror="this.style.display='none'" />
+                                    <span style="font-size:0.9rem;font-weight:700;color:@(wAwayWins?"#c8c8c8":"#888");">@wAwayAbbr</span>
+                                </div>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @{
+                        RenderFragment TsRow(string label, string homeVal, string awayVal, bool homeHigher, bool awayHigher) =>
+                            @<tr style="border-bottom:1px solid #141414;">
+                                <td style="padding:7px 12px 7px 0;color:#666;">@label</td>
+                                <td style="text-align:center;padding:7px 16px;color:@(homeHigher?"#c8c8c8":"#888");font-weight:@(homeHigher?"700":"400");">@homeVal</td>
+                                <td style="text-align:center;padding:7px 16px;color:@(awayHigher?"#c8c8c8":"#888");font-weight:@(awayHigher?"700":"400");">@awayVal</td>
+                            </tr>;
+                    }
+                    @TsRow("Points",         $"{tsHomePts}",                    $"{tsAwayPts}",                    tsHomePts > tsAwayPts,   tsAwayPts > tsHomePts)
+                    @TsRow("FG",             $"{tsHomeFGM}/{tsHomeFGA} ({tsFGHome:P1})", $"{tsAwayFGM}/{tsAwayFGA} ({tsFGAway:P1})", tsFGHome > tsFGAway, tsFGAway > tsFGHome)
+                    @TsRow("3-Point",        $"{tsHome3PM}/{tsHome3PA} ({ts3Home:P1})",  $"{tsAway3PM}/{tsAway3PA} ({ts3Away:P1})",  ts3Home > ts3Away,   ts3Away > ts3Home)
+                    @TsRow("Free Throws",    $"{tsHomeFTM}/{tsHomeFTA} ({tsFTHome:P1})", $"{tsAwayFTM}/{tsAwayFTA} ({tsFTAway:P1})", tsFTHome > tsFTAway, tsFTAway > tsFTHome)
+                    @TsRow("Rebounds",       $"{tsHomeREB}",                    $"{tsAwayREB}",                    tsHomeREB > tsAwayREB,   tsAwayREB > tsHomeREB)
+                    @TsRow("Off Rebounds",   $"{tsHomeOREB}",                   $"{tsAwayOREB}",                   tsHomeOREB > tsAwayOREB, tsAwayOREB > tsHomeOREB)
+                    @TsRow("Def Rebounds",   $"{tsHomeDREB}",                   $"{tsAwayDREB}",                   tsHomeDREB > tsAwayDREB, tsAwayDREB > tsHomeDREB)
+                    @TsRow("Assists",        $"{tsHomeAST}",                    $"{tsAwayAST}",                    tsHomeAST > tsAwayAST,   tsAwayAST > tsHomeAST)
+                    @TsRow("Steals",         $"{tsHomeSTL}",                    $"{tsAwaySTL}",                    tsHomeSTL > tsAwaySTL,   tsAwaySTL > tsHomeSTL)
+                    @TsRow("Blocks",         $"{tsHomeBLK}",                    $"{tsAwayBLK}",                    tsHomeBLK > tsAwayBLK,   tsAwayBLK > tsHomeBLK)
+                    @TsRow("Turnovers",      $"{tsHomeTOV}",                    $"{tsAwayTOV}",                    tsHomeTOV < tsAwayTOV,   tsAwayTOV < tsHomeTOV)
+                    @TsRow("Fouls",          $"{tsHomeFOUL}",                   $"{tsAwayFOUL}",                   tsHomeFOUL < tsAwayFOUL, tsAwayFOUL < tsHomeFOUL)
+                    </tbody>
+                </table>
+                </div>
+            }
+
         </div>
 
+        <!-- ══ FOOTER (game over) ══ -->
         @if (_watchDone)
         {
-            <div style="padding:0.55rem 1.25rem;border-top:1px solid #161616;display:flex;align-items:center;gap:1rem;background:#080808;flex-shrink:0;">
-                <span style="font-size:0.78rem;color:#444;">FINAL</span>
-                <span style="color:#4af080;font-size:0.82rem;font-weight:700;">@(wg.FinalAwayScore > wg.FinalHomeScore ? wAwayAbbr : wHomeAbbr) wins</span>
+            <div style="padding:0.6rem 1.25rem;border-top:1px solid #1a1a1a;display:flex;align-items:center;gap:1rem;background:#0a0a0a;flex-shrink:0;">
+                <span style="font-size:0.8rem;color:#4af080;font-weight:700;">FINAL — @(wAwayWins ? wAwayAbbr : wHomeAbbr) WIN  @wg.FinalAwayScore–@wg.FinalHomeScore</span>
                 <span style="flex:1;"></span>
-                <button @onclick="CloseWatchModal" style="background:#1a1a2a;border:1px solid #2a2a4a;color:#8ab8ff;padding:5px 20px;border-radius:4px;cursor:pointer;font-family:monospace;font-size:0.85rem;">Done</button>
+                <button @onclick="CloseWatchModal" style="background:#1a1a2a;border:1px solid #2a2a4a;color:#8ab8ff;padding:5px 24px;border-radius:4px;cursor:pointer;font-family:monospace;font-size:0.85rem;">Done</button>
             </div>
         }
+
     </div>
 }
 
@@ -2282,7 +2434,9 @@ else if (_phase == Phase.Done && _season is not null)
     private bool                   _showWatchPopup;
     private GameResult?            _watchGame;
     private bool                   _watchDone;
-    private int                    _watchDelayMs  = 70;
+    private bool                   _watchStarted;
+    private string                 _watchBoxTab   = "players";
+    private int                    _watchDelayMs  = 400;
     private int                    _watchHomeScore;
     private int                    _watchAwayScore;
     private int                    _watchQuarter  = 1;
@@ -2300,9 +2454,27 @@ else if (_phase == Phase.Done && _season is not null)
         1 => "1ST QTR", 2 => "2ND QTR", 3 => "3RD QTR", 4 => "4TH QTR",
         _ => $"OT{_watchQuarter - 4}"
     };
+    private static string WatchQtrStr(int q) => q switch
+    {
+        1 => "1ST Q", 2 => "2ND Q", 3 => "3RD Q", 4 => "4TH Q",
+        _ => $"OT{q - 4}"
+    };
     private string WatchClockLabel() => _watchDone ? "FINAL"
         : $"{_watchClockSec / 60}:{_watchClockSec % 60:D2}";
     private static string FormatClock(int sec) => $"{sec / 60}:{sec % 60:D2}";
+
+    private async Task StartWatchGame()
+    {
+        if (_watchGame is null || _watchStarted) return;
+        _watchStarted = true;
+        _watchCts?.Cancel();
+        _watchCts = new CancellationTokenSource();
+        StateHasChanged();
+        await WatchGameAsync(_watchCts.Token);
+    }
+
+    private static int WatchTeamStat(GameResult gr, string teamName, Func<PlayerGameStats, int> selector) =>
+        gr.Stats.Values.Where(p => p.Team == teamName).Sum(selector);
 
     private async Task SimToGame(ScheduledGame target)
     {
@@ -2341,19 +2513,20 @@ else if (_phase == Phase.Done && _season is not null)
             return;
         }
 
-        // Open watch modal
+        // Open watch modal — user presses Start to begin playback
         _watchGame       = captured;
         _watchDone       = false;
+        _watchStarted    = false;
+        _watchBoxTab     = "players";
         _watchHomeScore  = 0;
         _watchAwayScore  = 0;
         _watchQuarter    = 1;
         _watchClockSec   = 720;
         _watchPossessions = [];
-        _watchCts?.Cancel();
-        _watchCts = new CancellationTokenSource();
+        _watchHomeLineup.Clear();
+        _watchAwayLineup.Clear();
+        _watchSubLog.Clear();
         StateHasChanged();
-
-        await WatchGameAsync(_watchCts.Token);
     }
 
     private async Task WatchGameAsync(CancellationToken ct)
@@ -2411,6 +2584,7 @@ else if (_phase == Phase.Done && _season is not null)
         _watchCts?.Cancel();
         _watchGame        = null;
         _watchDone        = false;
+        _watchStarted     = false;
         _watchPossessions = [];
         _watchHomeLineup.Clear();
         _watchAwayLineup.Clear();
