@@ -219,6 +219,14 @@ public class PlayoffSeriesRecord
     public int    WinnerSeed    => HighSeedWins == 4 ? HighSeed : LowSeed;
     public string SeriesScore   => $"{Math.Max(HighSeedWins, LowSeedWins)}-{Math.Min(HighSeedWins, LowSeedWins)}";
     public List<SeasonGameRecord> Games { get; set; } = [];
+    public DateOnly? StartDate { get; set; }
+    // NBA 2-2-1-1-1 format: 2 days between games (travel built in)
+    private static readonly int[] _gameOffsets = { 0, 2, 4, 6, 8, 10, 12 };
+    public DateOnly GameDate(int gameNum) =>
+        StartDate.HasValue
+            ? StartDate.Value.AddDays(_gameOffsets[Math.Clamp(gameNum - 1, 0, 6)])
+            : DateOnly.FromDateTime(DateTime.Now);
+    public DateOnly NextGameDate => GameDate(Games.Count + 1);
 }
 
 public class PlayoffResult

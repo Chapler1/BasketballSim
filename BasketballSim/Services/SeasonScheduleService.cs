@@ -693,9 +693,9 @@ public class SeasonScheduleService
 
     // ── Playoff simulation ────────────────────────────────────────────────────
 
-    private record PlayoffTeam(string Name, string Abbr, int Seed);
+    internal record PlayoffTeam(string Name, string Abbr, int Seed);
 
-    private sealed class PlayoffState
+    internal sealed class PlayoffState
     {
         public required IReadOnlyDictionary<string, Team>      Teams     { get; init; }
         public required GameEngine                              Engine    { get; init; }
@@ -1101,6 +1101,108 @@ public class SeasonScheduleService
             DateTime.Now, restDays, restDays));
 
         return homeWon;
+    }
+
+    // Same as PlayOneGame but returns the GameResult for watch-game playback.
+    private static GameResult? PlayOneGameCapturing(
+        PlayoffTeam homeSeed, PlayoffTeam awaySeed,
+        double gameImportance, PlayoffState state,
+        List<SeasonGameRecord>? gamesOut, int restDays = 2)
+    {
+        if (!state.Teams.TryGetValue(homeSeed.Name, out var homeTeam) ||
+            !state.Teams.TryGetValue(awaySeed.Name, out var awayTeam))
+            return null;
+
+        foreach (var p in homeTeam.Roster)
+            state.Fatigue[p.Name] = Math.Clamp(ApplyRecovery(state.Fatigue.GetValueOrDefault(p.Name, 90.0), restDays, p.Endurance), 0.0, 100.0);
+        foreach (var p in awayTeam.Roster)
+            state.Fatigue[p.Name] = Math.Clamp(ApplyRecovery(state.Fatigue.GetValueOrDefault(p.Name, 90.0), restDays, p.Endurance), 0.0, 100.0);
+
+        var today = DateOnly.FromDateTime(DateTime.Now);
+        foreach (var p in homeTeam.Roster.Concat(awayTeam.Roster))
+        {
+            if (p.CurrentInjury is null) continue;
+            if (InjuryService.TickRecovery(p.CurrentInjury, restDays))
+            {
+                FinalizeInjuryRecord(p.Name, today, state.Pending, state.Finalized);
+                p.CurrentInjury = null;
+            }
+        }
+
+        var dnp    = BuildPlayoffDnp(homeTeam, awayTeam, state.Fatigue, state.InjRng, gameImportance);
+        var result = state.Engine.SimulateGame(homeTeam, awayTeam,
+            startingFatigue: state.Fatigue, dnpPlayers: dnp.Count > 0 ? dnp : null);
+
+        foreach (var ev in result.InjuryEvents)
+        {
+            var injPlayer = homeTeam.Roster.Concat(awayTeam.Roster)
+                .FirstOrDefault(p => string.Equals(p.Name, ev.PlayerName, StringComparison.OrdinalIgnoreCase));
+            if (injPlayer is null) continue;
+            int cur = injPlayer.InjuryRatings.GetValueOrDefault(ev.BodyPartKey, 99);
+            injPlayer.InjuryRatings[ev.BodyPartKey] = Math.Max(1, cur - InjuryTables.RatingDegradation(ev.Grade));
+            if (injPlayer.CurrentInjury is not null)
+            {
+                var perm = InjuryService.RollPermanentDebuff(injPlayer, injPlayer.CurrentInjury, state.InjRng);
+                if (perm is not null)
+                    foreach (var (k, v) in perm)
+                    {
+                        injPlayer.PermanentInjuryPenalties.TryGetValue(k, out int ex);
+                        injPlayer.PermanentInjuryPenalties[k] = ex + v;
+                    }
+                state.Pending[ev.PlayerName] = new PendingInjury
+                {
+                    InjuryName = ev.InjuryName, BodyPart = ev.BodyPartDisplay,
+                    Grade = ev.Grade, InjuredDate = today,
+                    EstimatedDays = injPlayer.CurrentInjury.Definition.ExpectedDays,
+                    ActualDays    = injPlayer.CurrentInjury.DaysRemaining,
+                };
+            }
+        }
+
+        foreach (var ps in result.Stats.Values)
+        {
+            if (ps.MinutesPlayed <= 0) continue;
+            int end = state.Endurance.GetValueOrDefault(ps.Name, 50);
+            state.Fatigue[ps.Name] = Math.Clamp(
+                state.Fatigue.GetValueOrDefault(ps.Name, 90.0) - DrainAmount(ps.MinutesPlayed, end), 0.0, 100.0);
+        }
+
+        string homeAbbr = homeTeam.Abbreviation, awayAbbr = awayTeam.Abbreviation;
+        foreach (var ps in result.Stats.Values)
+        {
+            if (ps.MinutesPlayed <= 0) continue;
+            var key = $"{ps.Name}|{ps.Team}";
+            if (!state.PlayerAgg.TryGetValue(key, out var agg))
+                state.PlayerAgg[key] = agg = new PlayerSeasonStats
+                {
+                    Name = ps.Name, Team = ps.Team,
+                    TeamAbbr = ps.Team == homeTeam.Name ? homeAbbr : awayAbbr,
+                    Position = ps.Position,
+                };
+            agg.GP++;
+            agg.TotalPTS       += ps.Points;
+            agg.TotalOREB      += ps.OffRebounds;
+            agg.TotalDREB      += ps.DefRebounds;
+            agg.TotalAST       += ps.Assists;
+            agg.TotalSTL       += ps.Steals;
+            agg.TotalBLK       += ps.Blocks;
+            agg.TotalTOV       += ps.Turnovers;
+            agg.TotalFGM       += ps.FGMade;
+            agg.TotalFGA       += ps.FGAttempts;
+            agg.TotalThreeMade += ps.ThreeMade;
+            agg.TotalThreeAtt  += ps.ThreeAttempts;
+            agg.TotalFTM       += ps.FTMade;
+            agg.TotalFTA       += ps.FTAttempts;
+            agg.TotalMIN       += ps.MinutesPlayed;
+            agg.TotalPlusMinus += ps.PlusMinus;
+        }
+
+        gamesOut?.Add(new SeasonGameRecord(
+            homeSeed.Name, awaySeed.Name, homeAbbr, awayAbbr,
+            result.FinalHomeScore, result.FinalAwayScore,
+            DateTime.Now, restDays, restDays));
+
+        return result;
     }
 
     private PlayoffSeriesRecord SimulateSeries(
@@ -1560,5 +1662,314 @@ public class SeasonScheduleService
         s.DateIndex++;
         FinalizeSeasonIfComplete(s);
         return captured;
+    }
+
+    // ── Live Playoffs ─────────────────────────────────────────────────────────
+
+    public sealed class LivePlayoffState
+    {
+        public  PlayoffResult  Result        { get; } = new();
+        internal PlayoffState  State         { get; init; } = null!;
+        public  SeasonResult   RegularSeason { get; init; } = null!;
+        public  bool           IsComplete    => Result.Champion is not null;
+        public  DateOnly       CurrentDate   { get; set; }
+        // Bracket seeds stored for home-court calculation in later rounds
+        internal PlayoffTeam[] EastBracket   { get; init; } = [];
+        internal PlayoffTeam[] WestBracket   { get; init; } = [];
+    }
+
+    /// <summary>
+    /// Runs the play-in and sets up the first-round bracket without simulating any series games.
+    /// Returns a <see cref="LivePlayoffState"/> ready for interactive game-by-game simulation.
+    /// </summary>
+    public LivePlayoffState InitializeLivePlayoffs(
+        IReadOnlyDictionary<string, Team> teamsByName,
+        SeasonResult regularSeason)
+    {
+        var state = new PlayoffState
+        {
+            Teams     = teamsByName,
+            Engine    = new GameEngine(),
+            Fatigue   = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase),
+            Endurance = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase),
+            InjRng    = new Random(),
+            Pending   = new Dictionary<string, PendingInjury>(StringComparer.OrdinalIgnoreCase),
+            Finalized = new Dictionary<string, List<InjuryRecord>>(StringComparer.OrdinalIgnoreCase),
+            PlayerAgg = new Dictionary<string, PlayerSeasonStats>(StringComparer.OrdinalIgnoreCase),
+        };
+        foreach (var team in teamsByName.Values)
+        foreach (var p in team.Roster)
+        {
+            state.Fatigue[p.Name]   = 90.0;
+            state.Endurance[p.Name] = p.Endurance;
+        }
+
+        var eastTop10 = regularSeason.TeamStats
+            .Where(t => t.Conference == "Eastern")
+            .OrderByDescending(t => t.Wins).ThenByDescending(t => t.Pct)
+            .Take(10).ToList();
+        var westTop10 = regularSeason.TeamStats
+            .Where(t => t.Conference == "Western")
+            .OrderByDescending(t => t.Wins).ThenByDescending(t => t.Pct)
+            .Take(10).ToList();
+
+        var live = new LivePlayoffState { State = state, RegularSeason = regularSeason };
+
+        // Run play-in (6 games, instant — same logic as SimulatePlayoffs)
+        PlayoffTeam RunPlayIn(List<TeamSeasonStats> conf10, out PlayoffTeam seed7, out PlayoffTeam seed8)
+        {
+            if (conf10.Count < 8)
+            {
+                seed7 = new(conf10.ElementAtOrDefault(6)?.TeamName ?? "", conf10.ElementAtOrDefault(6)?.Abbreviation ?? "", 7);
+                seed8 = new(conf10.ElementAtOrDefault(7)?.TeamName ?? "", conf10.ElementAtOrDefault(7)?.Abbreviation ?? "", 8);
+                return seed7;
+            }
+            var t7  = new PlayoffTeam(conf10[6].TeamName, conf10[6].Abbreviation, 7);
+            var t8  = new PlayoffTeam(conf10[7].TeamName, conf10[7].Abbreviation, 8);
+            var t9  = conf10.Count > 8 ? new PlayoffTeam(conf10[8].TeamName, conf10[8].Abbreviation, 9)  : t8;
+            var t10 = conf10.Count > 9 ? new PlayoffTeam(conf10[9].TeamName, conf10[9].Abbreviation, 10) : t9;
+            bool g1 = PlayOneGame(t7,  t8,  0.55, state, live.Result.PlayInGames, 3);
+            bool g2 = PlayOneGame(t9,  t10, 0.55, state, live.Result.PlayInGames, 3);
+            var w1 = g1 ? t7 : t8; var l1 = g1 ? t8 : t7; var w2 = g2 ? t9 : t10;
+            bool g3 = PlayOneGame(l1, w2, 0.70, state, live.Result.PlayInGames, 3);
+            seed7 = new(w1.Name, w1.Abbr, 7);
+            seed8 = new((g3 ? l1 : w2).Name, (g3 ? l1 : w2).Abbr, 8);
+            return seed7;
+        }
+
+        PlayoffTeam e7, e8, w7, w8;
+        RunPlayIn(eastTop10, out e7, out e8);
+        RunPlayIn(westTop10, out w7, out w8);
+
+        PlayoffTeam ES(int i) => i < 6 ? new(eastTop10[i].TeamName, eastTop10[i].Abbreviation, i+1) : (i == 6 ? e7 : e8);
+        PlayoffTeam WS(int i) => i < 6 ? new(westTop10[i].TeamName, westTop10[i].Abbreviation, i+1) : (i == 6 ? w7 : w8);
+        var eastBracket = Enumerable.Range(0, 8).Select(ES).ToArray();
+        var westBracket = Enumerable.Range(0, 8).Select(WS).ToArray();
+
+        // Store seedings
+        live.Result.EastSeeds = eastBracket.Select(t => (t.Name, t.Abbr, t.Seed)).ToList();
+        live.Result.WestSeeds = westBracket.Select(t => (t.Name, t.Abbr, t.Seed)).ToList();
+
+        // Set up R1 matchups (no games played yet)
+        PlayoffSeriesRecord MakeSeries(PlayoffTeam high, PlayoffTeam low) =>
+            new() { HighSeed=high.Seed, LowSeed=low.Seed, HighSeedTeam=high.Name, LowSeedTeam=low.Name, HighSeedAbbr=high.Abbr, LowSeedAbbr=low.Abbr };
+
+        var r1Start = new DateOnly(2026, 4, 19);
+        live.CurrentDate = r1Start;
+
+        void AddR1(List<PlayoffSeriesRecord> list, PlayoffTeam high, PlayoffTeam low)
+        {
+            var s = MakeSeries(high, low);
+            s.StartDate = r1Start;
+            list.Add(s);
+        }
+
+        AddR1(live.Result.EastFirstRound, eastBracket[0], eastBracket[7]); // 1v8
+        AddR1(live.Result.EastFirstRound, eastBracket[1], eastBracket[6]); // 2v7
+        AddR1(live.Result.EastFirstRound, eastBracket[2], eastBracket[5]); // 3v6
+        AddR1(live.Result.EastFirstRound, eastBracket[3], eastBracket[4]); // 4v5
+        AddR1(live.Result.WestFirstRound, westBracket[0], westBracket[7]); // 1v8
+        AddR1(live.Result.WestFirstRound, westBracket[1], westBracket[6]); // 2v7
+        AddR1(live.Result.WestFirstRound, westBracket[2], westBracket[5]); // 3v6
+        AddR1(live.Result.WestFirstRound, westBracket[3], westBracket[4]); // 4v5
+
+        return live;
+    }
+
+    /// <summary>Simulates the next game in the series, updates the series record.</summary>
+    public void SimPlayoffGame(LivePlayoffState live, PlayoffSeriesRecord series)
+    {
+        if (series.Complete) return;
+        var (high, low) = (new PlayoffTeam(series.HighSeedTeam, series.HighSeedAbbr, series.HighSeed),
+                           new PlayoffTeam(series.LowSeedTeam,  series.LowSeedAbbr,  series.LowSeed));
+        int gameNum    = series.Games.Count + 1;
+        var gameDate   = series.GameDate(gameNum);
+        if (gameDate > live.CurrentDate) live.CurrentDate = gameDate;
+        bool highHome  = IsHighSeedHome(gameNum);
+        bool isElim    = series.HighSeedWins == 3 || series.LowSeedWins == 3;
+        int round      = DetermineRound(live, series);
+        double imp     = PlayoffImportance(round, isElim);
+        bool homeWon   = PlayOneGame(highHome ? high : low, highHome ? low : high, imp, live.State, series.Games);
+        if (homeWon) { if (highHome) series.HighSeedWins++; else series.LowSeedWins++; }
+        else         { if (highHome) series.LowSeedWins++;  else series.HighSeedWins++; }
+    }
+
+    /// <summary>Simulates the next game in the series and returns the GameResult for watch-game.</summary>
+    public GameResult? SimPlayoffGameCapturing(LivePlayoffState live, PlayoffSeriesRecord series)
+    {
+        if (series.Complete) return null;
+        var (high, low) = (new PlayoffTeam(series.HighSeedTeam, series.HighSeedAbbr, series.HighSeed),
+                           new PlayoffTeam(series.LowSeedTeam,  series.LowSeedAbbr,  series.LowSeed));
+        int gameNum    = series.Games.Count + 1;
+        var gameDate   = series.GameDate(gameNum);
+        if (gameDate > live.CurrentDate) live.CurrentDate = gameDate;
+        bool highHome  = IsHighSeedHome(gameNum);
+        bool isElim    = series.HighSeedWins == 3 || series.LowSeedWins == 3;
+        int round      = DetermineRound(live, series);
+        double imp     = PlayoffImportance(round, isElim);
+        var gr = PlayOneGameCapturing(highHome ? high : low, highHome ? low : high, imp, live.State, series.Games);
+        if (gr is null) return null;
+        bool homeWon = gr.FinalHomeScore > gr.FinalAwayScore;
+        if (homeWon) { if (highHome) series.HighSeedWins++; else series.LowSeedWins++; }
+        else         { if (highHome) series.LowSeedWins++;  else series.HighSeedWins++; }
+        return gr;
+    }
+
+    /// <summary>Sims all remaining games in the series to completion.</summary>
+    public void SimPlayoffSeries(LivePlayoffState live, PlayoffSeriesRecord series)
+    {
+        while (!series.Complete)
+            SimPlayoffGame(live, series);
+    }
+
+    /// <summary>
+    /// Sims the target series to completion, then sims all concurrent series for any games
+    /// whose scheduled date falls on or before the target series' completion date.
+    /// </summary>
+    public void SimPlayoffSeriesWithConcurrent(LivePlayoffState live, PlayoffSeriesRecord targetSeries)
+    {
+        while (!targetSeries.Complete)
+        {
+            SimPlayoffGame(live, targetSeries);
+            AdvanceBracket(live);
+            if (live.IsComplete) return;
+        }
+        var endDate = live.CurrentDate;
+
+        bool anyProgress;
+        do
+        {
+            anyProgress = false;
+            foreach (var other in GetAllActiveSeries(live).ToList())
+            {
+                if (other.Complete || ReferenceEquals(other, targetSeries)) continue;
+                if (other.StartDate.HasValue && other.NextGameDate <= endDate)
+                {
+                    SimPlayoffGame(live, other);
+                    AdvanceBracket(live);
+                    anyProgress = true;
+                    if (live.IsComplete) return;
+                }
+            }
+        } while (anyProgress);
+    }
+
+    /// <summary>
+    /// Sims every series in the given round to completion, advancing in game-date order.
+    /// </summary>
+    public void SimPlayoffRound(LivePlayoffState live, List<PlayoffSeriesRecord> roundSeries)
+    {
+        while (roundSeries.Any(s => !s.Complete))
+        {
+            var next = roundSeries.Where(s => !s.Complete)
+                                  .OrderBy(s => s.NextGameDate)
+                                  .First();
+            SimPlayoffGame(live, next);
+            AdvanceBracket(live);
+            if (live.IsComplete) return;
+        }
+    }
+
+    private static List<PlayoffSeriesRecord> GetAllActiveSeries(LivePlayoffState live)
+    {
+        var r = live.Result;
+        var list = new List<PlayoffSeriesRecord>();
+        list.AddRange(r.EastFirstRound);
+        list.AddRange(r.WestFirstRound);
+        list.AddRange(r.EastSecondRound);
+        list.AddRange(r.WestSecondRound);
+        if (r.EastConfFinals is not null) list.Add(r.EastConfFinals);
+        if (r.WestConfFinals is not null) list.Add(r.WestConfFinals);
+        if (r.Finals is not null) list.Add(r.Finals);
+        return list;
+    }
+
+    /// <summary>
+    /// Checks if the current round is fully complete and populates the next round's matchups.
+    /// Call after every SimPlayoffGame/SimPlayoffSeries. Returns true if bracket advanced.
+    /// </summary>
+    public bool AdvanceBracket(LivePlayoffState live)
+    {
+        var r = live.Result;
+        bool advanced = false;
+
+        PlayoffSeriesRecord MakeSeries(PlayoffTeam high, PlayoffTeam low) =>
+            new() { HighSeed=high.Seed, LowSeed=low.Seed, HighSeedTeam=high.Name, LowSeedTeam=low.Name, HighSeedAbbr=high.Abbr, LowSeedAbbr=low.Abbr };
+
+        // Helper: find latest game date across a set of completed series
+        static DateOnly LastGameDate(IEnumerable<PlayoffSeriesRecord> series) =>
+            series.Where(s => s.StartDate.HasValue && s.Games.Count > 0)
+                  .Select(s => s.GameDate(s.Games.Count))
+                  .DefaultIfEmpty(new DateOnly(2026, 4, 19))
+                  .Max();
+
+        // East R1 → R2
+        if (r.EastFirstRound.Count == 4 && r.EastFirstRound.All(s => s.Complete) && r.EastSecondRound.Count == 0)
+        {
+            var w1v8 = GetWinner(r.EastFirstRound[0]); var w4v5 = GetWinner(r.EastFirstRound[3]);
+            var w2v7 = GetWinner(r.EastFirstRound[1]); var w3v6 = GetWinner(r.EastFirstRound[2]);
+            var (ha, la) = OrderByHomeCourt(w1v8, w4v5);
+            var (hb, lb) = OrderByHomeCourt(w2v7, w3v6);
+            var r2Start = LastGameDate(r.EastFirstRound).AddDays(3);
+            var sa = MakeSeries(ha, la); sa.StartDate = r2Start;
+            var sb = MakeSeries(hb, lb); sb.StartDate = r2Start;
+            r.EastSecondRound.AddRange([sa, sb]);
+            advanced = true;
+        }
+        // West R1 → R2
+        if (r.WestFirstRound.Count == 4 && r.WestFirstRound.All(s => s.Complete) && r.WestSecondRound.Count == 0)
+        {
+            var w1v8 = GetWinner(r.WestFirstRound[0]); var w4v5 = GetWinner(r.WestFirstRound[3]);
+            var w2v7 = GetWinner(r.WestFirstRound[1]); var w3v6 = GetWinner(r.WestFirstRound[2]);
+            var (ha, la) = OrderByHomeCourt(w1v8, w4v5); var (hb, lb) = OrderByHomeCourt(w2v7, w3v6);
+            var r2Start = LastGameDate(r.WestFirstRound).AddDays(3);
+            var sc = MakeSeries(ha, la); sc.StartDate = r2Start;
+            var sd = MakeSeries(hb, lb); sd.StartDate = r2Start;
+            r.WestSecondRound.AddRange([sc, sd]);
+            advanced = true;
+        }
+        // East R2 → CF
+        if (r.EastSecondRound.Count == 2 && r.EastSecondRound.All(s => s.Complete) && r.EastConfFinals is null)
+        {
+            var (h, l) = OrderByHomeCourt(GetWinner(r.EastSecondRound[0]), GetWinner(r.EastSecondRound[1]));
+            r.EastConfFinals = MakeSeries(h, l);
+            r.EastConfFinals.StartDate = LastGameDate(r.EastSecondRound).AddDays(3);
+            advanced = true;
+        }
+        // West R2 → CF
+        if (r.WestSecondRound.Count == 2 && r.WestSecondRound.All(s => s.Complete) && r.WestConfFinals is null)
+        {
+            var (h, l) = OrderByHomeCourt(GetWinner(r.WestSecondRound[0]), GetWinner(r.WestSecondRound[1]));
+            r.WestConfFinals = MakeSeries(h, l);
+            r.WestConfFinals.StartDate = LastGameDate(r.WestSecondRound).AddDays(3);
+            advanced = true;
+        }
+        // ECF + WCF → Finals
+        if (r.EastConfFinals?.Complete == true && r.WestConfFinals?.Complete == true && r.Finals is null)
+        {
+            var east = GetWinner(r.EastConfFinals); var west = GetWinner(r.WestConfFinals);
+            var (h, l) = OrderByRegularSeasonWins(east, west, live.RegularSeason);
+            r.Finals = MakeSeries(h, l);
+            r.Finals.StartDate = new[] { r.EastConfFinals, r.WestConfFinals }
+                .Select(cf => LastGameDate([cf])).Max().AddDays(3);
+            advanced = true;
+        }
+        // Finals done → Champion
+        if (r.Finals?.Complete == true && r.Champion is null)
+        {
+            r.Champion     = r.Finals.Winner;
+            r.ChampionAbbr = r.Finals.WinnerAbbr;
+            advanced = true;
+        }
+        return advanced;
+    }
+
+    private static int DetermineRound(LivePlayoffState live, PlayoffSeriesRecord series)
+    {
+        var r = live.Result;
+        if (r.Finals == series) return 4;
+        if (r.EastConfFinals == series || r.WestConfFinals == series) return 3;
+        if (r.EastSecondRound.Contains(series) || r.WestSecondRound.Contains(series)) return 2;
+        return 1;
     }
 }
