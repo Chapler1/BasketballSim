@@ -281,9 +281,9 @@ else
         .Take(15)
         .ToList();
     foreach (var (ps, idx) in usgPlayers.Take(10).Select((p, i) => (p, i)))
-        W($"  {idx+1,-3} {ps.Name,-22} {ps.TeamAbbr,4} {ps.UsgPct,5:F1}% {ps.Fga,6:F1} {ps.Mpg,6:F1}");
+        W($"  {idx+1,-3} {ps.Name,-22} {ps.TeamAbbr,4} {ps.UsgPct*100,5:F1}% {ps.Fga,6:F1} {ps.Mpg,6:F1}");
     if (usgPlayers.Count >= 10)
-        W($"  #10 USG%: {usgPlayers[9].UsgPct:F1}%  (target ~22%)");
+        W($"  #10 USG%: {usgPlayers[9].UsgPct*100:F1}%  (target ~22%)");
 
     // ── League shot-type split ─────────────────────────────────────────────────
     {

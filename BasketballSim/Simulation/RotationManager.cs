@@ -64,13 +64,13 @@ public static class RotationManager
     /// Allocate target game minutes for every player in the rotation (Roster[0..RotationDepth-1]).
     ///
     /// Starter targets:
-    ///   base = 24 + qualityGap * 9   (24 min if backup is equal; 33 min if gap is huge)
-    ///   blended with equalShare by StarterBias, endurance bonus ±1.5 min
-    ///   → clamped [18, 36]
+    ///   base = 30 + qualityGap * 10   (30 min if backup is equal; 40 min if gap is huge)
+    ///   blended with equalShare by StarterBias, endurance bonus ±4 min
+    ///   → clamped [10, 40]
     ///
     /// Bench targets:
     ///   remaining = 240 - Σ starter targets
-    ///   distributed proportional to overall rating, clamped [2, 22] per player.
+    ///   distributed proportional to overall rating, clamped [1, 22] per player.
     ///
     /// 240 = 5 positions × 48 minutes.
     /// </summary>
@@ -112,13 +112,13 @@ public static class RotationManager
             double gap   = Math.Clamp((sOvr - bOvr) / 25.0, 0.0, 1.0);
 
             // Blend between equal share (bias=0) and gap-based target (bias=100)
-            double gapBased = 24.0 + gap * 9.0;
+            double gapBased = 30.0 + gap * 10.0;  // [30, 40]: higher baseline + steeper quality reward
             double baseMin  = equalShare + (gapBased - equalShare) * biasFactor;
-            double endBonus = (s.Endurance - 50.0) / 50.0 * 2.5;      // ±2.5 (high endurance earns more mins)
+            double endBonus = (s.Endurance - 50.0) / 50.0 * 4.0;      // ±4.0 — endurance drives real extra minutes
 
             double sfMult = fatigue != null && fatigue.TryGetValue(s.Name, out double sf)
                 ? FatigueMinutesMult(sf) : 1.0;
-            starterMin[i]   = Math.Clamp((baseMin + endBonus) * sfMult, 10.0, 36.0);
+            starterMin[i]   = Math.Clamp((baseMin + endBonus) * sfMult, 10.0, 40.0);
             targets[s.Name] = starterMin[i];
         }
 

@@ -97,10 +97,10 @@ public class PlayerSeasonStats
         ? TotalPTS / (2.0 * (TotalFGA + 0.44 * TotalFTA)) : 0;
     public double EfgPct   => TotalFGA > 0
         ? (TotalFGM + 0.5 * TotalThreeMade) / (double)TotalFGA : 0;
-    // USG% = player possession events / team on-court possession events × 100
+    // USG% = player possession events / team on-court possession events (ratio 0-1)
     // TmMP/5 = MP cancels when denominator uses on-court data, so no MPG dependence.
     public double UsgPct   => TeamPossEventsPg > 0
-        ? (TotalFGA + 0.44 * TotalFTA + TotalTOV) / TeamPossEventsPg * 100.0 : 0;
+        ? (TotalFGA + 0.44 * TotalFTA + TotalTOV) / TeamPossEventsPg : 0;
     public double AstPct   => (TotalTeamFGMOnCourt - TotalFGM) > 0
         ? (double)TotalAST / (TotalTeamFGMOnCourt - TotalFGM) : 0;
     public double OrebPct  => (TotalTeamORebOnCourt + TotalOppDRebOnCourt) > 0

@@ -180,10 +180,15 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
     if (isLive && _liveState is not null)
     {
         var lp = _liveState.PlayerAgg.Values.Where(p => p.GP > 0).ToList();
-        // Populate TeamPossEventsPg from live standings so USG% is non-zero
+        // Populate TeamPossEventsPg from live standings: total team on-court events
+        // = TotalTeamFGAOnCourt scaled by team (FGA+0.44*FTA+TOV)/FGA ratio.
         foreach (var p in lp)
             if (_liveState.Standings.TryGetValue(p.Team, out var tmStats))
-                p.TeamPossEventsPg = tmStats.Fga + 0.44 * tmStats.Fta + tmStats.Tov;
+            {
+                double possScale = tmStats.Fga > 0
+                    ? (tmStats.Fga + 0.44 * tmStats.Fta + tmStats.Tov) / tmStats.Fga : 1.26;
+                p.TeamPossEventsPg = p.TotalTeamFGAOnCourt * possScale;
+            }
         IEnumerable<PlayerSeasonStats> lpe = lp;
         if (_leagueSearch.Length > 1) lpe = lpe.Where(p => p.Name.Contains(_leagueSearch, StringComparison.OrdinalIgnoreCase));
         if (_leagueTeamFilter.Length > 0) lpe = lpe.Where(p => p.Team == _leagueTeamFilter);
