@@ -532,10 +532,15 @@ public class SeasonScheduleService
         var players = result.PlayerStats.Where(p => p.TotalMIN > 0 && p.GP > 0).ToList();
         if (players.Count == 0 || teamMap.Count == 0) return;
 
-        // Populate TeamPossEventsPg for USG% formula: TmFGA + 0.44*TmFTA + TmTOV per game
+        // Populate TeamPossEventsPg as total on-court possession events for the USG% denominator.
+        // Scales TotalTeamFGAOnCourt by the team's (FGA + 0.44*FTA + TOV)/FGA ratio so that
+        // FTA and TOV are represented. MP cancels in the resulting formula — no MPG dependence.
         foreach (var p in players)
-            if (teamMap.TryGetValue(p.Team, out var tm))
-                p.TeamPossEventsPg = tm.Fga + 0.44 * tm.Fta + tm.Tov;
+        {
+            if (!teamMap.TryGetValue(p.Team, out var tm)) continue;
+            double possScale = tm.Fga > 0 ? (tm.Fga + 0.44 * tm.Fta + tm.Tov) / tm.Fga : 1.26;
+            p.TeamPossEventsPg = p.TotalTeamFGAOnCourt * possScale;
+        }
 
         // ── League averages (per team per game) ───────────────────────────────
         double lgPPG  = result.LeaguePpg;

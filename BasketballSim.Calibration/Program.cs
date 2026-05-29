@@ -276,18 +276,14 @@ else
     W("  TOP 10 USG% LEADERS  (target: peak ~32%, #10 ~22%)");
     W($"  {"#",-3} {"Name",-22} {"Team",4} {"USG%",6} {"FGA",6} {"MPG",6}");
     var usgPlayers = seasonResult.PlayerStats
-        .Where(p => p.GP >= 15 && p.Mpg >= 15 && p.TeamPossEventsPg > 0)
-        .Select(p => (p, usg: (p.Fga + 0.44 * p.Fta + p.Topg) * 48.0 / (p.Mpg * p.TeamPossEventsPg)))
-        .OrderByDescending(x => x.usg)
+        .Where(p => p.GP >= 15 && p.Mpg >= 15 && p.UsgPct > 0)
+        .OrderByDescending(p => p.UsgPct)
         .Take(15)
         .ToList();
-    foreach (var ((ps, usg), idx) in usgPlayers.Take(10).Select((x, i) => (x, i)))
-        W($"  {idx+1,-3} {ps.Name,-22} {ps.TeamAbbr,4} {usg*100,5:F1}% {ps.Fga,6:F1} {ps.Mpg,6:F1}");
+    foreach (var (ps, idx) in usgPlayers.Take(10).Select((p, i) => (p, i)))
+        W($"  {idx+1,-3} {ps.Name,-22} {ps.TeamAbbr,4} {ps.UsgPct,5:F1}% {ps.Fga,6:F1} {ps.Mpg,6:F1}");
     if (usgPlayers.Count >= 10)
-    {
-        var (ps10, usg10) = usgPlayers[9];
-        W($"  #10 USG%: {usg10*100:F1}%  (target ~22%)");
-    }
+        W($"  #10 USG%: {usgPlayers[9].UsgPct:F1}%  (target ~22%)");
 
     // ── League shot-type split ─────────────────────────────────────────────────
     {

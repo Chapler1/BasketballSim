@@ -386,6 +386,10 @@ public class GameEngine
         foreach (var (name, fouls) in _playerFouls)
             if (fouls >= 6) unavailable.Add(name);
 
+        // Eligible pool: skip unavailable players BEFORE taking depth so injury/foul-out
+        // slots are filled by the next healthy player rather than leaving the rotation short.
+        var depthRoster = team.Roster.Where(p => !unavailable.Contains(p.Name)).Take(depth).ToList();
+
         // ── STEP 1: Force out fouled-out players ──────────────────────────
         for (int slot = 0; slot < 5; slot++)
         {
@@ -393,11 +397,11 @@ public class GameEngine
             if (_playerFouls.GetValueOrDefault(p.Name) < 6) continue;
 
             var sub = RotationManager.FindDesignatedBackup(p,
-                          team.Roster.Take(depth).Where(r =>
-                              !unavailable.Contains(r.Name) && !lineup.Contains(r) &&
+                          depthRoster.Where(r =>
+                              !lineup.Contains(r) &&
                               _totalGameMinutes >= eligibleAt.GetValueOrDefault(r.Name)))
-                      ?? team.Roster.Take(depth)
-                             .Where(r => !unavailable.Contains(r.Name) && !lineup.Contains(r))
+                      ?? depthRoster
+                             .Where(r => !lineup.Contains(r))
                              .OrderByDescending(RotationManager.ComputeOverall)
                              .FirstOrDefault();
 
@@ -423,8 +427,7 @@ public class GameEngine
                 if (!trouble) continue;
 
                 var sub = RotationManager.FindDesignatedBackup(p,
-                              team.Roster.Take(depth).Where(r =>
-                                  !unavailable.Contains(r.Name) && !lineup.Contains(r)));
+                              depthRoster.Where(r => !lineup.Contains(r)));
                 if (sub == null) continue;
 
                 lineup[slot] = sub;
@@ -443,13 +446,12 @@ public class GameEngine
                 var p = lineup[slot];
                 if (team.Roster.IndexOf(p) >= 5) continue; // bench player, already in
 
-                var sub = team.Roster.Take(depth)
-                              .Where(r => team.Roster.IndexOf(r) >= 7 &&
-                                          !unavailable.Contains(r.Name) && !lineup.Contains(r))
+                var sub = depthRoster
+                              .Where(r => team.Roster.IndexOf(r) >= 7 && !lineup.Contains(r))
                               .OrderByDescending(RotationManager.ComputeOverall)
                               .FirstOrDefault()
-                          ?? team.Roster.Take(depth)
-                                 .Where(r => !unavailable.Contains(r.Name) && !lineup.Contains(r))
+                          ?? depthRoster
+                                 .Where(r => !lineup.Contains(r))
                                  .OrderByDescending(RotationManager.ComputeOverall)
                                  .FirstOrDefault();
 
@@ -464,9 +466,8 @@ public class GameEngine
         // ── STEP 3b: Clutch — best rested lineup, ignore shortfall ────────
         if (isClutch)
         {
-            var clutchPool = team.Roster.Take(depth)
-                .Where(p => !unavailable.Contains(p.Name) &&
-                            _totalGameMinutes >= eligibleAt.GetValueOrDefault(p.Name))
+            var clutchPool = depthRoster
+                .Where(p => _totalGameMinutes >= eligibleAt.GetValueOrDefault(p.Name))
                 .OrderByDescending(RotationManager.ComputeOverall)
                 .ToList();
 
@@ -488,7 +489,7 @@ public class GameEngine
             }
 
             // Safety net: hard cap even in clutch
-            ForceOutOverTarget(lineup, team, depth, unavailable, targetMin, gameMin, stintMin,
+            ForceOutOverTarget(lineup, depthRoster, targetMin, gameMin, stintMin,
                 eligibleAt, overBy: 2.0);
             return lineup;
         }
@@ -496,7 +497,7 @@ public class GameEngine
         // ── STEP 4: Normal proportional rotation ──────────────────────────
 
         // Safety net: anyone ≥ tgtMin + 3 gets yanked before shortfall logic
-        ForceOutOverTarget(lineup, team, depth, unavailable, targetMin, gameMin, stintMin,
+        ForceOutOverTarget(lineup, depthRoster, targetMin, gameMin, stintMin,
             eligibleAt, overBy: 2.0);
 
         // Build the desired lineup from proportional shortfall
@@ -547,7 +548,7 @@ public class GameEngine
     // Force out any player who has exceeded their target minutes by overBy,
     // replacing with the best available rested player.
     private void ForceOutOverTarget(
-        List<Player> lineup, Team team, int depth, HashSet<string> unavailable,
+        List<Player> lineup, List<Player> depthRoster,
         Dictionary<string, double> targetMin, Dictionary<string, double> gameMin,
         Dictionary<string, double> stintMin, Dictionary<string, double> eligibleAt,
         double overBy)
@@ -558,8 +559,8 @@ public class GameEngine
             if (gameMin.GetValueOrDefault(p.Name) < targetMin.GetValueOrDefault(p.Name, 24.0) + overBy)
                 continue;
 
-            var sub = team.Roster.Take(depth)
-                .Where(r => !unavailable.Contains(r.Name) && !lineup.Contains(r) &&
+            var sub = depthRoster
+                .Where(r => !lineup.Contains(r) &&
                             _totalGameMinutes >= eligibleAt.GetValueOrDefault(r.Name))
                 .OrderByDescending(RotationManager.ComputeOverall)
                 .FirstOrDefault();

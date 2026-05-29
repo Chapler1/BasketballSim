@@ -49,7 +49,9 @@ public class PlayerSeasonStats
     public int    TotalOppPtsOnCourt      { get; set; }
     public int    TotalPossessionsOnCourt { get; set; }
 
-    // Populated post-season: team's avg (FGA + 0.44*FTA + TOV) per game, used in USG% formula
+    // Populated post-season: total team on-court possession events (FGA + 0.44*FTA + TOV)
+    // accumulated across all games this player was on court (not a per-game rate).
+    // Approximated via TotalTeamFGAOnCourt × team (FGA+0.44*FTA+TOV)/FGA scale factor.
     public double TeamPossEventsPg { get; set; }
 
     public double Ppg  => GP > 0 ? (double)TotalPTS / GP : 0;
@@ -95,10 +97,10 @@ public class PlayerSeasonStats
         ? TotalPTS / (2.0 * (TotalFGA + 0.44 * TotalFTA)) : 0;
     public double EfgPct   => TotalFGA > 0
         ? (TotalFGM + 0.5 * TotalThreeMade) / (double)TotalFGA : 0;
-    // NBA formula: 100 * ((FGA + 0.44*FTA + TOV) * (TmMP/5)) / (MP * (TmFGA + 0.44*TmFTA + TmTOV))
-    // TmMP/5 = 48 (constant). TeamPossEventsPg = TmFGA + 0.44*TmFTA + TmTOV per game.
-    public double UsgPct   => TotalMIN > 0 && TeamPossEventsPg > 0
-        ? (TotalFGA + 0.44 * TotalFTA + TotalTOV) * 48.0 / (TotalMIN * TeamPossEventsPg) : 0;
+    // USG% = player possession events / team on-court possession events × 100
+    // TmMP/5 = MP cancels when denominator uses on-court data, so no MPG dependence.
+    public double UsgPct   => TeamPossEventsPg > 0
+        ? (TotalFGA + 0.44 * TotalFTA + TotalTOV) / TeamPossEventsPg * 100.0 : 0;
     public double AstPct   => (TotalTeamFGMOnCourt - TotalFGM) > 0
         ? (double)TotalAST / (TotalTeamFGMOnCourt - TotalFGM) : 0;
     public double OrebPct  => (TotalTeamORebOnCourt + TotalOppDRebOnCourt) > 0

@@ -81,7 +81,11 @@ public static class RotationManager
     {
         var targets = new Dictionary<string, double>();
         int depth   = Math.Clamp(team.RotationDepth, 5, team.Roster.Count);
-        var rotation = team.Roster.Take(depth).ToList();
+        // Skip DNP players before taking depth so injured slots pull in the next healthy player.
+        var rotation = (dnp != null
+            ? team.Roster.Where(p => !dnp.Contains(p.Name))
+            : team.Roster.AsEnumerable())
+            .Take(depth).ToList();
         var starters = rotation.Take(5).ToList();
         var bench    = rotation.Skip(5).ToList();
 
@@ -143,6 +147,11 @@ public static class RotationManager
                     targets[bp.Name] = benchTotal / activeBench.Count;
             }
         }
+
+        // Ensure all DNP players have an explicit 0 target (they're not in rotation anymore).
+        if (dnp != null)
+            foreach (var p in team.Roster.Where(p => dnp.Contains(p.Name) && !targets.ContainsKey(p.Name)))
+                targets[p.Name] = 0;
 
         return targets;
     }
@@ -264,9 +273,11 @@ public static class RotationManager
         double Shortfall(Player p) => ComputeShortfall(
             totalGameMin, targetMin.GetValueOrDefault(p.Name, 20.0), gameMin.GetValueOrDefault(p.Name));
 
-        var eligible = team.Roster.Take(depth)
+        // Filter unavailable FIRST so injured/fouled-out slots pull in the next healthy player.
+        var eligible = team.Roster
+            .Where(p => !unavailable.Contains(p.Name))
+            .Take(depth)
             .Where(p =>
-                !unavailable.Contains(p.Name) &&
                 totalGameMin >= eligibleAt.GetValueOrDefault(p.Name) &&
                 gameMin.GetValueOrDefault(p.Name) < targetMin.GetValueOrDefault(p.Name, 20.0) + 1.0)
             .ToList();
