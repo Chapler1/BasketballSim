@@ -264,6 +264,31 @@ else
     foreach (var (ps, idx) in seasonResult.PlayerStats.OrderByDescending(p => p.Bpg).Take(10).Select((p, i) => (p, i)))
         W($"  {idx+1,-3} {ps.Name,-22} {ps.TeamAbbr,4} {ps.Bpg,6:F2}");
 
+    // Top 10 assist leaders
+    W("");
+    W("  TOP 10 ASSIST LEADERS");
+    W($"  {"#",-3} {"Name",-22} {"Team",4} {"APG",6} {"PPG",6} {"MPG",6}");
+    foreach (var (ps, idx) in seasonResult.PlayerStats.OrderByDescending(p => p.Apg).Take(10).Select((p, i) => (p, i)))
+        W($"  {idx+1,-3} {ps.Name,-22} {ps.TeamAbbr,4} {ps.Apg,6:F1} {ps.Ppg,6:F1} {ps.Mpg,6:F1}");
+
+    // Top 10 USG% leaders
+    W("");
+    W("  TOP 10 USG% LEADERS  (target: peak ~32%, #10 ~22%)");
+    W($"  {"#",-3} {"Name",-22} {"Team",4} {"USG%",6} {"FGA",6} {"MPG",6}");
+    var usgPlayers = seasonResult.PlayerStats
+        .Where(p => p.GP >= 15 && p.Mpg >= 15 && p.TeamPossEventsPg > 0)
+        .Select(p => (p, usg: (p.Fga + 0.44 * p.Fta + p.Topg) * 48.0 / (p.Mpg * p.TeamPossEventsPg)))
+        .OrderByDescending(x => x.usg)
+        .Take(15)
+        .ToList();
+    foreach (var ((ps, usg), idx) in usgPlayers.Take(10).Select((x, i) => (x, i)))
+        W($"  {idx+1,-3} {ps.Name,-22} {ps.TeamAbbr,4} {usg*100,5:F1}% {ps.Fga,6:F1} {ps.Mpg,6:F1}");
+    if (usgPlayers.Count >= 10)
+    {
+        var (ps10, usg10) = usgPlayers[9];
+        W($"  #10 USG%: {usg10*100:F1}%  (target ~22%)");
+    }
+
     // ── League shot-type split ─────────────────────────────────────────────────
     {
         double numTeamGames = ts.Sum(t2 => t2.GP);  // 30 teams × 82 = 2,460

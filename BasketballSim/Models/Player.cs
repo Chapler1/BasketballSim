@@ -200,7 +200,7 @@ public class Player
         * EnergyFactor_Physical * InjuryFactor_Physical;
 
     internal double AssistWeight =>
-        Math.Pow((EffPassing + Attr_oBBIQ) / 200.0, 3.0);
+        Math.Pow((EffPassing * 1.5 + Attr_oBBIQ * 0.5) / 200.0, 6.0);
 
     internal double ContestPenalty(ShotType shot) => shot switch
     {

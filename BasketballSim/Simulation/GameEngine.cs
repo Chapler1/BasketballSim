@@ -1187,7 +1187,7 @@ public class GameEngine
                     {
                         var assisterPlayer = lineup.FirstOrDefault(p => p.Name == assisterName);
                         double passerMult  = assisterPlayer != null
-                            ? Math.Clamp(1.0 + (assisterPlayer.Attr_Passing - 50) / 50.0 * 0.30, 0.70, 1.30)
+                            ? Math.Clamp(Math.Pow(assisterPlayer.Attr_Passing / 50.0, 0.60), 0.65, 1.60)
                             : 1.0;
                         if (_rng.NextDouble() >= AssistProbability(shotContext) * passerMult)
                             assisterName = null;
@@ -1513,7 +1513,7 @@ public class GameEngine
                     double assistProb = AssistProbability(shotContext);
                     // Scale by best passer's ability so that Passing=95→~45%, 50→~20%, 5→~5%
                     double bestPassing = teammates.Max(p => p.Attr_Passing);
-                    assistProb *= Math.Clamp(0.18 + 0.68 * Math.Pow(bestPassing / 50.0, 1.5), 0.05, 2.5);
+                    assistProb *= Math.Clamp(0.18 + 0.55 * Math.Pow(bestPassing / 50.0, 2.0), 0.05, 2.5);
                     if (_rng.NextDouble() < assistProb)
                     {
                         var assister = WeightedRandom(teammates, p => Math.Max(p.AssistWeight, 0.01));
