@@ -526,10 +526,20 @@ public class SeasonScheduleService
         return seasonResult;
     }
 
-    private static void ComputeAdvancedStats(SeasonResult result)
+    private static void ComputeAdvancedStats(SeasonResult result) =>
+        ApplyAdvancedStats(
+            result.PlayerStats.Where(p => p.TotalMIN > 0 && p.GP > 0).ToList(),
+            result.TeamStats,
+            result.AvgPossessionsPerTeam);
+
+    // Populates PER, OWS, DWS, WS, UsgPct in-place on any player/team snapshot.
+    // Used for both end-of-season finalization and live mid-season awards scoring.
+    internal static void ApplyAdvancedStats(
+        List<PlayerSeasonStats> players,
+        List<TeamSeasonStats>   teams,
+        double                  leaguePace)
     {
-        var teamMap = result.TeamStats.ToDictionary(t => t.TeamName, StringComparer.OrdinalIgnoreCase);
-        var players = result.PlayerStats.Where(p => p.TotalMIN > 0 && p.GP > 0).ToList();
+        var teamMap = teams.ToDictionary(t => t.TeamName, StringComparer.OrdinalIgnoreCase);
         if (players.Count == 0 || teamMap.Count == 0) return;
 
         // Populate TeamPossEventsPg as total on-court possession events for the USG% denominator.
@@ -543,16 +553,16 @@ public class SeasonScheduleService
         }
 
         // ── League averages (per team per game) ───────────────────────────────
-        double lgPPG  = result.LeaguePpg;
-        double lgPapg = result.LeaguePapg;
-        double lgFGM  = result.LeagueFgmPg;
-        double lgFGA  = result.LeagueFgaPg;
-        double lgFTM  = result.LeagueFtmPg;
-        double lgFTA  = result.LeagueFtaPg;
-        double lgORB  = result.LeagueOrbPg;
-        double lgDRB  = result.LeagueDrbPg;
-        double lgAST  = result.LeagueAstPg;
-        double lgTOV  = result.LeagueTovPg;
+        double lgPPG  = teams.Count > 0 ? teams.Average(t => t.Ppg)  : 0;
+        double lgPapg = teams.Count > 0 ? teams.Average(t => t.Papg) : 0;
+        double lgFGM  = teams.Count > 0 ? teams.Average(t => t.Fgm)  : 0;
+        double lgFGA  = teams.Count > 0 ? teams.Average(t => t.Fga)  : 0;
+        double lgFTM  = teams.Count > 0 ? teams.Average(t => t.Ftm)  : 0;
+        double lgFTA  = teams.Count > 0 ? teams.Average(t => t.Fta)  : 0;
+        double lgORB  = teams.Count > 0 ? teams.Average(t => t.Oreb) : 0;
+        double lgDRB  = teams.Count > 0 ? teams.Average(t => t.Dreb) : 0;
+        double lgAST  = teams.Count > 0 ? teams.Average(t => t.Ast)  : 0;
+        double lgTOV  = teams.Count > 0 ? teams.Average(t => t.Tov)  : 0;
         double lgTRB  = lgORB + lgDRB;
 
         // Value of a possession (pts scored per possession attempted)
@@ -575,7 +585,6 @@ public class SeasonScheduleService
 
         // ── Pass 1: aPER + OWS ───────────────────────────────────────────────
         // aPER = pace-adjusted PER: uPER × (lgPace / tmPace), then scaled to avg=15.
-        double lgPace = result.AvgPossessionsPerTeam;  // league-wide avg possessions per team per game
         var uPERMap = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var p in players)
@@ -606,8 +615,8 @@ public class SeasonScheduleService
 
             // Pace adjustment: players on fast teams get fewer possessions per minute,
             // so their raw per-minute production understates efficiency — and vice versa.
-            double tmPace  = team.Pace > 0 ? team.Pace : lgPace;
-            double paceAdj = tmPace  > 0   ? lgPace / tmPace : 1.0;
+            double tmPace  = team.Pace > 0 ? team.Pace : leaguePace;
+            double paceAdj = tmPace  > 0   ? leaguePace / tmPace : 1.0;
             uPERMap[p.Name + "|" + p.Team] = uPER * paceAdj;
 
             // ── Offensive Win Shares ───────────────────────────────────────────
@@ -663,6 +672,17 @@ public class SeasonScheduleService
                     ? Math.Max(0, teamDWSBudget * DefWeight(p) / totalDefWeight)
                     : 0;
         }
+    }
+
+    // Populates PER/WS/USG% on in-flight live-season state so awards can use real advanced stats.
+    internal static void ComputeLiveAdvancedStats(LiveSeasonState state)
+    {
+        var players = state.PlayerAgg.Values.Where(p => p.TotalMIN > 0 && p.GP > 0).ToList();
+        var teams   = state.Standings.Values.ToList();
+        double pace = teams.Count > 0 && teams.Any(t => t.GP > 0)
+            ? teams.Where(t => t.GP > 0).Average(t => t.Pace)
+            : 100.0;
+        ApplyAdvancedStats(players, teams, pace);
     }
 
     private static void FinalizeInjuryRecord(
@@ -868,6 +888,51 @@ public class SeasonScheduleService
         return result;
     }
 
+    // ── MVP helpers (Shen-Nagy formula) ──────────────────────────────────────
+
+    // Pearson r; returns 0 when undefined (n < 2 or zero variance).
+    private static double PearsonCorrelation(double[] xs, double[] ys)
+    {
+        int n = xs.Length;
+        if (n < 2 || n != ys.Length) return 0;
+        double mx = xs.Average(), my = ys.Average();
+        double num = 0, sx = 0, sy = 0;
+        for (int i = 0; i < n; i++)
+        {
+            double dx = xs[i] - mx, dy = ys[i] - my;
+            num += dx * dy; sx += dx * dx; sy += dy * dy;
+        }
+        double denom = Math.Sqrt(sx * sy);
+        return denom > 0 ? num / denom : 0;
+    }
+
+    // Top-10-by-PER eligible players, sorted by Shen-Nagy score, with score attached.
+    // Correlations are computed dynamically from those 10 each call.
+    internal static List<(PlayerSeasonStats Player, double Score)> RankMvpCandidates(
+        IEnumerable<PlayerSeasonStats> pool,
+        Func<PlayerSeasonStats, bool>  eligible)
+    {
+        var top10 = pool.Where(eligible).OrderByDescending(p => p.PER).Take(10).ToList();
+        if (top10.Count == 0) return [];
+
+        double maxPER    = top10.Max(p => p.PER);
+        double maxWS     = top10.Max(p => p.WS);
+        double maxUSG    = top10.Max(p => p.UsgPct);
+        double corWSPER  = PearsonCorrelation(
+            top10.Select(p => p.WS).ToArray(),     top10.Select(p => p.PER).ToArray());
+        double corUSGPER = PearsonCorrelation(
+            top10.Select(p => p.UsgPct).ToArray(), top10.Select(p => p.PER).ToArray());
+
+        double Shen(PlayerSeasonStats p) =>
+            (maxPER > 0 ? p.PER    / maxPER : 0)
+          + corWSPER  * (maxWS  > 0 ? p.WS      / maxWS  : 0)
+          + corUSGPER * (maxUSG > 0 ? p.UsgPct  / maxUSG : 0);
+
+        return top10.OrderByDescending(Shen)
+            .Select(p => (p, Shen(p)))
+            .ToList();
+    }
+
     // ── Awards ────────────────────────────────────────────────────────────────
 
     public static SeasonAwards ComputeAwards(SeasonResult result)
@@ -877,13 +942,14 @@ public class SeasonScheduleService
         var players = result.PlayerStats.Where(p => p.GP >= 40 && p.TotalMIN > 0).ToList();
         if (players.Count == 0) return awards;
 
-        // MVP: weighted PER + WS; team must have 40+ regular-season wins
-        var mvpScore = (PlayerSeasonStats p) => p.PER * 0.55 + p.WS * 0.45;
-        var mvp = players
-            .Where(p => teamMap.TryGetValue(p.Team, out var tm) && tm.Wins >= 40)
-            .OrderByDescending(mvpScore).FirstOrDefault();
-        if (mvp is not null)
-            awards.MVP = new(mvp.Name, mvp.Team, mvp.TeamAbbr, mvpScore(mvp), mvp.Position);
+        // MVP: Shen-Nagy formula — PER-anchored + correlation-weighted WS and USG% terms
+        var mvpTop10 = RankMvpCandidates(players,
+            p => teamMap.TryGetValue(p.Team, out var tm) && tm.Wins >= 40);
+        if (mvpTop10.Count > 0)
+        {
+            var (mvp, score) = mvpTop10[0];
+            awards.MVP = new(mvp.Name, mvp.Team, mvp.TeamAbbr, score, mvp.Position);
+        }
 
         // DPOY: defensive win shares + blocks + steals + opponent FG% suppression
         var dpoyScore = (PlayerSeasonStats p) => p.DWS * 0.45 + p.Bpg * 2.0 + p.Spg * 1.5 + Math.Max(0, 0.50 - p.OppFgPct) * 30;

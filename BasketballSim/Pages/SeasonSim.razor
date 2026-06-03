@@ -114,7 +114,7 @@ else if (_phase == Phase.Ready)
         </div>
 
         <!-- Team logo grid -->
-        <div style="text-align:center;font-size:0.7rem;color:#2a2a2a;letter-spacing:2px;margin-bottom:8px;">SELECT A TEAM TO FOLLOW (OPTIONAL)</div>
+        <div style="text-align:center;font-size:0.7rem;color:#2a2a2a;letter-spacing:2px;margin-bottom:8px;">SELECT YOUR TEAM <span style="color:#4a2a2a;">(REQUIRED FOR LIVE)</span></div>
         <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:6px;max-width:900px;margin:0 auto 1.75rem;">
         @foreach (var (name, team) in _teams.OrderBy(t => t.Value.Abbreviation))
         {
@@ -123,7 +123,7 @@ else if (_phase == Phase.Ready)
                  style="cursor:pointer;background:@(sel?"#0d1a0d":"#0e0e0e");border:1px solid @(sel?"#2a4a2a":"#1e1e1e");border-radius:5px;padding:5px 6px;width:76px;text-align:center;">
                 <img src="/logos/teams/@(LogoSlug(name)).svg"
                      style="width:36px;height:36px;object-fit:contain;display:block;margin:0 auto 3px;"
-                     onerror="this.style.display='none'" />
+                     onerror="@LogoOnerror" />
                 <div style="font-size:0.68rem;color:@(sel?"#4af080":"#484848");font-weight:@(sel?"700":"400");letter-spacing:0.5px;">@team.Abbreviation</div>
             </div>
         }
@@ -135,8 +135,8 @@ else if (_phase == Phase.Ready)
                     style="background:@(_disableInjuries?"#2a1a1a":"#141414");color:@(_disableInjuries?"#f88":"#444");border:1px solid @(_disableInjuries?"#4a2a2a":"#242424");padding:7px 14px;border-radius:4px;cursor:pointer;font-family:monospace;font-size:0.83rem;">
                 @(_disableInjuries ? "✕ Injuries OFF" : "✓ Injuries ON")
             </button>
-            <button @onclick="StartLiveSeason"
-                    style="background:#0d2a0d;color:#4af080;border:1px solid #1a4a1a;padding:10px 36px;border-radius:5px;cursor:pointer;font-weight:700;font-size:1.05rem;font-family:monospace;">
+            <button @onclick="StartLiveSeason" disabled="@(_selectedTeam.Length == 0)"
+                    style="background:@(_selectedTeam.Length>0?"#0d2a0d":"#111");color:@(_selectedTeam.Length>0?"#4af080":"#2a2a2a");border:1px solid @(_selectedTeam.Length>0?"#1a4a1a":"#1a1a1a");padding:10px 36px;border-radius:5px;cursor:@(_selectedTeam.Length>0?"pointer":"default");font-weight:700;font-size:1.05rem;font-family:monospace;">
                 ▶ Start Live Season
             </button>
             <button @onclick="SimulateSeason"
@@ -198,6 +198,65 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
     var teamStatsOrdered = isLive
         ? (IList<TeamSeasonStats>)_liveState!.Standings.Values.Where(t => t.GP > 0).OrderByDescending(t => t.Wins).ToList()
         : (IList<TeamSeasonStats>)SortedTeams().ToList();
+    // Teams tab: sortable display + injury totals
+    IEnumerable<TeamSeasonStats> teamsForDisplay = isLive
+        ? SortedTeamsCombined(_liveState!.Standings.Values.Where(t => t.GP > 0))
+        : (_season is not null ? SortedTeamsCombined(_season.TeamStats) : Enumerable.Empty<TeamSeasonStats>());
+    var injByTeam = (isLive
+            ? (IEnumerable<PlayerSeasonStats>)_liveState!.PlayerAgg.Values
+            : (_season?.PlayerStats ?? Enumerable.Empty<PlayerSeasonStats>()))
+        .GroupBy(p => p.Team, StringComparer.OrdinalIgnoreCase)
+        .ToDictionary(g => g.Key, g => g.Sum(p => p.GamesInjured), StringComparer.OrdinalIgnoreCase);
+    // Playoffs tab: sorted player stats
+    var poPlayers = (_playoffs?.PlayerStats
+        ?? _livePlayoffs?.State.PlayerAgg.Values.ToList()
+        ?? new List<PlayerSeasonStats>())
+        .Where(p => p.GP > 0).ToList();
+    var poSorted  = ApplySort(poPlayers, _playoffSort, _playoffSortAsc);
+    // Awards tab: candidate pools
+    bool hasFullStats = !isLive;
+    int minWinsForMvp = isLive ? 5 : 40;
+    var aTeamWins = isLive && _liveState is not null
+        ? _liveState.Standings.ToDictionary(kv => kv.Key, kv => kv.Value.Wins, StringComparer.OrdinalIgnoreCase)
+        : (_season?.TeamStats.ToDictionary(t => t.TeamName, t => t.Wins, StringComparer.OrdinalIgnoreCase) ?? new Dictionary<string, int>());
+    // Populate PER/WS/USG% on live player aggregates so Shen-Nagy MVP scoring works mid-season
+    if (isLive && _liveState is not null)
+        SeasonScheduleService.ComputeLiveAdvancedStats(_liveState);
+    var aPool = (isLive && _liveState is not null
+        ? (IEnumerable<PlayerSeasonStats>)_liveState.PlayerAgg.Values.Where(p => p.GP >= 10)
+        : (_season?.PlayerStats.Where(p => p.GP >= 40) ?? Enumerable.Empty<PlayerSeasonStats>())).ToList();
+    var mvpCands = SeasonScheduleService.RankMvpCandidates(aPool,
+        p => aTeamWins.TryGetValue(p.Team, out var mw) && mw >= minWinsForMvp);
+    var dpoyCands  = GetAwardTop10(aPool, p => AwardsDpoyScore(p, hasFullStats), null);
+    var sixmoyCands = GetAwardTop10(aPool.Where(p => p.Mpg is >= 12 and < 28),
+        p => AwardsSixMoyScore(p, hasFullStats), null);
+    // Rotations tab: selected team and computed rotation data
+    IReadOnlyDictionary<string, Team> rotTeams = isLive && _liveState is not null
+        ? (IReadOnlyDictionary<string, Team>)_liveState.Teams
+        : (IReadOnlyDictionary<string, Team>)_teams;
+    Team? rotTeam = _rotationsTeam.Length > 0 && rotTeams.TryGetValue(_rotationsTeam, out var rtv) ? rtv : null;
+    // Sorted roster by overall for play-through rank calculation
+    var rotSortedByOvr = rotTeam is not null
+        ? rotTeam.Roster.OrderByDescending(p => RotationManager.ComputeOverall(p)).ToList()
+        : new List<Player>();
+    // Grade 2+ = always OUT. Grade 1 = excluded if coach would likely sit them (play prob < 50%).
+    var rotDnpNames = isLive && rotTeam is not null
+        ? rotTeam.Roster.Where(p => {
+            if (p.CurrentInjury is null) return false;
+            if (p.CurrentInjury.Definition.Grade >= 2) return true;
+            int rank = rotSortedByOvr.FindIndex(r => r.Name == p.Name) + 1;
+            return InjuryService.PlayThroughG1Probability(p, rank > 0 ? rank : 99, p.CurrentInjury) < 0.5;
+          }).Select(p => p.Name).ToHashSet(StringComparer.OrdinalIgnoreCase)
+        : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    List<Player> rotPlayersAll = rotTeam is not null ? GetRotationPlayers(rotTeam) : new();
+    List<Player> rotPlayers    = rotPlayersAll.Where(p => !rotDnpNames.Contains(p.Name)).ToList();
+    Dictionary<string, int> rotGoalMins = rotTeam is not null ? GetGoalMinutesRoundedWithDnp(rotTeam, rotDnpNames) : new();
+    int rotDepth    = rotTeam is not null ? GetEffectiveDepth(rotTeam, rotPlayers) : 0;
+    int rotTotalMin = rotPlayers.Take(rotDepth).Sum(p => rotGoalMins.GetValueOrDefault(p.Name, 0));
+    // Injured section: OUT (grade 2+) + grade 1 players the coach would likely sit
+    List<Player> rotInjured = isLive && rotTeam is not null
+        ? rotPlayersAll.Where(p => rotDnpNames.Contains(p.Name)).ToList()
+        : new();
     // Precompute current injury status for live season player badges
     var injStatus = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
     if (isLive && _liveState is not null)
@@ -212,7 +271,7 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
         @if (hasFollowed && myTeamStats is not null)
         {
             <span style="color:#2a2a2a;flex-shrink:0;">|</span>
-            <img src="/logos/teams/@(LogoSlug(followedTeam)).svg" style="width:13px;height:13px;object-fit:contain;flex-shrink:0;" onerror="this.style.display='none'" />
+            <img src="/logos/teams/@(LogoSlug(followedTeam)).svg" style="width:13px;height:13px;object-fit:contain;flex-shrink:0;" onerror="@LogoOnerror" />
             <span style="color:#fca;font-size:0.78rem;font-weight:700;flex-shrink:0;">@myTeamStats.Abbreviation</span>
             <span style="color:#4af080;font-size:0.76rem;flex-shrink:0;">@myTeamStats.Wins&#x2013;@myTeamStats.Losses</span>
         }
@@ -282,7 +341,7 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
         string champSeries = champResult.Finals?.SeriesScore ?? "";
         <div style="flex-shrink:0;display:flex;align-items:center;justify-content:center;gap:8px;padding:5px 12px;background:#0d0900;border-bottom:1px solid #2a1800;">
             <span style="font-size:0.6rem;color:#665;letter-spacing:2px;">NBA CHAMPION</span>
-            <img src="/logos/teams/@(LogoSlug(champResult.Champion)).svg" style="width:13px;height:13px;object-fit:contain;" onerror="this.style.display='none'" />
+            <img src="/logos/teams/@(LogoSlug(champResult.Champion)).svg" style="width:13px;height:13px;object-fit:contain;" onerror="@LogoOnerror" />
             <span style="font-size:0.85rem;font-weight:800;color:#fca;letter-spacing:1px;">@champResult.Champion</span>
             @if (champOpp.Length > 0) { <span style="font-size:0.76rem;color:#554;">def. @champOpp &#x2014; @champSeries</span> }
         </div>
@@ -314,7 +373,7 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
                     <div class="sbar-row" @onclick="() => OpenGameLog(t)"
                          style="padding:5px 10px;border-left:3px solid @(isPlayoff?"#1a4a1a":isPlayIn?"#1a1a4a":"transparent");background:@(isFollow?"#141408":"transparent");">
                         <span style="color:#3a3a3a;width:16px;text-align:right;flex-shrink:0;font-size:0.73rem;">@(ri+1)</span>
-                        <img src="/logos/teams/@(LogoSlug(t.TeamName)).svg" style="width:16px;height:16px;object-fit:contain;flex-shrink:0;margin:0 2px;" onerror="this.style.display='none'" />
+                        <img src="/logos/teams/@(LogoSlug(t.TeamName)).svg" style="width:16px;height:16px;object-fit:contain;flex-shrink:0;margin:0 2px;" onerror="@LogoOnerror" />
                         <span style="flex:1;color:@(isFollow?"#fca":isPlayoff?"#c8c8c8":"#777");font-weight:@(isFollow?"700":"400");overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:0.82rem;">@t.Abbreviation</span>
                         <span style="color:#4af080;flex-shrink:0;min-width:20px;text-align:right;font-size:0.82rem;">@t.Wins</span>
                         <span style="color:#2a2a2a;margin:0 1px;">&#x2013;</span>
@@ -364,7 +423,7 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
                     @if (pr.Champion is not null)
                     {
                         <span style="color:#2a2a2a;">|</span>
-                        <img src="/logos/teams/@(LogoSlug(pr.Champion)).svg" style="width:14px;height:14px;object-fit:contain;" onerror="this.style.display='none'" />
+                        <img src="/logos/teams/@(LogoSlug(pr.Champion)).svg" style="width:14px;height:14px;object-fit:contain;" onerror="@LogoOnerror" />
                         <span style="font-size:0.8rem;font-weight:700;color:#fca;">@pr.ChampionAbbr CHAMPION</span>
                     }
                 </div>
@@ -384,12 +443,12 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
                             @* G3: consolation → #8 seed (aligns with R1[0]: 1v8) *@
                             <div style="width:148px;display:flex;flex-direction:column;background:#0a0a14;border:1px solid #1a1a2a;border-radius:5px;padding:8px 10px;">
                                 <div style="display:flex;align-items:center;gap:5px;margin-bottom:5px;">
-                                    <img src="/logos/teams/@(LogoSlug(eg3.HomeTeam)).svg" style="width:20px;height:20px;object-fit:contain;flex-shrink:0;" onerror="this.style.display='none'" />
+                                    <img src="/logos/teams/@(LogoSlug(eg3.HomeTeam)).svg" style="width:20px;height:20px;object-fit:contain;flex-shrink:0;" onerror="@LogoOnerror" />
                                     <span style="flex:1;font-size:0.88rem;color:@(eg3hw?"#d0d0d0":"#444");">@eg3.HomeAbbr</span>
                                     <span style="font-size:1.05rem;font-weight:700;color:@(eg3hw?"#4af080":"#555");">@eg3.HomeScore</span>
                                 </div>
                                 <div style="display:flex;align-items:center;gap:5px;">
-                                    <img src="/logos/teams/@(LogoSlug(eg3.AwayTeam)).svg" style="width:20px;height:20px;object-fit:contain;flex-shrink:0;" onerror="this.style.display='none'" />
+                                    <img src="/logos/teams/@(LogoSlug(eg3.AwayTeam)).svg" style="width:20px;height:20px;object-fit:contain;flex-shrink:0;" onerror="@LogoOnerror" />
                                     <span style="flex:1;font-size:0.88rem;color:@(!eg3hw?"#d0d0d0":"#444");">@eg3.AwayAbbr</span>
                                     <span style="font-size:1.05rem;font-weight:700;color:@(!eg3hw?"#4af080":"#555");">@eg3.AwayScore</span>
                                 </div>
@@ -398,12 +457,12 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
                             @* G1: 7 vs 8 → #7 seed (aligns with R1[1]: 2v7) *@
                             <div style="width:148px;display:flex;flex-direction:column;background:#0a0a14;border:1px solid #1a1a2a;border-radius:5px;padding:8px 10px;">
                                 <div style="display:flex;align-items:center;gap:5px;margin-bottom:5px;">
-                                    <img src="/logos/teams/@(LogoSlug(eg1.HomeTeam)).svg" style="width:20px;height:20px;object-fit:contain;flex-shrink:0;" onerror="this.style.display='none'" />
+                                    <img src="/logos/teams/@(LogoSlug(eg1.HomeTeam)).svg" style="width:20px;height:20px;object-fit:contain;flex-shrink:0;" onerror="@LogoOnerror" />
                                     <span style="flex:1;font-size:0.88rem;color:@(eg1hw?"#d0d0d0":"#444");">@eg1.HomeAbbr</span>
                                     <span style="font-size:1.05rem;font-weight:700;color:@(eg1hw?"#4af080":"#555");">@eg1.HomeScore</span>
                                 </div>
                                 <div style="display:flex;align-items:center;gap:5px;">
-                                    <img src="/logos/teams/@(LogoSlug(eg1.AwayTeam)).svg" style="width:20px;height:20px;object-fit:contain;flex-shrink:0;" onerror="this.style.display='none'" />
+                                    <img src="/logos/teams/@(LogoSlug(eg1.AwayTeam)).svg" style="width:20px;height:20px;object-fit:contain;flex-shrink:0;" onerror="@LogoOnerror" />
                                     <span style="flex:1;font-size:0.88rem;color:@(!eg1hw?"#d0d0d0":"#444");">@eg1.AwayAbbr</span>
                                     <span style="font-size:1.05rem;font-weight:700;color:@(!eg1hw?"#4af080":"#555");">@eg1.AwayScore</span>
                                 </div>
@@ -468,12 +527,12 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
                             @* G3: consolation → #8 seed *@
                             <div style="width:148px;display:flex;flex-direction:column;background:#0a0a14;border:1px solid #1a1a2a;border-radius:5px;padding:8px 10px;">
                                 <div style="display:flex;align-items:center;gap:5px;margin-bottom:5px;">
-                                    <img src="/logos/teams/@(LogoSlug(wg3.HomeTeam)).svg" style="width:20px;height:20px;object-fit:contain;flex-shrink:0;" onerror="this.style.display='none'" />
+                                    <img src="/logos/teams/@(LogoSlug(wg3.HomeTeam)).svg" style="width:20px;height:20px;object-fit:contain;flex-shrink:0;" onerror="@LogoOnerror" />
                                     <span style="flex:1;font-size:0.88rem;color:@(wg3hw?"#d0d0d0":"#444");">@wg3.HomeAbbr</span>
                                     <span style="font-size:1.05rem;font-weight:700;color:@(wg3hw?"#4af080":"#555");">@wg3.HomeScore</span>
                                 </div>
                                 <div style="display:flex;align-items:center;gap:5px;">
-                                    <img src="/logos/teams/@(LogoSlug(wg3.AwayTeam)).svg" style="width:20px;height:20px;object-fit:contain;flex-shrink:0;" onerror="this.style.display='none'" />
+                                    <img src="/logos/teams/@(LogoSlug(wg3.AwayTeam)).svg" style="width:20px;height:20px;object-fit:contain;flex-shrink:0;" onerror="@LogoOnerror" />
                                     <span style="flex:1;font-size:0.88rem;color:@(!wg3hw?"#d0d0d0":"#444");">@wg3.AwayAbbr</span>
                                     <span style="font-size:1.05rem;font-weight:700;color:@(!wg3hw?"#4af080":"#555");">@wg3.AwayScore</span>
                                 </div>
@@ -482,12 +541,12 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
                             @* G1: 7 vs 8 → #7 seed *@
                             <div style="width:148px;display:flex;flex-direction:column;background:#0a0a14;border:1px solid #1a1a2a;border-radius:5px;padding:8px 10px;">
                                 <div style="display:flex;align-items:center;gap:5px;margin-bottom:5px;">
-                                    <img src="/logos/teams/@(LogoSlug(wg1.HomeTeam)).svg" style="width:20px;height:20px;object-fit:contain;flex-shrink:0;" onerror="this.style.display='none'" />
+                                    <img src="/logos/teams/@(LogoSlug(wg1.HomeTeam)).svg" style="width:20px;height:20px;object-fit:contain;flex-shrink:0;" onerror="@LogoOnerror" />
                                     <span style="flex:1;font-size:0.88rem;color:@(wg1hw?"#d0d0d0":"#444");">@wg1.HomeAbbr</span>
                                     <span style="font-size:1.05rem;font-weight:700;color:@(wg1hw?"#4af080":"#555");">@wg1.HomeScore</span>
                                 </div>
                                 <div style="display:flex;align-items:center;gap:5px;">
-                                    <img src="/logos/teams/@(LogoSlug(wg1.AwayTeam)).svg" style="width:20px;height:20px;object-fit:contain;flex-shrink:0;" onerror="this.style.display='none'" />
+                                    <img src="/logos/teams/@(LogoSlug(wg1.AwayTeam)).svg" style="width:20px;height:20px;object-fit:contain;flex-shrink:0;" onerror="@LogoOnerror" />
                                     <span style="flex:1;font-size:0.88rem;color:@(!wg1hw?"#d0d0d0":"#444");">@wg1.AwayAbbr</span>
                                     <span style="font-size:1.05rem;font-weight:700;color:@(!wg1hw?"#4af080":"#555");">@wg1.AwayScore</span>
                                 </div>
@@ -552,7 +611,7 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
                             {
                                 <img src="/logos/teams/@(LogoSlug(calGame.OppFullName)).svg"
                                      style="width:24px;height:24px;object-fit:contain;margin:3px 0 1px;"
-                                     onerror="this.style.display='none'" />
+                                     onerror="@LogoOnerror" />
                                 <div style="font-size:0.6rem;color:@(calGame.IsPast?(calGame.Won?"#5aca70":"#d06060"):"#b89040");letter-spacing:0.3px;line-height:1;">
                                     @(calGame.IsPast ? "" : (calGame.IsHome ? "vs " : "@ "))@calGame.OppAbbr
                                 </div>
@@ -582,6 +641,18 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
                     {
                         <button class="pdlg-tab @(_statsTab=="playoffs"?"active":"")" @onclick='()=>_statsTab="playoffs"'>PLAYOFFS</button>
                     }
+                    @{
+                        bool showAwardsTab = _awards is not null ||
+                            (isLive && _liveState?.CurrentDate >= new DateTime(2026, 1, 1));
+                    }
+                    @if (showAwardsTab)
+                    {
+                        <button class="pdlg-tab @(_statsTab=="awards"?"active":"")" @onclick='()=>_statsTab="awards"'>AWARDS</button>
+                    }
+                    <button class="pdlg-tab @(_statsTab=="rotations"?"active":"")"
+                            @onclick='() => { _statsTab = "rotations"; if (_rotationsTeam.Length == 0) _rotationsTeam = followedTeam; }'>
+                        ROTATIONS
+                    </button>
                     @if (_statsTab == "players")
                     {
                         <span style="color:#222;margin:0 4px;">|</span>
@@ -598,6 +669,13 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
                                 }
                             </select>
                         </div>
+                    }
+                    @if (_statsTab == "playoffs")
+                    {
+                        <span style="color:#222;margin:0 4px;">|</span>
+                        <button class="pdlg-tab @(_playoffStatsView=="standard"?"active":"")" @onclick='()=>_playoffStatsView="standard"' style="font-size:0.75rem;padding:5px 10px;">STD</button>
+                        <button class="pdlg-tab @(_playoffStatsView=="advanced"?"active":"")" @onclick='()=>_playoffStatsView="advanced"' style="font-size:0.75rem;padding:5px 10px;">ADV</button>
+                        <button class="pdlg-tab @(_playoffStatsView=="per36"?"active":"")"    @onclick='()=>_playoffStatsView="per36"'    style="font-size:0.75rem;padding:5px 10px;">P36</button>
                     }
                 </div>
                 <!-- Table -->
@@ -850,28 +928,39 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
                         <table>
                             <thead class="stats-thead">
                                 <tr>
-                                    <th class="stats-frozen" style="text-align:left;min-width:90px;">TEAM</th>
-                                    <th style="text-align:center;width:28px;">W</th>
-                                    <th style="text-align:center;width:28px;">L</th>
-                                    <th style="text-align:center;width:44px;">PCT</th>
-                                    <th style="text-align:center;width:38px;">PPG</th>
-                                    <th style="text-align:center;width:38px;">OPP</th>
-                                    <th style="text-align:center;width:38px;">DIFF</th>
-                                    <th style="text-align:center;width:42px;">FG%</th>
-                                    <th style="text-align:center;width:42px;">3P%</th>
-                                    <th style="text-align:center;width:42px;">FT%</th>
-                                    <th style="text-align:center;width:38px;">AST</th>
-                                    <th style="text-align:center;width:38px;">STL</th>
-                                    <th style="text-align:center;width:38px;">BLK</th>
-                                    <th style="text-align:center;width:38px;">TOV</th>
-                                    <th style="text-align:center;width:42px;">PACE</th>
+                                    <th class="stats-frozen" style="text-align:left;min-width:80px;">TEAM</th>
+                                    @TeamTh("wins",  "W")
+                                    @TeamTh("losses","L")
+                                    @TeamTh("pct",   "PCT")
+                                    @TeamTh("ppg",   "PPG")
+                                    @TeamTh("papg",  "OPP")
+                                    @TeamTh("diff",  "DIFF")
+                                    @TeamTh("fgm",   "FGM")
+                                    @TeamTh("fga",   "FGA")
+                                    @TeamTh("fgpct", "FG%")
+                                    @TeamTh("tpm",   "3PM")
+                                    @TeamTh("tpa",   "3PA")
+                                    @TeamTh("tppct", "3P%")
+                                    @TeamTh("ftm",   "FTM")
+                                    @TeamTh("fta",   "FTA")
+                                    @TeamTh("ftpct", "FT%")
+                                    @TeamTh("oreb",  "ORB")
+                                    @TeamTh("dreb",  "DRB")
+                                    @TeamTh("reb",   "REB")
+                                    @TeamTh("ast",   "AST")
+                                    @TeamTh("stl",   "STL")
+                                    @TeamTh("blk",   "BLK")
+                                    @TeamTh("tov",   "TOV")
+                                    @TeamTh("pace",  "PACE")
+                                    <th style="text-align:center;width:36px;" title="Total player-games missed to injury">INJ</th>
                                 </tr>
                             </thead>
                             <tbody>
-                            @foreach (var t in teamStatsOrdered)
+                            @foreach (var t in teamsForDisplay)
                             {
                                 double diff = t.Ppg - t.Papg;
                                 bool isFollow = t.TeamName.Equals(followedTeam, StringComparison.OrdinalIgnoreCase);
+                                int teamInj = injByTeam.TryGetValue(t.TeamName, out var iv) ? iv : 0;
                                 <tr style="cursor:pointer;@(isFollow?"background:#1a1a08;":"")" @onclick="() => OpenGameLog(t)">
                                     <td class="stats-frozen" style="@(isFollow?"background:#1a1a08;":"")">
                                         <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:@t.PrimaryColor;margin-right:3px;vertical-align:middle;"></span>
@@ -879,18 +968,28 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
                                     </td>
                                     <td style="text-align:center;color:#4af080;">@t.Wins</td>
                                     <td style="text-align:center;color:#f06060;">@t.Losses</td>
-                                    <td style="text-align:center;">@t.Pct.ToString("F3")</td>
-                                    <td style="text-align:center;color:#e8c060;font-weight:600;">@(t.GP>0?t.Ppg.ToString("F1"):"&#x2014;")</td>
-                                    <td style="text-align:center;color:#666;">@(t.GP>0?t.Papg.ToString("F1"):"&#x2014;")</td>
-                                    <td style="text-align:center;color:@(diff>=0?"#4af080":"#f06060");">@(t.GP>0?diff.ToString("+0.0;-0.0;0.0"):"&#x2014;")</td>
-                                    <td style="text-align:center;color:@FgPctColor(t.FgPct);">@(t.GP>0?t.FgPct.ToString("P1"):"&#x2014;")</td>
-                                    <td style="text-align:center;color:@TpPctColor(t.TpPct);">@(t.GP>0?t.TpPct.ToString("P1"):"&#x2014;")</td>
-                                    <td style="text-align:center;color:@FtPctColor(t.FtPct);">@(t.GP>0?t.FtPct.ToString("P1"):"&#x2014;")</td>
-                                    <td style="text-align:center;color:#60c8e8;">@(t.GP>0?t.Ast.ToString("F1"):"&#x2014;")</td>
-                                    <td style="text-align:center;color:#a0e080;">@(t.GP>0?t.Stl.ToString("F1"):"&#x2014;")</td>
-                                    <td style="text-align:center;color:#e08060;">@(t.GP>0?t.Blk.ToString("F1"):"&#x2014;")</td>
-                                    <td style="text-align:center;color:#f06060;">@(t.GP>0?t.Tov.ToString("F1"):"&#x2014;")</td>
-                                    <td style="text-align:center;color:#666;">@(t.GP>0?t.Pace.ToString("F1"):"&#x2014;")</td>
+                                    <td style="text-align:center;">@(t.GP>0?FmtPct(t.Pct):"—")</td>
+                                    <td style="text-align:center;color:#e8c060;font-weight:600;">@(t.GP>0?t.Ppg.ToString("F1"):"—")</td>
+                                    <td style="text-align:center;color:#666;">@(t.GP>0?t.Papg.ToString("F1"):"—")</td>
+                                    <td style="text-align:center;color:@(diff>=0?"#4af080":"#f06060");">@(t.GP>0?diff.ToString("+0.0;-0.0;0.0"):"—")</td>
+                                    <td style="text-align:center;color:#888;">@(t.GP>0?t.Fgm.ToString("F1"):"—")</td>
+                                    <td style="text-align:center;color:#777;">@(t.GP>0?t.Fga.ToString("F1"):"—")</td>
+                                    <td style="text-align:center;color:@FgPctColor(t.FgPct);">@(t.GP>0?FmtPct(t.FgPct):"—")</td>
+                                    <td style="text-align:center;color:#888;">@(t.GP>0?t.Tpm.ToString("F1"):"—")</td>
+                                    <td style="text-align:center;color:#777;">@(t.GP>0?t.Tpa.ToString("F1"):"—")</td>
+                                    <td style="text-align:center;color:@TpPctColor(t.TpPct);">@(t.GP>0?FmtPct(t.TpPct):"—")</td>
+                                    <td style="text-align:center;color:#888;">@(t.GP>0?t.Ftm.ToString("F1"):"—")</td>
+                                    <td style="text-align:center;color:#777;">@(t.GP>0?t.Fta.ToString("F1"):"—")</td>
+                                    <td style="text-align:center;color:@FtPctColor(t.FtPct);">@(t.GP>0?FmtPct(t.FtPct):"—")</td>
+                                    <td style="text-align:center;color:#aaa;">@(t.GP>0?t.Oreb.ToString("F1"):"—")</td>
+                                    <td style="text-align:center;color:#aaa;">@(t.GP>0?t.Dreb.ToString("F1"):"—")</td>
+                                    <td style="text-align:center;">@(t.GP>0?t.Reb.ToString("F1"):"—")</td>
+                                    <td style="text-align:center;color:#60c8e8;">@(t.GP>0?t.Ast.ToString("F1"):"—")</td>
+                                    <td style="text-align:center;color:#a0e080;">@(t.GP>0?t.Stl.ToString("F1"):"—")</td>
+                                    <td style="text-align:center;color:#e08060;">@(t.GP>0?t.Blk.ToString("F1"):"—")</td>
+                                    <td style="text-align:center;color:#f06060;">@(t.GP>0?t.Tov.ToString("F1"):"—")</td>
+                                    <td style="text-align:center;color:#666;">@(t.GP>0?t.Pace.ToString("F1"):"—")</td>
+                                    <td style="text-align:center;color:@(teamInj>100?"#f06060":teamInj>50?"#fca":"#666");">@(t.GP>0?teamInj.ToString():"—")</td>
                                 </tr>
                             }
                             </tbody>
@@ -898,182 +997,536 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
                     }
                     else if (_statsTab == "playoffs" && (_playoffs is not null || _livePlayoffs is not null))
                     {
-                        var playoffPlayerStats = _playoffs?.PlayerStats
-                            ?? _livePlayoffs!.State.PlayerAgg.Values.ToList();
-                        <div style="padding:10px 14px;overflow-y:auto;">
-                            <div style="margin-bottom:1.25rem;">
-                                <div class="section-title" style="margin-bottom:5px;">PLAYOFF LEADERS</div>
-                                <div class="scroll-x" style="max-height:280px;overflow-y:auto;">
-                                <table>
-                                    <thead style="position:sticky;top:0;background:#111;z-index:1;">
-                                        <tr>
-                                            <th style="text-align:left;min-width:110px;">PLAYER</th>
-                                            <th style="text-align:left;min-width:34px;">TEAM</th>
-                                            <th style="text-align:center;width:28px;">GP</th>
-                                            <th style="text-align:center;width:36px;">MIN</th>
-                                            <th style="text-align:center;width:36px;color:#e8c060;">PTS</th>
-                                            <th style="text-align:center;width:36px;">REB</th>
-                                            <th style="text-align:center;width:36px;color:#60c8e8;">AST</th>
-                                            <th style="text-align:center;width:36px;color:#a0e080;">STL</th>
-                                            <th style="text-align:center;width:36px;color:#e08060;">BLK</th>
-                                            <th style="text-align:center;width:36px;color:#f06060;">TOV</th>
-                                            <th style="text-align:center;width:42px;">+/-</th>
-                                            <th style="text-align:center;width:42px;">FG%</th>
-                                            <th style="text-align:center;width:32px;">3PA</th>
-                                            <th style="text-align:center;width:42px;">3P%</th>
-                                            <th style="text-align:center;width:42px;">FT%</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                    @foreach (var p in playoffPlayerStats.Where(p => p.GP > 0).OrderByDescending(p => p.Ppg))
-                                    {
-                                        <tr @onclick="() => OpenPlayerModal(p)" style="cursor:pointer;">
-                                            <td style="color:#b8b8b8;">@p.Name</td>
-                                            <td style="color:#555;font-size:0.82rem;">@p.TeamAbbr</td>
-                                            <td style="text-align:center;color:#555;">@p.GP</td>
-                                            <td style="text-align:center;color:#666;">@p.Mpg.ToString("F1")</td>
-                                            <td style="text-align:center;color:#e8c060;font-weight:600;">@p.Ppg.ToString("F1")</td>
-                                            <td style="text-align:center;">@p.Rpg.ToString("F1")</td>
-                                            <td style="text-align:center;color:#60c8e8;">@p.Apg.ToString("F1")</td>
-                                            <td style="text-align:center;color:#a0e080;">@p.Spg.ToString("F1")</td>
-                                            <td style="text-align:center;color:#e08060;">@p.Bpg.ToString("F1")</td>
-                                            <td style="text-align:center;color:#f06060;">@p.Topg.ToString("F1")</td>
-                                            <td style="text-align:center;color:@PmColor(p.AvgPlusMinus);">@p.AvgPlusMinus.ToString("+0.0;-0.0;0.0")</td>
-                                            <td style="text-align:center;color:@FgPctColor(p.FgPct);">@p.FgPct.ToString("P1")</td>
-                                            <td style="text-align:center;color:#666;">@p.Tpa.ToString("F1")</td>
-                                            <td style="text-align:center;color:@TpPctColor(p.TpPct);">@(p.TotalThreeAtt>0?p.TpPct.ToString("P1"):"&#x2014;")</td>
-                                            <td style="text-align:center;color:@FtPctColor(p.FtPct);">@(p.TotalFTA>0?p.FtPct.ToString("P1"):"&#x2014;")</td>
-                                        </tr>
-                                    }
-                                    </tbody>
-                                </table>
-                                </div>
-                            </div>
-                            @{ var playoffResult = _playoffs ?? _livePlayoffs?.Result; }
-                            @if (playoffResult is not null)
-                            {
-                            <div style="margin-bottom:1.25rem;">
-                                <div class="section-title" style="margin-bottom:5px;">PLAYOFF BRACKET</div>
-                                @if (playoffResult.PlayInGames.Count > 0)
-                                {
-                                    <div style="margin-bottom:8px;">
-                                        <div style="font-size:0.68rem;color:#444;letter-spacing:1px;margin-bottom:3px;">PLAY-IN</div>
-                                        <div style="display:flex;flex-wrap:wrap;gap:4px 20px;">
-                                            @foreach (var g in playoffResult.PlayInGames)
-                                            {
-                                                bool hw = g.HomeScore > g.AwayScore;
-                                                <span style="font-size:0.82rem;">
-                                                    <span style="color:@(hw?"#c8c8c8":"#555");">@g.HomeAbbr @g.HomeScore</span>
-                                                    <span style="color:#2a2a2a;"> &#x2013; </span>
-                                                    <span style="color:@(!hw?"#c8c8c8":"#555");">@g.AwayScore @g.AwayAbbr</span>
-                                                </span>
-                                            }
-                                        </div>
-                                    </div>
-                                }
-                                @if (playoffResult.EastFirstRound.Count > 0 || playoffResult.WestFirstRound.Count > 0)
-                                {
-                                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:8px;">
-                                        <div>
-                                            <div style="font-size:0.68rem;color:#444;letter-spacing:1px;margin-bottom:3px;">1ST ROUND &#x2014; EAST</div>
-                                            @foreach (var s in playoffResult.EastFirstRound) { @SeriesRow(s) }
-                                        </div>
-                                        <div>
-                                            <div style="font-size:0.68rem;color:#444;letter-spacing:1px;margin-bottom:3px;">1ST ROUND &#x2014; WEST</div>
-                                            @foreach (var s in playoffResult.WestFirstRound) { @SeriesRow(s) }
-                                        </div>
-                                    </div>
-                                }
-                                @if (playoffResult.EastSecondRound.Count > 0 || playoffResult.WestSecondRound.Count > 0)
-                                {
-                                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:8px;">
-                                        <div>
-                                            <div style="font-size:0.68rem;color:#444;letter-spacing:1px;margin-bottom:3px;">2ND ROUND &#x2014; EAST</div>
-                                            @foreach (var s in playoffResult.EastSecondRound) { @SeriesRow(s) }
-                                        </div>
-                                        <div>
-                                            <div style="font-size:0.68rem;color:#444;letter-spacing:1px;margin-bottom:3px;">2ND ROUND &#x2014; WEST</div>
-                                            @foreach (var s in playoffResult.WestSecondRound) { @SeriesRow(s) }
-                                        </div>
-                                    </div>
-                                }
-                                @if (playoffResult.EastConfFinals is not null || playoffResult.WestConfFinals is not null)
-                                {
-                                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:8px;">
-                                        <div>
-                                            <div style="font-size:0.68rem;color:#444;letter-spacing:1px;margin-bottom:3px;">CONF FINALS &#x2014; EAST</div>
-                                            @if (playoffResult.EastConfFinals is not null) { @SeriesRow(playoffResult.EastConfFinals) }
-                                        </div>
-                                        <div>
-                                            <div style="font-size:0.68rem;color:#444;letter-spacing:1px;margin-bottom:3px;">CONF FINALS &#x2014; WEST</div>
-                                            @if (playoffResult.WestConfFinals is not null) { @SeriesRow(playoffResult.WestConfFinals) }
-                                        </div>
-                                    </div>
-                                }
-                                @if (playoffResult.Finals is not null)
+                        @* Compact bracket summary — only for instant-sim (live mode shows full bracket above) *@
+                        @if (_livePlayoffs is null && _playoffs is not null)
+                        {
+                            var pr2 = _playoffs;
+                            <div style="flex-shrink:0;padding:6px 14px;border-bottom:1px solid #1a1a1a;display:flex;flex-wrap:wrap;gap:14px 28px;font-size:0.83rem;">
+                                @if (pr2.EastFirstRound.Count > 0)
                                 {
                                     <div>
-                                        <div style="font-size:0.68rem;color:#fca;letter-spacing:1px;margin-bottom:3px;">NBA FINALS</div>
-                                        @SeriesRow(playoffResult.Finals)
+                                        <div style="font-size:0.62rem;color:#444;letter-spacing:1px;margin-bottom:2px;">EAST</div>
+                                        @foreach (var s in pr2.EastFirstRound.Concat(pr2.EastSecondRound).Concat(pr2.EastConfFinals is not null ? new[]{pr2.EastConfFinals} : Array.Empty<PlayoffSeriesRecord>())) { @SeriesRow(s) }
+                                    </div>
+                                }
+                                @if (pr2.Finals is not null)
+                                {
+                                    <div>
+                                        <div style="font-size:0.62rem;color:#fca;letter-spacing:1px;margin-bottom:2px;">FINALS</div>
+                                        @SeriesRow(pr2.Finals)
+                                    </div>
+                                }
+                                @if (pr2.WestFirstRound.Count > 0)
+                                {
+                                    <div>
+                                        <div style="font-size:0.62rem;color:#444;letter-spacing:1px;margin-bottom:2px;">WEST</div>
+                                        @foreach (var s in pr2.WestFirstRound.Concat(pr2.WestSecondRound).Concat(pr2.WestConfFinals is not null ? new[]{pr2.WestConfFinals} : Array.Empty<PlayoffSeriesRecord>())) { @SeriesRow(s) }
                                     </div>
                                 }
                             </div>
-                            }
-                            @if (_awards is not null)
+                        }
+                        @if (_playoffStatsView == "standard")
+                        {
+                        <table>
+                            <thead class="stats-thead">
+                                <tr>
+                                    <th class="stats-frozen" style="text-align:left;min-width:110px;">PLAYER</th>
+                                    <th style="text-align:left;min-width:34px;">TEAM</th>
+                                    <th style="text-align:center;width:28px;">POS</th>
+                                    @PlayoffTh("gp",  "G")
+                                    @PlayoffTh("min", "MIN")
+                                    @PlayoffTh("pts", "PTS")
+                                    @PlayoffTh("orb", "ORB")
+                                    @PlayoffTh("drb", "DRB")
+                                    @PlayoffTh("reb", "REB")
+                                    @PlayoffTh("ast", "AST")
+                                    @PlayoffTh("stl", "STL")
+                                    @PlayoffTh("blk", "BLK")
+                                    @PlayoffTh("tov", "TOV")
+                                    @PlayoffTh("fgm", "FGM")
+                                    @PlayoffTh("fga", "FGA")
+                                    @PlayoffTh("fg",  "FG%")
+                                    @PlayoffTh("efg", "eFG%")
+                                    @PlayoffTh("3pm", "3PM")
+                                    @PlayoffTh("3pa", "3PA")
+                                    @PlayoffTh("3p",  "3P%")
+                                    @PlayoffTh("ftm", "FTM")
+                                    @PlayoffTh("fta", "FTA")
+                                    @PlayoffTh("ft",  "FT%")
+                                    @PlayoffTh("pm",  "+/-")
+                                </tr>
+                            </thead>
+                            <tbody>
+                            @foreach (var p in poSorted)
                             {
-                                <div>
-                                    <div class="section-title" style="margin-bottom:5px;">SEASON AWARDS</div>
-                                    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1rem;">
-                                        @if (_awards.MVP    is not null) { @AwardCard("MOST VALUABLE PLAYER",    _awards.MVP,    "#fca",    "#0d0900", "#2a1800") }
-                                        @if (_awards.DPOY   is not null) { @AwardCard("DEF. PLAYER OF THE YEAR", _awards.DPOY,   "#4af0c0", "#000d0d", "#001e1e") }
-                                        @if (_awards.SixMOY is not null) { @AwardCard("6TH MAN OF THE YEAR",     _awards.SixMOY, "#b080ff", "#0a000d", "#1e0030") }
-                                    </div>
-                                    @{
-                                        var allNbaRows = new (string Label, List<AwardWinner> Players)[]
-                                        {
-                                            ("ALL-NBA 1ST TEAM", _awards.AllNba1),
-                                            ("ALL-NBA 2ND TEAM", _awards.AllNba2),
-                                            ("ALL-NBA 3RD TEAM", _awards.AllNba3),
-                                        };
-                                        var allDefRows = new (string Label, List<AwardWinner> Players)[]
-                                        {
-                                            ("ALL-DEFENSE 1ST TEAM", _awards.AllDef1),
-                                            ("ALL-DEFENSE 2ND TEAM", _awards.AllDef2),
-                                        };
-                                    }
-                                    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1rem;">
-                                        @foreach (var (teamLabel, players) in allNbaRows)
-                                        {
-                                            <div>
-                                                <div style="font-size:0.7rem;color:#445;letter-spacing:1px;margin-bottom:5px;border-bottom:1px solid #1a1a1a;padding-bottom:3px;">@teamLabel</div>
-                                                @foreach (var p in players)
-                                                {
-                                                    <div style="display:flex;justify-content:space-between;padding:2px 0;font-size:0.84rem;">
-                                                        <span style="color:#b8b8b8;">@p.Name</span>
-                                                        <span style="color:#444;font-size:0.76rem;">@p.TeamAbbr</span>
-                                                    </div>
-                                                }
-                                            </div>
-                                        }
-                                    </div>
-                                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
-                                        @foreach (var (teamLabel, players) in allDefRows)
-                                        {
-                                            <div>
-                                                <div style="font-size:0.7rem;color:#345;letter-spacing:1px;margin-bottom:5px;border-bottom:1px solid #1a1a1a;padding-bottom:3px;">@teamLabel</div>
-                                                @foreach (var p in players)
-                                                {
-                                                    <div style="display:flex;justify-content:space-between;padding:2px 0;font-size:0.84rem;">
-                                                        <span style="color:#b0b8b0;">@p.Name</span>
-                                                        <span style="color:#444;font-size:0.76rem;">@p.TeamAbbr</span>
-                                                    </div>
-                                                }
-                                            </div>
-                                        }
-                                    </div>
+                                <tr class="clickable-row" @onclick="() => OpenPlayerModal(p)">
+                                    <td class="stats-frozen" style="color:#b8b8b8;">@p.Name</td>
+                                    <td style="color:#666;font-size:0.8rem;">@p.TeamAbbr</td>
+                                    <td style="text-align:center;color:#555;font-size:0.78rem;">@p.Position</td>
+                                    <td style="text-align:center;color:#777;">@p.GP</td>
+                                    <td style="text-align:center;color:#888;">@p.Mpg.ToString("F1")</td>
+                                    <td style="text-align:center;color:#e8c060;font-weight:600;">@p.Ppg.ToString("F1")</td>
+                                    <td style="text-align:center;color:#aaa;">@p.Opg.ToString("F1")</td>
+                                    <td style="text-align:center;color:#aaa;">@p.Dpg.ToString("F1")</td>
+                                    <td style="text-align:center;">@p.Rpg.ToString("F1")</td>
+                                    <td style="text-align:center;color:#60c8e8;">@p.Apg.ToString("F1")</td>
+                                    <td style="text-align:center;color:#a0e080;">@p.Spg.ToString("F1")</td>
+                                    <td style="text-align:center;color:#e08060;">@p.Bpg.ToString("F1")</td>
+                                    <td style="text-align:center;color:#f06060;">@p.Topg.ToString("F1")</td>
+                                    <td style="text-align:center;color:#888;">@p.Fgm.ToString("F1")</td>
+                                    <td style="text-align:center;color:#777;">@p.Fga.ToString("F1")</td>
+                                    <td style="text-align:center;color:@FgPctColor(p.FgPct);">@FmtPct(p.FgPct)</td>
+                                    <td style="text-align:center;color:@FgPctColor(p.EfgPct);">@FmtPct(p.EfgPct)</td>
+                                    <td style="text-align:center;color:#888;">@p.Tpm.ToString("F1")</td>
+                                    <td style="text-align:center;color:#777;">@p.Tpa.ToString("F1")</td>
+                                    <td style="text-align:center;color:@TpPctColor(p.TpPct);">@(p.TotalThreeAtt>0?FmtPct(p.TpPct):"—")</td>
+                                    <td style="text-align:center;color:#888;">@p.Ftm.ToString("F1")</td>
+                                    <td style="text-align:center;color:#777;">@p.Fta.ToString("F1")</td>
+                                    <td style="text-align:center;color:@FtPctColor(p.FtPct);">@(p.TotalFTA>0?FmtPct(p.FtPct):"—")</td>
+                                    <td style="text-align:center;color:@PmColor(p.AvgPlusMinus);">@p.AvgPlusMinus.ToString("+0.0;-0.0;0.0")</td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                        }
+                        else if (_playoffStatsView == "advanced")
+                        {
+                        <table>
+                            <thead class="stats-thead">
+                                <tr>
+                                    <th class="stats-frozen" style="text-align:left;min-width:110px;">PLAYER</th>
+                                    <th style="text-align:left;min-width:34px;">TEAM</th>
+                                    <th style="text-align:center;width:28px;">POS</th>
+                                    @PlayoffTh("gp",     "G")
+                                    @PlayoffTh("min",    "MIN")
+                                    @PlayoffTh("ts",     "TS%")
+                                    @PlayoffTh("efg",    "eFG%")
+                                    @PlayoffTh("3par",   "3PAr")
+                                    @PlayoffTh("ftr",    "FTr")
+                                    @PlayoffTh("orbpct", "ORB%")
+                                    @PlayoffTh("drbpct", "DRB%")
+                                    @PlayoffTh("rebpct", "REB%")
+                                    @PlayoffTh("astpct", "AST%")
+                                    @PlayoffTh("usgpct", "USG%")
+                                    @PlayoffTh("ortg",   "ORTG")
+                                    @PlayoffTh("drtg",   "DRTG")
+                                    @PlayoffTh("nrtg",   "NET")
+                                    @PlayoffTh("pm",     "+/-")
+                                </tr>
+                            </thead>
+                            <tbody>
+                            @foreach (var p in poSorted)
+                            {
+                                double po3par = p.TotalFGA > 0 ? (double)p.TotalThreeAtt / p.TotalFGA : 0;
+                                double poFtr  = p.TotalFGA > 0 ? (double)p.TotalFTA / p.TotalFGA : 0;
+                                <tr class="clickable-row" @onclick="() => OpenPlayerModal(p)">
+                                    <td class="stats-frozen" style="color:#b8b8b8;">@p.Name</td>
+                                    <td style="color:#666;font-size:0.8rem;">@p.TeamAbbr</td>
+                                    <td style="text-align:center;color:#555;font-size:0.78rem;">@p.Position</td>
+                                    <td style="text-align:center;color:#777;">@p.GP</td>
+                                    <td style="text-align:center;color:#888;">@p.Mpg.ToString("F1")</td>
+                                    <td style="text-align:center;color:@FgPctColor(p.TsPct);">@FmtPct(p.TsPct)</td>
+                                    <td style="text-align:center;color:@FgPctColor(p.EfgPct);">@FmtPct(p.EfgPct)</td>
+                                    <td style="text-align:center;color:#888;">@FmtPct(po3par)</td>
+                                    <td style="text-align:center;color:#888;">@FmtPct(poFtr)</td>
+                                    <td style="text-align:center;color:#aaa;">@FmtPct(p.OrebPct)</td>
+                                    <td style="text-align:center;color:#aaa;">@FmtPct(p.DrebPct)</td>
+                                    <td style="text-align:center;color:#aaa;">@FmtPct(p.RebPct)</td>
+                                    <td style="text-align:center;color:#60c8e8;">@FmtPct(p.AstPct)</td>
+                                    <td style="text-align:center;color:#c8c8c8;">@FmtPct(p.UsgPct)</td>
+                                    <td style="text-align:center;color:#8ab8ff;">@p.OffRating.ToString("F1")</td>
+                                    <td style="text-align:center;color:#f08060;">@p.DefRating.ToString("F1")</td>
+                                    <td style="text-align:center;color:@PmColor(p.NetRating);">@p.NetRating.ToString("+0.0;-0.0;0.0")</td>
+                                    <td style="text-align:center;color:@PmColor(p.AvgPlusMinus);">@p.AvgPlusMinus.ToString("+0.0;-0.0;0.0")</td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                        }
+                        else if (_playoffStatsView == "per36")
+                        {
+                        <table>
+                            <thead class="stats-thead">
+                                <tr>
+                                    <th class="stats-frozen" style="text-align:left;min-width:110px;">PLAYER</th>
+                                    <th style="text-align:left;min-width:34px;">TEAM</th>
+                                    <th style="text-align:center;width:28px;">POS</th>
+                                    @PlayoffTh("gp",  "G")
+                                    @PlayoffTh("min", "MIN")
+                                    @PlayoffTh("pts", "PTS")
+                                    @PlayoffTh("orb", "ORB")
+                                    @PlayoffTh("drb", "DRB")
+                                    @PlayoffTh("reb", "REB")
+                                    @PlayoffTh("ast", "AST")
+                                    @PlayoffTh("stl", "STL")
+                                    @PlayoffTh("blk", "BLK")
+                                    @PlayoffTh("tov", "TOV")
+                                    @PlayoffTh("fgm", "FGM")
+                                    @PlayoffTh("fga", "FGA")
+                                    @PlayoffTh("fg",  "FG%")
+                                    @PlayoffTh("3pm", "3PM")
+                                    @PlayoffTh("3pa", "3PA")
+                                    @PlayoffTh("3p",  "3P%")
+                                    @PlayoffTh("ftm", "FTM")
+                                    @PlayoffTh("fta", "FTA")
+                                    @PlayoffTh("ft",  "FT%")
+                                </tr>
+                            </thead>
+                            <tbody>
+                            @foreach (var p in poSorted)
+                            {
+                                double poSc = p.TotalMIN > 0 ? 36.0 / p.TotalMIN : 0;
+                                <tr class="clickable-row" @onclick="() => OpenPlayerModal(p)">
+                                    <td class="stats-frozen" style="color:#b8b8b8;">@p.Name</td>
+                                    <td style="color:#666;font-size:0.8rem;">@p.TeamAbbr</td>
+                                    <td style="text-align:center;color:#555;font-size:0.78rem;">@p.Position</td>
+                                    <td style="text-align:center;color:#777;">@p.GP</td>
+                                    <td style="text-align:center;color:#888;">@p.Mpg.ToString("F1")</td>
+                                    <td style="text-align:center;color:#e8c060;font-weight:600;">@((p.TotalPTS*poSc).ToString("F1"))</td>
+                                    <td style="text-align:center;color:#aaa;">@((p.TotalOREB*poSc).ToString("F1"))</td>
+                                    <td style="text-align:center;color:#aaa;">@((p.TotalDREB*poSc).ToString("F1"))</td>
+                                    <td style="text-align:center;">@(((p.TotalOREB+p.TotalDREB)*poSc).ToString("F1"))</td>
+                                    <td style="text-align:center;color:#60c8e8;">@((p.TotalAST*poSc).ToString("F1"))</td>
+                                    <td style="text-align:center;color:#a0e080;">@((p.TotalSTL*poSc).ToString("F1"))</td>
+                                    <td style="text-align:center;color:#e08060;">@((p.TotalBLK*poSc).ToString("F1"))</td>
+                                    <td style="text-align:center;color:#f06060;">@((p.TotalTOV*poSc).ToString("F1"))</td>
+                                    <td style="text-align:center;color:#888;">@((p.TotalFGM*poSc).ToString("F1"))</td>
+                                    <td style="text-align:center;color:#777;">@((p.TotalFGA*poSc).ToString("F1"))</td>
+                                    <td style="text-align:center;color:@FgPctColor(p.FgPct);">@FmtPct(p.FgPct)</td>
+                                    <td style="text-align:center;color:#888;">@((p.TotalThreeMade*poSc).ToString("F1"))</td>
+                                    <td style="text-align:center;color:#777;">@((p.TotalThreeAtt*poSc).ToString("F1"))</td>
+                                    <td style="text-align:center;color:@TpPctColor(p.TpPct);">@(p.TotalThreeAtt>0?FmtPct(p.TpPct):"—")</td>
+                                    <td style="text-align:center;color:#888;">@((p.TotalFTM*poSc).ToString("F1"))</td>
+                                    <td style="text-align:center;color:#777;">@((p.TotalFTA*poSc).ToString("F1"))</td>
+                                    <td style="text-align:center;color:@FtPctColor(p.FtPct);">@(p.TotalFTA>0?FmtPct(p.FtPct):"—")</td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                        }
+                    }
+                    else if (_statsTab == "awards")
+                    {
+                        @if (_awards is not null)
+                        {
+                            <div style="flex-shrink:0;padding:10px 14px 8px;border-bottom:1px solid #1a1a1a;">
+                                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;">
+                                    @if (_awards.MVP    is not null) { @AwardCard("MOST VALUABLE PLAYER",    _awards.MVP,    "#fca",    "#0d0900", "#2a1800") }
+                                    @if (_awards.DPOY   is not null) { @AwardCard("DEF. PLAYER OF THE YEAR", _awards.DPOY,   "#4af0c0", "#000d0d", "#001e1e") }
+                                    @if (_awards.SixMOY is not null) { @AwardCard("6TH MAN OF THE YEAR",     _awards.SixMOY, "#b080ff", "#0a000d", "#1e0030") }
                                 </div>
+                            </div>
+                        }
+                        <div style="flex:1;overflow-y:auto;padding:10px 14px;">
+                            @if (_awards is null)
+                            {
+                                <div style="font-size:0.7rem;color:#444;letter-spacing:1px;margin-bottom:10px;">MID-SEASON RACE — based on current stats</div>
+                            }
+                            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.25rem;">
+                                @* MVP Race *@
+                                <div>
+                                    <div class="section-title" style="color:#fca;margin-bottom:6px;">MVP RACE</div>
+                                    <table style="width:100%;font-size:0.83rem;border-collapse:collapse;">
+                                        <thead><tr>
+                                            <th style="width:20px;text-align:center;color:#444;font-size:0.7rem;padding-bottom:3px;">#</th>
+                                            <th style="text-align:left;color:#444;font-size:0.7rem;padding:0 6px 3px;">PLAYER</th>
+                                            <th style="text-align:right;color:#fca;font-size:0.7rem;padding:0 5px 3px;">SCORE</th>
+                                            <th style="text-align:right;color:#e8c060;font-size:0.7rem;padding:0 4px 3px;">PTS</th>
+                                            <th style="text-align:right;color:#888;font-size:0.7rem;padding:0 4px 3px;">REB</th>
+                                            <th style="text-align:right;color:#60c8e8;font-size:0.7rem;padding:0 4px 3px;">AST</th>
+                                            <th style="text-align:right;color:#a0e080;font-size:0.7rem;padding:0 4px 3px;">STL</th>
+                                            <th style="text-align:right;color:#e08060;font-size:0.7rem;padding:0 4px 3px;">BLK</th>
+                                            <th style="text-align:right;color:#b080ff;font-size:0.7rem;padding:0 4px 3px;">PER</th>
+                                        </tr></thead>
+                                        <tbody>
+                                        @for (int ai = 0; ai < mvpCands.Count; ai++)
+                                        {
+                                            var (ap, apShen) = mvpCands[ai];
+                                            bool isMvpW = _awards?.MVP?.Name == ap.Name;
+                                            <tr class="clickable-row" @onclick="() => OpenPlayerModal(ap)" style="@(isMvpW?"background:#120e00;":"")border-bottom:1px solid #1a1a1a;">
+                                                <td style="text-align:center;color:@(ai==0?"#fca":"#3a3a3a");">@(ai+1)</td>
+                                                <td style="padding:3px 6px;">
+                                                    <span style="color:@(isMvpW?"#fca":"#b8b8b8");">@ap.Name</span>
+                                                    <span style="color:#3a3a3a;font-size:0.75rem;margin-left:3px;">@ap.TeamAbbr</span>
+                                                    @if (isMvpW) { <span style="font-size:0.6rem;color:#fca;margin-left:3px;vertical-align:middle;">✓</span> }
+                                                </td>
+                                                <td style="text-align:right;padding:3px 5px;color:#fca;font-weight:600;">@apShen.ToString("F3")</td>
+                                                <td style="text-align:right;padding:3px 4px;color:#c8a040;">@ap.Ppg.ToString("F1")</td>
+                                                <td style="text-align:right;padding:3px 4px;color:#777;">@ap.Rpg.ToString("F1")</td>
+                                                <td style="text-align:right;padding:3px 4px;color:#4aa8b8;">@ap.Apg.ToString("F1")</td>
+                                                <td style="text-align:right;padding:3px 4px;color:#80b060;">@ap.Spg.ToString("F1")</td>
+                                                <td style="text-align:right;padding:3px 4px;color:#b06040;">@ap.Bpg.ToString("F1")</td>
+                                                <td style="text-align:right;padding:3px 4px;color:#9060d0;">@ap.PER.ToString("F1")</td>
+                                            </tr>
+                                        }
+                                        </tbody>
+                                    </table>
+                                </div>
+                                @* DPOY Race *@
+                                <div>
+                                    <div class="section-title" style="color:#4af0c0;margin-bottom:6px;">DPOY RACE</div>
+                                    <table style="width:100%;font-size:0.83rem;border-collapse:collapse;">
+                                        <thead><tr>
+                                            <th style="width:20px;text-align:center;color:#444;font-size:0.7rem;padding-bottom:3px;">#</th>
+                                            <th style="text-align:left;color:#444;font-size:0.7rem;padding:0 6px 3px;">PLAYER</th>
+                                            <th style="text-align:right;color:#a0e080;font-size:0.7rem;padding:0 5px 3px;">STL</th>
+                                            <th style="text-align:right;color:#e08060;font-size:0.7rem;padding:0 4px 3px;">BLK</th>
+                                        </tr></thead>
+                                        <tbody>
+                                        @for (int ai = 0; ai < dpoyCands.Count; ai++)
+                                        {
+                                            var ap = dpoyCands[ai];
+                                            bool isDpoyW = _awards?.DPOY?.Name == ap.Name;
+                                            <tr class="clickable-row" @onclick="() => OpenPlayerModal(ap)" style="@(isDpoyW?"background:#00100d;":"")border-bottom:1px solid #1a1a1a;">
+                                                <td style="text-align:center;color:@(ai==0?"#4af0c0":"#3a3a3a");">@(ai+1)</td>
+                                                <td style="padding:3px 6px;">
+                                                    <span style="color:@(isDpoyW?"#4af0c0":"#b8b8b8");">@ap.Name</span>
+                                                    <span style="color:#3a3a3a;font-size:0.75rem;margin-left:3px;">@ap.TeamAbbr</span>
+                                                    @if (isDpoyW) { <span style="font-size:0.6rem;color:#4af0c0;margin-left:3px;vertical-align:middle;">✓</span> }
+                                                </td>
+                                                <td style="text-align:right;padding:3px 5px;color:#80b060;">@ap.Spg.ToString("F1")</td>
+                                                <td style="text-align:right;padding:3px 4px;color:#b06040;">@ap.Bpg.ToString("F1")</td>
+                                            </tr>
+                                        }
+                                        </tbody>
+                                    </table>
+                                </div>
+                                @* 6MOY Race *@
+                                <div>
+                                    <div class="section-title" style="color:#b080ff;margin-bottom:6px;">6MOY RACE</div>
+                                    <table style="width:100%;font-size:0.83rem;border-collapse:collapse;">
+                                        <thead><tr>
+                                            <th style="width:20px;text-align:center;color:#444;font-size:0.7rem;padding-bottom:3px;">#</th>
+                                            <th style="text-align:left;color:#444;font-size:0.7rem;padding:0 6px 3px;">PLAYER</th>
+                                            <th style="text-align:right;color:#e8c060;font-size:0.7rem;padding:0 5px 3px;">PTS</th>
+                                            <th style="text-align:right;color:#888;font-size:0.7rem;padding:0 4px 3px;">MIN</th>
+                                        </tr></thead>
+                                        <tbody>
+                                        @for (int ai = 0; ai < sixmoyCands.Count; ai++)
+                                        {
+                                            var ap = sixmoyCands[ai];
+                                            bool is6moyW = _awards?.SixMOY?.Name == ap.Name;
+                                            <tr class="clickable-row" @onclick="() => OpenPlayerModal(ap)" style="@(is6moyW?"background:#0a000e;":"")border-bottom:1px solid #1a1a1a;">
+                                                <td style="text-align:center;color:@(ai==0?"#b080ff":"#3a3a3a");">@(ai+1)</td>
+                                                <td style="padding:3px 6px;">
+                                                    <span style="color:@(is6moyW?"#b080ff":"#b8b8b8");">@ap.Name</span>
+                                                    <span style="color:#3a3a3a;font-size:0.75rem;margin-left:3px;">@ap.TeamAbbr</span>
+                                                    @if (is6moyW) { <span style="font-size:0.6rem;color:#b080ff;margin-left:3px;vertical-align:middle;">✓</span> }
+                                                </td>
+                                                <td style="text-align:right;padding:3px 5px;color:#c8a040;">@ap.Ppg.ToString("F1")</td>
+                                                <td style="text-align:right;padding:3px 4px;color:#666;">@ap.Mpg.ToString("F1")</td>
+                                            </tr>
+                                        }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    else if (_statsTab == "rotations")
+                    {
+                        <!-- ROTATIONS TAB -->
+                        <div style="flex-shrink:0;display:flex;align-items:center;gap:8px;padding:5px 10px;border-bottom:1px solid #1a1a1a;flex-wrap:wrap;">
+                            <span style="font-size:0.72rem;color:#555;letter-spacing:1px;">TEAM</span>
+                            <select @bind="_rotationsTeam" style="background:#1a1a1a;color:#d4d4d4;border:1px solid #333;padding:3px 7px;border-radius:3px;font-family:monospace;font-size:0.82rem;cursor:pointer;">
+                                <option value="">— select —</option>
+                                @foreach (var tn in rotTeams.Keys.OrderBy(n => n))
+                                {
+                                    <option value="@tn">@rotTeams[tn].Abbreviation — @tn</option>
+                                }
+                            </select>
+                            @if (rotTeam is not null)
+                            {
+                                <span style="color:#2a2a2a;font-size:0.75rem;">@rotTeam.Coach.Name · depth @rotDepth</span>
+                                @if (rotTeam.AppliedTargetMinutes is not null && _rotSnapshot is not null)
+                                {
+                                    <span style="font-size:0.68rem;color:#4af0a0;border:1px solid #1a3a2a;border-radius:2px;padding:1px 6px;background:#081208;">✓ Applied</span>
+                                }
+                            }
+                            @if (_alwaysCoachRec)
+                            {
+                                <span style="font-size:0.68rem;color:#c8a040;border:1px solid #3a2a10;border-radius:2px;padding:1px 6px;background:#120f04;cursor:pointer;"
+                                      @onclick="() => _alwaysCoachRec = false">Auto: Coach Rec ✕</span>
+                            }
+                            <div style="flex:1;"></div>
+                            @if (rotTeam is not null && (HasCustomRotation(rotTeam.Name) || rotTeam.AppliedTargetMinutes is not null))
+                            {
+                                <button @onclick="() => ResetRotation(rotTeam.Name)"
+                                        style="background:#0a1a20;color:#4af0c0;border:1px solid #1a3a4a;padding:3px 12px;border-radius:3px;cursor:pointer;font-family:monospace;font-size:0.76rem;">
+                                    ↺ Coach Rec
+                                </button>
+                            }
+                            @if (rotTeam is not null && isLive && rotTeam.Name == followedTeam)
+                            {
+                                bool applyOk = rotTotalMin == 240;
+                                <button @onclick="() => ApplyRotation(rotTeam)" disabled="@(!applyOk)"
+                                        style="background:@(applyOk?"#0d2a0d":"#141414");color:@(applyOk?"#4af080":"#2a2a2a");border:1px solid @(applyOk?"#1a4a1a":"#1e1e1e");padding:3px 12px;border-radius:3px;cursor:@(applyOk?"pointer":"default");font-family:monospace;font-size:0.76rem;font-weight:@(applyOk?"700":"400");">
+                                    ✓ Apply Rotation
+                                </button>
                             }
                         </div>
+                        @if (rotTeam is not null && isLive && rotTeam.Name == followedTeam && rotTotalMin != 240)
+                        {
+                            int rotUnalloc = 240 - rotTotalMin;
+                            <div style="flex-shrink:0;background:#1a0a0a;border-bottom:1px solid #3a1a1a;padding:4px 10px;font-size:0.76rem;color:#f06060;">
+                                ⚠ @(rotUnalloc > 0 ? $"{rotUnalloc} min unallocated" : $"{-rotUnalloc} min over limit") — balance to 240 to apply
+                            </div>
+                        }
+                        @if (rotTeam is null)
+                        {
+                            <div style="color:#2a2a2a;text-align:center;padding:3rem;font-size:0.88rem;">Select a team above to view their rotation.</div>
+                        }
+                        else
+                        {
+                            <div style="flex:1;overflow-y:auto;">
+                            @{ bool rotInvalid = isLive && rotTeam!.Name == followedTeam && rotTotalMin != 240; }
+                            <table style="border-collapse:collapse;width:100%;font-size:0.83rem;@(rotInvalid?"background:#110808;":"")">
+                                <thead class="stats-thead">
+                                    <tr>
+                                        <th style="width:22px;text-align:center;color:#333;padding:4px 2px;"> </th>
+                                        <th style="width:20px;text-align:center;color:#444;padding:4px 2px;">#</th>
+                                        <th style="text-align:left;color:#555;padding:4px 8px;min-width:130px;">PLAYER</th>
+                                        <th style="text-align:center;width:36px;color:#444;">POS</th>
+                                        <th style="text-align:center;width:38px;color:#444;">OVR</th>
+                                        <th style="text-align:center;width:34px;color:#444;">ROLE</th>
+                                        <th style="text-align:left;padding:4px 8px;min-width:240px;color:#444;">GOAL MIN</th>
+                                        <th style="text-align:right;width:36px;color:#444;padding:4px 10px 4px 0;">MIN</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                @for (int ri = 0; ri < rotPlayers.Count; ri++)
+                                {
+                                    var rotP      = rotPlayers[ri];
+                                    bool rotIsS   = ri < 5;
+                                    bool rotIsB   = ri >= 5 && ri < rotDepth;
+                                    bool rotIsRes = ri >= rotDepth;   // beyond coach depth — still editable
+                                    int  rotGmInt = rotGoalMins.GetValueOrDefault(rotP.Name, 0);
+                                    int  rotOvr   = (int)Math.Round(RotationManager.ComputeOverall(rotP));
+                                    string rotCapName = rotP.Name;
+                                    string rotCapTeam = rotTeam.Name;
+                                    bool rotPlusDisabled  = rotTotalMin >= 240 || rotGmInt >= 48 || (rotIsRes && rotDepth >= rotPlayers.Count);
+                                    bool rotMinusDisabled = rotIsS ? rotGmInt <= 1 : rotGmInt <= 0;
+
+                                    if (ri == 5 && rotDepth > 5)
+                                    {
+                                        <tr><td colspan="8" style="padding:2px 10px;font-size:0.6rem;color:#2a4a3a;letter-spacing:1.5px;background:#090d0a;border-top:1px solid #1a1a1a;">BENCH</td></tr>
+                                    }
+                                    if (ri == rotDepth)
+                                    {
+                                        <tr><td colspan="8" style="padding:2px 10px;font-size:0.6rem;color:#333;letter-spacing:1.5px;background:#0a0a0a;border-top:1px solid #1a1a1a;">RESERVE</td></tr>
+                                    }
+
+                                    <tr style="background:@(rotIsRes?"#0a0a0a":"transparent");border-bottom:1px solid #141414;">
+                                        <!-- move up/down buttons -->
+                                        <td style="text-align:center;padding:2px;">
+                                            <div style="display:flex;flex-direction:column;gap:1px;">
+                                                <button @onclick="() => MoveRotationPlayer(rotTeam, rotCapName, -1)"
+                                                        disabled="@(ri == 0)"
+                                                        style="background:none;border:none;color:@(ri==0?"#222":"#444");cursor:@(ri==0?"default":"pointer");font-size:0.65rem;padding:0;line-height:1;width:18px;">▲</button>
+                                                <button @onclick="() => MoveRotationPlayer(rotTeam, rotCapName, +1)"
+                                                        disabled="@(ri == rotPlayers.Count - 1)"
+                                                        style="background:none;border:none;color:@(ri==rotPlayers.Count-1?"#222":"#444");cursor:@(ri==rotPlayers.Count-1?"default":"pointer");font-size:0.65rem;padding:0;line-height:1;width:18px;">▼</button>
+                                            </div>
+                                        </td>
+                                        <td style="text-align:center;color:#2a2a2a;font-size:0.78rem;">@(ri+1)</td>
+                                        <td style="padding:5px 8px;color:@(rotIsS?"#d0d0d0":rotIsB?"#888":"#444");">
+                                            @rotP.Name
+                                            @if (rotP.CurrentInjury is not null)
+                                            {
+                                                <span style="font-size:0.6rem;color:#c88030;border:1px solid #3a2010;border-radius:2px;padding:1px 4px;background:#0e0804;margin-left:5px;"
+                                                      title="@rotP.CurrentInjury.Definition.Name — @rotP.CurrentInjury.DaysRemaining d remaining">DTD</span>
+                                            }
+                                        </td>
+                                        <td style="text-align:center;color:#555;font-size:0.78rem;">@rotP.Position</td>
+                                        <td style="text-align:center;color:@(rotIsS?"#aaa":rotIsB?"#666":"#333");">@rotOvr</td>
+                                        <td style="text-align:center;padding:0 4px;">
+                                            @if (rotIsS)
+                                            {
+                                                <span style="font-size:0.65rem;color:#4af080;border:1px solid #1a3a1a;border-radius:2px;padding:1px 4px;background:#080f08;">S</span>
+                                            }
+                                            else if (rotIsB)
+                                            {
+                                                <span style="font-size:0.65rem;color:#60a8c0;border:1px solid #1a3040;border-radius:2px;padding:1px 4px;background:#080c10;">B</span>
+                                            }
+                                            else
+                                            {
+                                                <span style="font-size:0.65rem;color:#333;">R</span>
+                                            }
+                                        </td>
+                                        <td style="padding:3px 8px;">
+                                            <div style="display:flex;align-items:center;gap:4px;">
+                                                <div style="flex:1;background:#1a1a1a;height:3px;border-radius:2px;min-width:50px;">
+                                                    <div style="width:@(Math.Min(rotGmInt/40.0*100,100).ToString("F1"))%;background:@(rotIsS?"#3a7a5a":"#2a5878");height:3px;border-radius:2px;"></div>
+                                                </div>
+                                                <button @onmousedown="() => StartRepeat(rotCapTeam, rotCapName, -1)"
+                                                        @onmouseup="StopRepeat" @onmouseleave="StopRepeat"
+                                                        disabled="@rotMinusDisabled"
+                                                        style="background:#1a1a1a;border:1px solid #2a2a2a;color:@(rotMinusDisabled?"#333":"#888");width:20px;height:20px;border-radius:3px;cursor:@(rotMinusDisabled?"default":"pointer");font-size:0.9rem;line-height:1;padding:0;display:flex;align-items:center;justify-content:center;flex-shrink:0;user-select:none;">−</button>
+                                                <span style="width:22px;text-align:center;color:@(rotIsS?"#c8c8c8":rotIsB?"#888":"#444");font-size:0.83rem;">@(rotIsRes ? "—" : rotGmInt.ToString())</span>
+                                                <button @onmousedown="() => StartRepeat(rotCapTeam, rotCapName, +1)"
+                                                        @onmouseup="StopRepeat" @onmouseleave="StopRepeat"
+                                                        disabled="@rotPlusDisabled"
+                                                        style="background:#1a1a1a;border:1px solid #2a2a2a;color:@(rotPlusDisabled?"#333":"#888");width:20px;height:20px;border-radius:3px;cursor:@(rotPlusDisabled?"default":"pointer");font-size:0.9rem;line-height:1;padding:0;display:flex;align-items:center;justify-content:center;flex-shrink:0;user-select:none;">+</button>
+                                            </div>
+                                        </td>
+                                        <td style="text-align:right;padding:5px 10px 5px 0;color:@(rotIsS?"#c8c8c8":rotIsB?"#777":"#333");font-weight:@(rotIsS?"600":"400");">
+                                            @(rotIsRes ? "" : rotGmInt.ToString())
+                                        </td>
+                                    </tr>
+                                }
+
+                                @* Injured players — live season only *@
+                                @if (rotInjured.Count > 0)
+                                {
+                                    <tr><td colspan="8" style="padding:2px 10px;font-size:0.6rem;color:#5a2020;letter-spacing:1.5px;background:#0d0808;border-top:1px solid #2a1010;">INJURED</td></tr>
+                                    @foreach (var ip in rotInjured.OrderByDescending(p => p.CurrentInjury!.Definition.Grade))
+                                    {
+                                        string injLabel; string injColor;
+                                        if (ip.CurrentInjury!.Definition.Grade >= 2)
+                                        {
+                                            injLabel = "OUT"; injColor = "#e05050";
+                                        }
+                                        else
+                                        {
+                                            injLabel = "Q"; injColor = "#c88030";
+                                        }
+                                        <tr style="background:#0d0808;border-bottom:1px solid #141414;">
+                                            <td></td>
+                                            <td style="text-align:center;color:#444;">—</td>
+                                            <td style="padding:5px 8px;color:#666;">@ip.Name</td>
+                                            <td style="text-align:center;color:#444;font-size:0.78rem;">@ip.Position</td>
+                                            <td style="text-align:center;color:#444;">@((int)Math.Round(RotationManager.ComputeOverall(ip)))</td>
+                                            <td style="text-align:center;padding:0 4px;">
+                                                <span style="font-size:0.65rem;color:@injColor;border:1px solid #2a1010;border-radius:2px;padding:1px 4px;background:#0d0808;">@injLabel</span>
+                                            </td>
+                                            <td colspan="2" style="padding:5px 8px;color:#555;font-size:0.76rem;">
+                                                @ip.CurrentInjury.Definition.Name — @ip.CurrentInjury.DaysRemaining d remaining
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+
+                                @* Total row *@
+                                @{
+                                    int rotRemaining = 240 - rotTotalMin;
+                                    string rotRemColor  = rotRemaining < 0 ? "#f06060" : rotRemaining < 5 ? "#4af080" : rotRemaining < 20 ? "#fca" : "#888";
+                                }
+                                <tr style="border-top:2px solid #2a2a2a;background:#0f0f0f;">
+                                    <td colspan="5" style="padding:5px 8px;font-size:0.72rem;color:#444;letter-spacing:0.5px;">
+                                        ROTATION TOTAL &nbsp;
+                                        <span style="color:@(Math.Abs(rotTotalMin-240)>20?"#f06060":Math.Abs(rotTotalMin-240)>8?"#fca":"#4af080");font-weight:700;">@rotTotalMin.ToString("F0")</span>
+                                        <span style="color:#333;"> / 240</span>
+                                    </td>
+                                    <td colspan="3" style="text-align:right;padding:5px 10px 5px 0;font-size:0.72rem;">
+                                        <span style="color:#444;">REMAINING &nbsp;</span>
+                                        <span style="color:@rotRemColor;font-weight:700;">@rotRemaining.ToString("F0")</span>
+                                        <span style="color:#333;"> min</span>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                            </div>
+                        }
                     }
                 </div>
             </div>
@@ -1082,6 +1535,51 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
 
     </div><!-- end body -->
 
+}
+<!-- ═══ ROTATION CHANGE MODAL ═══ -->
+@if (_rotChangeModalVisible && _liveState is not null)
+{
+    var _kb = _rotSnapshot ?? _rosterBaseline;
+    bool keepBlocked = _kb is not null
+        && _liveState.Teams.TryGetValue(_liveState.FollowedTeam, out var _rcft)
+        && _kb.Active.Any(n => {
+            var _rcp = _rcft.Roster.FirstOrDefault(p => string.Equals(p.Name, n, StringComparison.OrdinalIgnoreCase));
+            return _rcp is null || (_rcp.CurrentInjury?.Definition.Grade ?? 0) >= 2;
+        });
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:1100;display:flex;align-items:center;justify-content:center;padding:1rem;">
+        <div style="background:#141414;border:1px solid #3a2020;border-radius:8px;width:min(480px,95vw);font-family:monospace;color:#d4d4d4;overflow:hidden;">
+            <div style="background:#1a0d0d;border-bottom:1px solid #3a1a1a;padding:0.85rem 1.25rem;">
+                <div style="font-size:0.72rem;color:#f06060;letter-spacing:2px;margin-bottom:2px;">ROTATION UPDATE REQUIRED</div>
+                <div style="font-size:1.0rem;font-weight:700;color:#e8e8e8;">@_liveState.FollowedTeam</div>
+            </div>
+            <div style="padding:1rem 1.25rem;">
+                <ul style="margin:0 0 1rem;padding-left:1.2rem;list-style:disc;">
+                    @foreach (var ch in _rotChanges)
+                    {
+                        <li style="color:#c8c8c8;font-size:0.88rem;padding:2px 0;">@ch</li>
+                    }
+                </ul>
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                    <button @onclick="RotModalKeep" disabled="@keepBlocked"
+                            style="background:@(keepBlocked?"#141414":"#0d1a0d");color:@(keepBlocked?"#333":"#4af080");border:1px solid @(keepBlocked?"#1e1e1e":"#1a4a1a");padding:7px 12px;border-radius:4px;cursor:@(keepBlocked?"default":"pointer");font-family:monospace;font-size:0.85rem;text-align:left;">
+                        Keep Current Rotation@(keepBlocked?" (unavailable player in rotation)":"")
+                    </button>
+                    <button @onclick="RotModalEdit"
+                            style="background:#141414;color:#c8a040;border:1px solid #3a2a10;padding:7px 12px;border-radius:4px;cursor:pointer;font-family:monospace;font-size:0.85rem;text-align:left;">
+                        Edit Rotation
+                    </button>
+                    <button @onclick="RotModalCoachRec"
+                            style="background:#141414;color:#888;border:1px solid #2a2a2a;padding:7px 12px;border-radius:4px;cursor:pointer;font-family:monospace;font-size:0.85rem;text-align:left;">
+                        Use Coach Recommendation
+                    </button>
+                    <button @onclick="RotModalAlwaysCoachRec"
+                            style="background:#141414;color:#555;border:1px solid #222;padding:7px 12px;border-radius:4px;cursor:pointer;font-family:monospace;font-size:0.85rem;text-align:left;">
+                        Always Use Coach Recommendation
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 }
 <!-- ═══ GAME LOG MODAL ═══ -->
 @if (_gameLogTeam is not null && (_season is not null || _liveState is not null))
@@ -1168,7 +1666,7 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
             <div style="padding:1.25rem 1.5rem;text-align:center;">
                 <div style="display:flex;align-items:center;justify-content:center;gap:1.5rem;">
                     <div style="text-align:center;">
-                        <img src="/logos/teams/@(LogoSlug(tbs.HomeTeam)).svg" style="width:48px;height:48px;object-fit:contain;display:block;margin:0 auto 4px;" onerror="this.style.display='none'" />
+                        <img src="/logos/teams/@(LogoSlug(tbs.HomeTeam)).svg" style="width:48px;height:48px;object-fit:contain;display:block;margin:0 auto 4px;" onerror="@LogoOnerror" />
                         <div style="font-size:0.8rem;color:@(thw?"#e8e8e8":"#555");">@tbs.HomeAbbr</div>
                     </div>
                     <div>
@@ -1180,7 +1678,7 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
                         <div style="font-size:0.68rem;color:#333;text-align:center;margin-top:2px;">FINAL</div>
                     </div>
                     <div style="text-align:center;">
-                        <img src="/logos/teams/@(LogoSlug(tbs.AwayTeam)).svg" style="width:48px;height:48px;object-fit:contain;display:block;margin:0 auto 4px;" onerror="this.style.display='none'" />
+                        <img src="/logos/teams/@(LogoSlug(tbs.AwayTeam)).svg" style="width:48px;height:48px;object-fit:contain;display:block;margin:0 auto 4px;" onerror="@LogoOnerror" />
                         <div style="font-size:0.8rem;color:@(!thw?"#e8e8e8":"#555");">@tbs.AwayAbbr</div>
                     </div>
                 </div>
@@ -1478,13 +1976,13 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
                 <div style="font-size:0.68rem;color:#555;letter-spacing:1px;margin-bottom:1rem;">@sg.Date.ToString("dddd, MMMM d").ToUpper()</div>
                 <div style="display:flex;align-items:center;justify-content:center;gap:2rem;margin-bottom:1.5rem;">
                     <div style="text-align:center;">
-                        <img src="/logos/teams/@(LogoSlug(sgHomeName)).svg" style="width:54px;height:54px;object-fit:contain;display:block;margin:0 auto 6px;" onerror="this.style.display='none'" />
+                        <img src="/logos/teams/@(LogoSlug(sgHomeName)).svg" style="width:54px;height:54px;object-fit:contain;display:block;margin:0 auto 6px;" onerror="@LogoOnerror" />
                         <div style="font-size:0.82rem;color:#888;letter-spacing:0.5px;">@sgHome</div>
                         <div style="font-size:0.6rem;color:#444;letter-spacing:1px;margin-top:2px;">HOME</div>
                     </div>
                     <div style="font-size:0.68rem;color:#333;letter-spacing:1px;">vs</div>
                     <div style="text-align:center;">
-                        <img src="/logos/teams/@(LogoSlug(sgAwayName)).svg" style="width:54px;height:54px;object-fit:contain;display:block;margin:0 auto 6px;" onerror="this.style.display='none'" />
+                        <img src="/logos/teams/@(LogoSlug(sgAwayName)).svg" style="width:54px;height:54px;object-fit:contain;display:block;margin:0 auto 6px;" onerror="@LogoOnerror" />
                         <div style="font-size:0.82rem;color:#888;letter-spacing:0.5px;">@sgAway</div>
                         <div style="font-size:0.6rem;color:#444;letter-spacing:1px;margin-top:2px;">AWAY</div>
                     </div>
@@ -1541,13 +2039,13 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
             <div style="padding:1.25rem;text-align:center;">
                 <div style="display:flex;align-items:center;justify-content:center;gap:2rem;margin-bottom:1.5rem;">
                     <div style="text-align:center;">
-                        <img src="/logos/teams/@(LogoSlug(bHomeName)).svg" style="width:48px;height:48px;object-fit:contain;display:block;margin:0 auto 5px;" onerror="this.style.display='none'" />
+                        <img src="/logos/teams/@(LogoSlug(bHomeName)).svg" style="width:48px;height:48px;object-fit:contain;display:block;margin:0 auto 5px;" onerror="@LogoOnerror" />
                         <div style="font-size:0.78rem;color:#888;">@bHome</div>
                         <div style="font-size:0.55rem;color:#444;letter-spacing:1px;">HOME</div>
                     </div>
                     <div style="font-size:0.65rem;color:#333;letter-spacing:1px;">vs</div>
                     <div style="text-align:center;">
-                        <img src="/logos/teams/@(LogoSlug(bAwayName)).svg" style="width:48px;height:48px;object-fit:contain;display:block;margin:0 auto 5px;" onerror="this.style.display='none'" />
+                        <img src="/logos/teams/@(LogoSlug(bAwayName)).svg" style="width:48px;height:48px;object-fit:contain;display:block;margin:0 auto 5px;" onerror="@LogoOnerror" />
                         <div style="font-size:0.78rem;color:#888;">@bAway</div>
                         <div style="font-size:0.55rem;color:#444;letter-spacing:1px;">AWAY</div>
                     </div>
@@ -1605,7 +2103,7 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
                 <!-- Away team -->
                 <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;opacity:@(_watchDone&&!wAwayWins?"0.30":"1");">
                     <img src="/logos/teams/@(LogoSlug(wg.AwayTeam.Name)).svg"
-                         style="width:40px;height:40px;object-fit:contain;" onerror="this.style.display='none'" />
+                         style="width:40px;height:40px;object-fit:contain;" onerror="@LogoOnerror" />
                     <div style="font-size:0.82rem;font-weight:700;color:@(wAwayWins?"#e8e8e8":"#888");letter-spacing:1px;">@wAwayAbbr</div>
                     <div style="font-size:2.8rem;font-weight:900;line-height:1;color:@(wAwayWins?"#4af080":"#c8c8c8");">@_watchAwayScore</div>
                     @if (wAwayWins) { <div style="font-size:0.6rem;color:#4af080;letter-spacing:2px;font-weight:700;">WINNER</div> }
@@ -1649,7 +2147,7 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
                 <!-- Home team -->
                 <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;opacity:@(_watchDone&&!wHomeWins?"0.30":"1");">
                     <img src="/logos/teams/@(LogoSlug(wg.HomeTeam.Name)).svg"
-                         style="width:40px;height:40px;object-fit:contain;" onerror="this.style.display='none'" />
+                         style="width:40px;height:40px;object-fit:contain;" onerror="@LogoOnerror" />
                     <div style="font-size:0.82rem;font-weight:700;color:@(wHomeWins?"#e8e8e8":"#888");letter-spacing:1px;">@wHomeAbbr</div>
                     <div style="font-size:2.8rem;font-weight:900;line-height:1;color:@(wHomeWins?"#4af080":"#c8c8c8");">@_watchHomeScore</div>
                     @if (wHomeWins) { <div style="font-size:0.6rem;color:#4af080;letter-spacing:2px;font-weight:700;">WINNER</div> }
@@ -1706,7 +2204,7 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
                     <div style="display:flex;flex-direction:column;overflow:hidden;border-right:@(isSideHome?"1px solid #1a1a1a":"none");">
                         <!-- Team header -->
                         <div style="display:flex;align-items:center;gap:8px;padding:5px 10px;background:#0a0a0a;border-bottom:1px solid #1a1a1a;flex-shrink:0;">
-                            <img src="/logos/teams/@(LogoSlug(side.Name)).svg" style="width:16px;height:16px;object-fit:contain;" onerror="this.style.display='none'" />
+                            <img src="/logos/teams/@(LogoSlug(side.Name)).svg" style="width:16px;height:16px;object-fit:contain;" onerror="@LogoOnerror" />
                             <span style="font-size:0.85rem;font-weight:700;color:#c8c8c8;">@sideAbbr</span>
                         </div>
                         <!-- Stats table -->
@@ -1883,13 +2381,13 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
                             <th style="text-align:left;padding:6px 12px 6px 0;color:#444;font-weight:400;min-width:160px;"></th>
                             <th style="text-align:center;padding:6px 16px;min-width:120px;">
                                 <div style="display:flex;align-items:center;justify-content:center;gap:6px;">
-                                    <img src="/logos/teams/@(LogoSlug(wg.HomeTeam.Name)).svg" style="width:18px;height:18px;object-fit:contain;" onerror="this.style.display='none'" />
+                                    <img src="/logos/teams/@(LogoSlug(wg.HomeTeam.Name)).svg" style="width:18px;height:18px;object-fit:contain;" onerror="@LogoOnerror" />
                                     <span style="font-size:0.9rem;font-weight:700;color:@(wHomeWins?"#c8c8c8":"#888");">@wHomeAbbr</span>
                                 </div>
                             </th>
                             <th style="text-align:center;padding:6px 16px;min-width:120px;">
                                 <div style="display:flex;align-items:center;justify-content:center;gap:6px;">
-                                    <img src="/logos/teams/@(LogoSlug(wg.AwayTeam.Name)).svg" style="width:18px;height:18px;object-fit:contain;" onerror="this.style.display='none'" />
+                                    <img src="/logos/teams/@(LogoSlug(wg.AwayTeam.Name)).svg" style="width:18px;height:18px;object-fit:contain;" onerror="@LogoOnerror" />
                                     <span style="font-size:0.9rem;font-weight:700;color:@(wAwayWins?"#c8c8c8":"#888");">@wAwayAbbr</span>
                                 </div>
                             </th>
@@ -2227,6 +2725,10 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
     private static string LogoSlug(string teamName) =>
         teamName.ToLowerInvariant().Replace(' ', '-');
 
+    // Fallback: try .png before hiding (handles SVGs with broken path data like Clippers)
+    private const string LogoOnerror =
+        "if(this.src.endsWith('.svg')){this.src=this.src.replace('.svg','.png')}else{this.style.display='none'}";
+
     private record CalGame(string OppAbbr, string OppFullName, bool IsHome, bool IsPast, bool Won, int MyScore, int OppScore, ScheduledGame? ScheduledGameRef);
 
     private CalGame? GetFollowedGameOnDate(DateOnly date, string followedTeam, bool live)
@@ -2315,14 +2817,36 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
         StateHasChanged();
         _liveState = await Task.Run(() =>
             SeasonSvc.InitializeLiveSeason(_teams, _selectedTeam, disableInjuries: _disableInjuries));
+        _rotSnapshot    = null;
+        _rosterBaseline = null;
+        if (_liveState.FollowedTeam.Length > 0 &&
+            _liveState.Teams.TryGetValue(_liveState.FollowedTeam, out var ftInit))
+            _rosterBaseline = BuildBaselineSnapshot(ftInit);
         StateHasChanged();
+    }
+
+    // Snapshot of a team's current roster/injury state for change detection.
+    // Active = coach-rec rotation players (non-DNP, up to RotationDepth).
+    private static RotationSnapshot BuildBaselineSnapshot(Team team)
+    {
+        var dnp     = team.Roster.Where(p => (p.CurrentInjury?.Definition.Grade ?? 0) >= 2)
+                                 .Select(p => p.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var healthy = team.Roster.Where(p => !dnp.Contains(p.Name)).ToList();
+        int depth   = Math.Clamp(team.RotationDepth, 5, healthy.Count);
+        var active  = healthy.Take(depth).Select(p => p.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var injured = healthy.Take(depth).Where(p => p.CurrentInjury is not null)
+                             .Select(p => p.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var roster  = team.Roster.Select(p => p.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        return new RotationSnapshot(active, injured, new HashSet<string>(StringComparer.OrdinalIgnoreCase), roster);
     }
 
     private void SimOneDayLive()
     {
         if (_liveState is null || _liveState.IsComplete) return;
+        if (CheckRotationDirty("day")) return;
         SeasonSvc.SimulateDay(_liveState);
         SyncCalendarToCurrentDate();
+        CheckRotationDirty("day"); // catch injuries that occurred during this day's games
         StateHasChanged();
     }
 
@@ -2337,11 +2861,13 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
         {
             while (!_liveState.IsComplete)
             {
+                if (CheckRotationDirty("simrest")) { StateHasChanged(); break; }
                 await Task.Run(() =>
                 {
                     for (int i = 0; i < 5 && !_liveState.IsComplete; i++)
                         SeasonSvc.SimulateDay(_liveState);
                 });
+                if (CheckRotationDirty("simrest")) { StateHasChanged(); break; }
                 SyncCalendarToCurrentDate();
                 StateHasChanged();
             }
@@ -2365,6 +2891,7 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
         while (_isAutoSimming)
         {
             if (_liveState is null || _liveState.IsComplete) { _isAutoSimming = false; break; }
+            if (CheckRotationDirty("auto")) { _isAutoSimming = false; StateHasChanged(); break; }
             if (_simBusy) { await Task.Delay(100); continue; }
             _simBusy = true;
             try
@@ -2406,6 +2933,7 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
     {
         _isAutoSimming = false;
         _watchCts?.Cancel();
+        _rotRepeatCts?.Cancel();
         await Task.CompletedTask;
     }
 
@@ -2426,6 +2954,29 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
 
     private string _teamSort    = "wins";
     private bool   _teamSortAsc = false;
+
+    private string _playoffStatsView = "standard";
+    private string _playoffSort      = "pts";
+    private bool   _playoffSortAsc   = false;
+
+    private string  _rotationsTeam = "";
+    private string? _rotDragSource = null;
+    private Dictionary<string, Dictionary<string, double>> _customMinutes  = new(StringComparer.OrdinalIgnoreCase);
+    private Dictionary<string, int>                        _customRotDepth = new(StringComparer.OrdinalIgnoreCase);
+    private Dictionary<string, List<string>>               _customRotOrder = new(StringComparer.OrdinalIgnoreCase);
+
+    private record RotationSnapshot(
+        HashSet<string> Active,      // players within rotation depth at apply time
+        HashSet<string> Injured,     // active players with ANY injury at apply time
+        HashSet<string> Out,         // active players grade 2+ (unavailable) at apply time
+        HashSet<string> FullRoster   // all roster names at apply time (for join/leave detection)
+    );
+    private RotationSnapshot? _rotSnapshot;    // set only when user applies a custom rotation
+    private RotationSnapshot? _rosterBaseline; // always-on baseline for coach-rec mode
+    private bool _alwaysCoachRec         = false;
+    private bool _rotChangeModalVisible  = false;
+    private List<string> _rotChanges     = [];
+    private string _rotPauseMode         = ""; // "day" | "simrest" | "auto"
 
     private Dictionary<string, Team> _teams = [];
 
@@ -3009,40 +3560,502 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
         else { _teamSort = col; _teamSortAsc = col is "losses" or "papg" or "tov"; }
     }
 
+    private void SetPlayoffSort(string col)
+    {
+        if (_playoffSort == col) _playoffSortAsc = !_playoffSortAsc;
+        else { _playoffSort = col; _playoffSortAsc = false; }
+    }
+
+    // ── Rotation tab helpers ──────────────────────────────────────────────────
+
+    private bool HasCustomRotation(string teamName) =>
+        _customMinutes.ContainsKey(teamName) || _customRotOrder.ContainsKey(teamName) || _customRotDepth.ContainsKey(teamName);
+
+    private int GetEffectiveDepth(Team team, List<Player> healthyRot) =>
+        _customRotDepth.TryGetValue(team.Name, out int cd)
+            ? Math.Clamp(cd, 5, healthyRot.Count)
+            : Math.Clamp(team.RotationDepth, 5, healthyRot.Count);
+
+    private List<Player> GetRotationPlayers(Team team)
+    {
+        if (_customRotOrder.TryGetValue(team.Name, out var order))
+        {
+            var byName = team.Roster.ToDictionary(p => p.Name, StringComparer.OrdinalIgnoreCase);
+            var ordered = order
+                .Select(n => byName.TryGetValue(n, out var pl) ? pl : null)
+                .Where(p => p is not null).Select(p => p!).ToList();
+            // Append any roster members not yet in the custom order
+            var inOrder = order.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            foreach (var p in team.Roster.Where(p => !inOrder.Contains(p.Name)))
+                ordered.Add(p);
+            return ordered;
+        }
+        return team.Roster.ToList();
+    }
+
+    private Dictionary<string, double> GetGoalMinutes(Team team) =>
+        GetGoalMinutesWithDnp(team, new HashSet<string>());
+
+    private Dictionary<string, double> GetGoalMinutesWithDnp(Team team, HashSet<string> dnp)
+    {
+        var dnpCol = dnp.Count > 0 ? (IReadOnlyCollection<string>)dnp : null;
+        var computed = RotationManager.ComputeTargetMinutes(team, null, dnpCol);
+        if (_customMinutes.TryGetValue(team.Name, out var custom))
+            foreach (var kv in custom)
+                if (dnp.Count == 0 || !dnp.Contains(kv.Key))
+                    computed[kv.Key] = kv.Value;
+        return computed;
+    }
+
+    // Returns integer minutes that sum exactly to 240 for within-depth players; reserves get 0.
+    // Custom (user-pinned) minutes are fixed; the remainder is distributed among free players
+    // using the largest-remainder method.
+    private Dictionary<string, int> GetGoalMinutesRoundedWithDnp(Team team, HashSet<string> dnp)
+    {
+        // When a rotation is applied, use it as the base and overlay any pending UI edits.
+        // Never fall back to RotationManager — that would silently reassign non-edited players.
+        if (team.AppliedTargetMinutes is not null)
+        {
+            var applied = team.AppliedTargetMinutes.ToDictionary(
+                kv => kv.Key, kv => (int)kv.Value, StringComparer.OrdinalIgnoreCase);
+            if (_customMinutes.TryGetValue(team.Name, out var cm))
+                foreach (var kv in cm)
+                    applied[kv.Key] = (int)kv.Value;
+            return applied;
+        }
+
+        var dnpCol  = dnp.Count > 0 ? (IReadOnlyCollection<string>)dnp : null;
+        int? dOverride = _customRotDepth.TryGetValue(team.Name, out int cd) ? cd : null;
+        var computed   = RotationManager.ComputeTargetMinutes(team, null, dnpCol, dOverride);
+        var custom     = _customMinutes.TryGetValue(team.Name, out var c) ? c : null;
+
+        var allNonDnp = GetRotationPlayers(team)
+            .Where(p => !dnp.Contains(p.Name))
+            .Select(p => p.Name)
+            .ToList();
+        int effectiveDepth = dOverride.HasValue
+            ? Math.Clamp(dOverride.Value, 5, allNonDnp.Count)
+            : Math.Clamp(team.RotationDepth, 5, allNonDnp.Count);
+
+        var active  = allNonDnp.Take(effectiveDepth).ToList();
+        var result  = RoundMinutesToTarget(computed, custom, active, 240);
+        foreach (var n in allNonDnp.Skip(effectiveDepth))
+            result[n] = 0;
+        return result;
+    }
+
+    // Largest-remainder rounding so coach-rec integers sum to exactly `target`.
+    // Custom overrides are applied on top — non-custom players are never affected
+    // by what custom players do.
+    private static Dictionary<string, int> RoundMinutesToTarget(
+        Dictionary<string, double> computed,
+        Dictionary<string, double>? custom,
+        List<string> active,
+        int target = 240)
+    {
+        var vals   = active.Select(n => (n, v: computed.GetValueOrDefault(n, 0.0))).ToList();
+        int floor  = vals.Sum(x => (int)Math.Floor(x.v));
+        int bump   = Math.Clamp(target - floor, 0, active.Count);
+        var bumped = vals.OrderByDescending(x => x.v - Math.Floor(x.v))
+                        .Take(bump).Select(x => x.n)
+                        .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var result = vals.ToDictionary(
+            x => x.n,
+            x => (int)Math.Floor(x.v) + (bumped.Contains(x.n) ? 1 : 0),
+            StringComparer.OrdinalIgnoreCase);
+
+        if (custom != null)
+            foreach (var kv in custom)
+                if (result.ContainsKey(kv.Key))
+                    result[kv.Key] = (int)kv.Value;
+
+        return result;
+    }
+
+    private void SetCustomMinutes(string teamName, string playerName, double min)
+    {
+        if (!_customMinutes.ContainsKey(teamName))
+            _customMinutes[teamName] = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+        _customMinutes[teamName][playerName] = min;
+    }
+
+    private void ResetRotation(string teamName)
+    {
+        _customMinutes.Remove(teamName);
+        _customRotOrder.Remove(teamName);
+        _customRotDepth.Remove(teamName);
+        // Clear applied state from the Team so the game engine reverts to coach rec
+        var teams = (_phase == Phase.LiveSeason && _liveState is not null)
+            ? (IReadOnlyDictionary<string, Team>)_liveState.Teams
+            : (IReadOnlyDictionary<string, Team>)_teams;
+        if (teams.TryGetValue(teamName, out var t))
+        {
+            t.AppliedTargetMinutes = null;
+            t.CustomRotationDepth  = null;
+        }
+        if (string.Equals(teamName, _liveState?.FollowedTeam, StringComparison.OrdinalIgnoreCase))
+            _rotSnapshot = null;
+    }
+
+    private void ApplyRotation(Team team)
+    {
+        var dnp = team.Roster
+            .Where(p => p.CurrentInjury?.Definition.Grade >= 2)
+            .Select(p => p.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        // Reorder team.Roster to match current custom order
+        var ordered = GetRotationPlayers(team);
+        team.Roster.Clear();
+        foreach (var p in ordered) team.Roster.Add(p);
+
+        // Lock depth onto the Team model
+        team.CustomRotationDepth = GetEffectiveDepth(team, ordered.Where(p => !dnp.Contains(p.Name)).ToList());
+
+        // Bake in target minutes
+        var rounded = GetGoalMinutesRoundedWithDnp(team, dnp);
+        team.AppliedTargetMinutes = rounded.ToDictionary(
+            kv => kv.Key, kv => (double)kv.Value, StringComparer.OrdinalIgnoreCase);
+
+        // Snapshot for dirty detection
+        var snapActive = ordered.Take(team.CustomRotationDepth.Value)
+            .Select(p => p.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var snapInjured = ordered.Take(team.CustomRotationDepth.Value)
+            .Where(p => p.CurrentInjury is not null)
+            .Select(p => p.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var snapOut    = snapActive.Where(n => dnp.Contains(n)).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var snapRoster = team.Roster.Select(p => p.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        _rotSnapshot = new RotationSnapshot(snapActive, snapInjured, snapOut, snapRoster);
+
+        // Clear only the pending UI edits — order/depth are baked into team.Roster/CustomRotationDepth
+        // Do NOT call ResetRotation: that would wipe AppliedTargetMinutes and CustomRotationDepth
+        _customMinutes.Remove(team.Name);
+        _customRotOrder.Remove(team.Name);
+        _customRotDepth.Remove(team.Name);
+    }
+
+    private List<string> DetectRotationChanges(Team team, RotationSnapshot snap)
+    {
+        var changes = new List<string>();
+        var current = team.Roster.ToDictionary(p => p.Name, StringComparer.OrdinalIgnoreCase);
+
+        // Roster changes — anyone on the full roster who joined or left
+        foreach (var name in snap.FullRoster)
+            if (!current.ContainsKey(name))
+                changes.Add($"{name} is no longer on the roster");
+        foreach (var name in current.Keys)
+            if (!snap.FullRoster.Contains(name))
+                changes.Add($"{name} has joined the roster");
+
+        // Injury changes for active rotation players
+        foreach (var name in snap.Active)
+        {
+            if (!current.TryGetValue(name, out var p)) continue; // already caught above
+            bool wasInjured = snap.Injured.Contains(name);
+            bool nowInjured = p.CurrentInjury is not null;
+            bool wasOut     = snap.Out.Contains(name);
+            bool nowOut     = (p.CurrentInjury?.Definition.Grade ?? 0) >= 2;
+
+            if (!wasInjured && nowInjured)
+            {
+                string status = nowOut ? "OUT" : "DTD";
+                changes.Add($"{name} is injured — {p.CurrentInjury!.Definition.Name} ({status})");
+            }
+            else if (wasInjured && !nowInjured)
+                changes.Add($"{name} has returned from injury");
+            else if (wasInjured && nowInjured && !wasOut && nowOut)
+                changes.Add($"{name}'s injury has worsened to OUT ({p.CurrentInjury!.Definition.Name})");
+        }
+
+        return changes;
+    }
+
+    private bool CheckRotationDirty(string pauseMode = "day")
+    {
+        if (_alwaysCoachRec || _liveState is null) return false;
+        if (!_liveState.Teams.TryGetValue(_liveState.FollowedTeam, out var ft)) return false;
+        var baseline = _rotSnapshot ?? _rosterBaseline;
+        if (baseline is null) return false;
+        var changes = DetectRotationChanges(ft, baseline);
+        if (changes.Count == 0) return false;
+        _rotChanges = changes;
+        _rotPauseMode = pauseMode;
+        _rotChangeModalVisible = true;
+        return true;
+    }
+
+    // Modal: keep current rotation — refresh snapshot/baseline to current state so same changes aren't re-detected
+    private async Task RotModalKeep()
+    {
+        if (_liveState is null) return;
+        if (!_liveState.Teams.TryGetValue(_liveState.FollowedTeam, out var ft)) return;
+        if (_rotSnapshot is not null)
+        {
+            var newInjured = _rotSnapshot.Active
+                .Select(n => ft.Roster.FirstOrDefault(p => string.Equals(p.Name, n, StringComparison.OrdinalIgnoreCase)))
+                .Where(p => p?.CurrentInjury is not null)
+                .Select(p => p!.Name)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var newOut = _rotSnapshot.Active
+                .Select(n => ft.Roster.FirstOrDefault(p => string.Equals(p.Name, n, StringComparison.OrdinalIgnoreCase)))
+                .Where(p => (p?.CurrentInjury?.Definition.Grade ?? 0) >= 2)
+                .Select(p => p!.Name)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var newRoster = ft.Roster.Select(p => p.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            _rotSnapshot = _rotSnapshot with { Injured = newInjured, Out = newOut, FullRoster = newRoster };
+        }
+        _rosterBaseline = BuildBaselineSnapshot(ft);
+        _rotChangeModalVisible = false;
+        await ResumeSimAfterModal();
+    }
+
+    // Modal: edit rotation — clear applied and open the rotations tab, keep sim paused
+    private void RotModalEdit()
+    {
+        if (_liveState is not null && _liveState.Teams.TryGetValue(_liveState.FollowedTeam, out var ft))
+        {
+            ft.AppliedTargetMinutes = null;
+            ft.CustomRotationDepth  = null;
+            _rosterBaseline = BuildBaselineSnapshot(ft); // acknowledge — don't re-show for same changes
+        }
+        _rotSnapshot           = null;
+        _rotPauseMode          = "";
+        _rotChangeModalVisible = false;
+        _statsTab = "rotations";
+        _rotationsTeam = _liveState?.FollowedTeam ?? "";
+    }
+
+    // Modal: use coach rec once, resume sim
+    private async Task RotModalCoachRec()
+    {
+        if (_liveState is not null && _liveState.Teams.TryGetValue(_liveState.FollowedTeam, out var ft))
+        {
+            ft.AppliedTargetMinutes = null;
+            ft.CustomRotationDepth  = null;
+            // Rebuild baseline to current state so same changes aren't re-detected
+            _rosterBaseline = BuildBaselineSnapshot(ft);
+        }
+        _rotSnapshot = null;
+        _rotChangeModalVisible = false;
+        await ResumeSimAfterModal();
+    }
+
+    // Modal: always use coach rec, resume sim
+    private async Task RotModalAlwaysCoachRec()
+    {
+        _alwaysCoachRec = true;
+        await RotModalCoachRec();
+    }
+
+    private async Task ResumeSimAfterModal()
+    {
+        var mode = _rotPauseMode;
+        _rotPauseMode = "";
+        switch (mode)
+        {
+            case "day":
+                SimOneDayLive();
+                break;
+            case "simrest":
+                await SimRestOfSeasonLive();
+                break;
+            case "auto":
+                await ToggleAutoSim();
+                break;
+        }
+    }
+
+    private void HandleRotDrop(Team team, string targetName)
+    {
+        if (_rotDragSource is null || _rotDragSource == targetName) return;
+        var roster = GetRotationPlayers(team).Select(p => p.Name).ToList();
+        int fromIdx = roster.IndexOf(_rotDragSource);
+        int toIdx   = roster.IndexOf(targetName);
+        if (fromIdx < 0 || toIdx < 0) { _rotDragSource = null; return; }
+        roster.RemoveAt(fromIdx);
+        roster.Insert(toIdx, _rotDragSource);
+        _customRotOrder[team.Name] = roster;
+        _rotDragSource = null;
+    }
+
+    private void MoveRotationPlayer(Team team, string playerName, int direction)
+    {
+        var roster = GetRotationPlayers(team).Select(p => p.Name).ToList();
+        int idx = roster.FindIndex(n => string.Equals(n, playerName, StringComparison.OrdinalIgnoreCase));
+        if (idx < 0) return;
+        int newIdx = idx + direction;
+        if (newIdx < 0 || newIdx >= roster.Count) return;
+        roster.RemoveAt(idx);
+        roster.Insert(newIdx, playerName);
+        _customRotOrder[team.Name] = roster;
+    }
+
+    // ── Rotation tick buttons (hold to repeat) ────────────────────────────────
+    private CancellationTokenSource? _rotRepeatCts;
+
+    private void RotationTick(string teamName, string playerName, int delta)
+    {
+        bool liveNow = _phase == Phase.LiveSeason;
+        var teams = liveNow && _liveState is not null
+            ? (IReadOnlyDictionary<string, Team>)_liveState.Teams
+            : (IReadOnlyDictionary<string, Team>)_teams;
+        if (!teams.TryGetValue(teamName, out var team)) return;
+
+        var dnp = liveNow
+            ? team.Roster.Where(p => p.CurrentInjury?.Definition.Grade >= 2)
+                   .Select(p => p.Name).ToHashSet(StringComparer.OrdinalIgnoreCase)
+            : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        var healthyRot     = GetRotationPlayers(team).Where(p => !dnp.Contains(p.Name)).ToList();
+        int effectiveDepth = GetEffectiveDepth(team, healthyRot);
+        int ri = healthyRot.FindIndex(p => string.Equals(p.Name, playerName, StringComparison.OrdinalIgnoreCase));
+        if (ri < 0) return;
+
+        bool isStarter = ri < 5;
+        bool isReserve = ri >= effectiveDepth;
+
+        var roundedMins = GetGoalMinutesRoundedWithDnp(team, dnp);
+        int current     = roundedMins.GetValueOrDefault(playerName, 0);
+
+        // Minutes budget: sum of all other within-depth players; this player can have up to 240 - that.
+        int sumOthers  = healthyRot.Take(effectiveDepth)
+            .Where(p => !string.Equals(p.Name, playerName, StringComparison.OrdinalIgnoreCase))
+            .Sum(p => roundedMins.GetValueOrDefault(p.Name, 0));
+        int maxForThis = 240 - sumOthers;
+
+        // Pins every currently-active player at their displayed value before a depth change,
+        // so RotationManager's recomputation at the new depth cannot shift anyone.
+        void PinActivePlayers()
+        {
+            if (!_customMinutes.ContainsKey(teamName))
+                _customMinutes[teamName] = new(StringComparer.OrdinalIgnoreCase);
+            var cm2 = _customMinutes[teamName];
+            for (int i = 0; i < effectiveDepth; i++)
+                cm2[healthyRot[i].Name] = roundedMins.GetValueOrDefault(healthyRot[i].Name, 0);
+        }
+
+        // +1 on a reserve: move to bottom of active zone, depth++, set to 1 min
+        if (isReserve && delta > 0)
+        {
+            if (maxForThis <= 0) return;
+            PinActivePlayers();
+            var roster = healthyRot.Select(p => p.Name).ToList();
+            roster.RemoveAt(ri);
+            roster.Insert(effectiveDepth, playerName);
+            _customRotOrder[teamName] = roster;
+            int newDepth = Math.Clamp(effectiveDepth + 1, 5, healthyRot.Count);
+            if (newDepth == Math.Clamp(team.RotationDepth, 5, healthyRot.Count))
+                _customRotDepth.Remove(teamName);
+            else
+                _customRotDepth[teamName] = newDepth;
+            SetCustomMinutes(teamName, playerName, 1);
+            return;
+        }
+
+        int newVal = Math.Clamp(current + delta, isStarter ? 1 : 0, Math.Min(maxForThis, 48));
+
+        // -1 to 0 on a bench player: move to first reserve slot, depth--
+        if (!isStarter && newVal == 0)
+        {
+            PinActivePlayers();
+            var roster = healthyRot.Select(p => p.Name).ToList();
+            roster.RemoveAt(ri);
+            roster.Insert(effectiveDepth - 1, playerName);
+            _customRotOrder[teamName] = roster;
+            int newDepth = Math.Clamp(effectiveDepth - 1, 5, healthyRot.Count);
+            if (newDepth == Math.Clamp(team.RotationDepth, 5, healthyRot.Count))
+                _customRotDepth.Remove(teamName);
+            else
+                _customRotDepth[teamName] = newDepth;
+            _customMinutes.TryGetValue(teamName, out var cm);
+            cm?.Remove(playerName);
+            return;
+        }
+
+        SetCustomMinutes(teamName, playerName, newVal);
+    }
+
+    private async Task StartRepeat(string teamName, string playerName, int delta)
+    {
+        StopRepeat();
+        _rotRepeatCts = new CancellationTokenSource();
+        var cts = _rotRepeatCts;
+        RotationTick(teamName, playerName, delta);
+        try
+        {
+            await Task.Delay(350, cts.Token);
+            while (!cts.IsCancellationRequested)
+            {
+                await InvokeAsync(() => { RotationTick(teamName, playerName, delta); StateHasChanged(); });
+                await Task.Delay(80, cts.Token);
+            }
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    private void StopRepeat()
+    {
+        _rotRepeatCts?.Cancel();
+        _rotRepeatCts = null;
+    }
+
+    private Func<TeamSeasonStats, double> TeamSortKey() => _teamSort switch
+    {
+        "wins"   => t => t.Wins,
+        "losses" => t => t.Losses,
+        "pct"    => t => t.Pct,
+        "ppg"    => t => t.Ppg,
+        "papg"   => t => t.Papg,
+        "diff"   => t => t.Ppg - t.Papg,
+        "fgm"    => t => t.Fgm,
+        "fga"    => t => t.Fga,
+        "fgpct"  => t => t.FgPct,
+        "tpm"    => t => t.Tpm,
+        "tpa"    => t => t.Tpa,
+        "tppct"  => t => t.TpPct,
+        "ftm"    => t => t.Ftm,
+        "fta"    => t => t.Fta,
+        "ftpct"  => t => t.FtPct,
+        "oreb"   => t => t.Oreb,
+        "dreb"   => t => t.Dreb,
+        "reb"    => t => t.Reb,
+        "ast"    => t => t.Ast,
+        "stl"    => t => t.Stl,
+        "blk"    => t => t.Blk,
+        "tov"    => t => t.Tov,
+        "pace"   => t => t.Pace,
+        _        => t => t.Wins,
+    };
+
     private IEnumerable<TeamSeasonStats> SortedTeams()
     {
         if (_season is null) return [];
-        Func<TeamSeasonStats, double> key = _teamSort switch
-        {
-            "wins"   => t => t.Wins,
-            "losses" => t => t.Losses,
-            "pct"    => t => t.Pct,
-            "ppg"    => t => t.Ppg,
-            "papg"   => t => t.Papg,
-            "diff"   => t => t.Ppg - t.Papg,
-            "fgm"    => t => t.Fgm,
-            "fga"    => t => t.Fga,
-            "fgpct"  => t => t.FgPct,
-            "tpm"    => t => t.Tpm,
-            "tpa"    => t => t.Tpa,
-            "tppct"  => t => t.TpPct,
-            "ftm"    => t => t.Ftm,
-            "fta"    => t => t.Fta,
-            "ftpct"  => t => t.FtPct,
-            "oreb"   => t => t.Oreb,
-            "dreb"   => t => t.Dreb,
-            "reb"    => t => t.Reb,
-            "ast"    => t => t.Ast,
-            "stl"    => t => t.Stl,
-            "blk"    => t => t.Blk,
-            "tov"    => t => t.Tov,
-            "pace"   => t => t.Pace,
-            _        => t => t.Wins,
-        };
-        return _teamSortAsc
-            ? _season.TeamStats.OrderBy(key)
-            : _season.TeamStats.OrderByDescending(key);
+        var key = TeamSortKey();
+        return _teamSortAsc ? _season.TeamStats.OrderBy(key) : _season.TeamStats.OrderByDescending(key);
     }
+
+    private IEnumerable<TeamSeasonStats> SortedTeamsCombined(IEnumerable<TeamSeasonStats> source)
+    {
+        var key = TeamSortKey();
+        return _teamSortAsc ? source.OrderBy(key) : source.OrderByDescending(key);
+    }
+
+    private static List<PlayerSeasonStats> GetAwardTop10(
+        IEnumerable<PlayerSeasonStats> pool,
+        Func<PlayerSeasonStats, double> score,
+        Func<PlayerSeasonStats, bool>? filter)
+    {
+        var q = filter is not null ? pool.Where(filter) : pool;
+        return q.OrderByDescending(score).Take(10).ToList();
+    }
+
+    private static double AwardsDpoyScore(PlayerSeasonStats p, bool hasFullStats) => hasFullStats
+        ? p.DWS * 0.45 + p.Bpg * 2.0 + p.Spg * 1.5 + Math.Max(0, 0.50 - p.OppFgPct) * 30
+        : p.Spg * 2.0 + p.Bpg * 2.0 + (p.DefRating > 0 ? (120.0 - p.DefRating) * 0.15 : 0);
+
+    private static double AwardsSixMoyScore(PlayerSeasonStats p, bool hasFullStats) => hasFullStats
+        ? p.PER
+        : p.Ppg * 0.8 + p.Apg * 0.4 + p.Rpg * 0.3;
 
     private static IEnumerable<PlayerSeasonStats> ApplySort(
         IEnumerable<PlayerSeasonStats> src, string col, bool asc)
@@ -3112,13 +4125,13 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
             {
                 <div style="display:flex;align-items:center;gap:5px;margin-bottom:5px;">
                     <span style="color:#3a3a3a;font-size:0.65rem;min-width:12px;flex-shrink:0;">@series.HighSeed</span>
-                    <img src="/logos/teams/@(LogoSlug(series.HighSeedTeam)).svg" style="width:20px;height:20px;object-fit:contain;flex-shrink:0;" onerror="this.style.display='none'" />
+                    <img src="/logos/teams/@(LogoSlug(series.HighSeedTeam)).svg" style="width:20px;height:20px;object-fit:contain;flex-shrink:0;" onerror="@LogoOnerror" />
                     <span style="color:@(series.HighSeedWins>=series.LowSeedWins?"#d0d0d0":"#555");font-weight:@(series.Complete && series.HighSeedWins==4?"700":"400");flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:0.88rem;">@series.HighSeedAbbr</span>
                     <span style="color:@(series.Complete && series.HighSeedWins==4?"#4af080":"#aaa");font-weight:700;font-size:1.05rem;min-width:14px;text-align:right;">@series.HighSeedWins</span>
                 </div>
                 <div style="display:flex;align-items:center;gap:5px;">
                     <span style="color:#3a3a3a;font-size:0.65rem;min-width:12px;flex-shrink:0;">@series.LowSeed</span>
-                    <img src="/logos/teams/@(LogoSlug(series.LowSeedTeam)).svg" style="width:20px;height:20px;object-fit:contain;flex-shrink:0;" onerror="this.style.display='none'" />
+                    <img src="/logos/teams/@(LogoSlug(series.LowSeedTeam)).svg" style="width:20px;height:20px;object-fit:contain;flex-shrink:0;" onerror="@LogoOnerror" />
                     <span style="color:@(series.LowSeedWins>series.HighSeedWins?"#d0d0d0":"#555");font-weight:@(series.Complete && series.LowSeedWins==4?"700":"400");flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:0.88rem;">@series.LowSeedAbbr</span>
                     <span style="color:@(series.Complete && series.LowSeedWins==4?"#4af080":"#aaa");font-weight:700;font-size:1.05rem;min-width:14px;text-align:right;">@series.LowSeedWins</span>
                 </div>
@@ -3164,13 +4177,13 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
             {
                 <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
                     <span style="color:#5a4a10;font-size:0.7rem;min-width:14px;flex-shrink:0;">@series.HighSeed</span>
-                    <img src="/logos/teams/@(LogoSlug(series.HighSeedTeam)).svg" style="width:24px;height:24px;object-fit:contain;flex-shrink:0;" onerror="this.style.display='none'" />
+                    <img src="/logos/teams/@(LogoSlug(series.HighSeedTeam)).svg" style="width:24px;height:24px;object-fit:contain;flex-shrink:0;" onerror="@LogoOnerror" />
                     <span style="color:@(series.HighSeedWins>=series.LowSeedWins?"#e8e0c0":"#4a4020");font-weight:@(series.Complete && series.HighSeedWins==4?"700":"400");flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:0.95rem;">@series.HighSeedAbbr</span>
                     <span style="color:@(series.Complete && series.HighSeedWins==4?"#fca":"#b8a060");font-weight:700;font-size:1.15rem;min-width:16px;text-align:right;">@series.HighSeedWins</span>
                 </div>
                 <div style="display:flex;align-items:center;gap:6px;">
                     <span style="color:#5a4a10;font-size:0.7rem;min-width:14px;flex-shrink:0;">@series.LowSeed</span>
-                    <img src="/logos/teams/@(LogoSlug(series.LowSeedTeam)).svg" style="width:24px;height:24px;object-fit:contain;flex-shrink:0;" onerror="this.style.display='none'" />
+                    <img src="/logos/teams/@(LogoSlug(series.LowSeedTeam)).svg" style="width:24px;height:24px;object-fit:contain;flex-shrink:0;" onerror="@LogoOnerror" />
                     <span style="color:@(series.LowSeedWins>series.HighSeedWins?"#e8e0c0":"#4a4020");font-weight:@(series.Complete && series.LowSeedWins==4?"700":"400");flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:0.95rem;">@series.LowSeedAbbr</span>
                     <span style="color:@(series.Complete && series.LowSeedWins==4?"#fca":"#b8a060");font-weight:700;font-size:1.15rem;min-width:16px;text-align:right;">@series.LowSeedWins</span>
                 </div>
@@ -3218,6 +4231,15 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
              @onclick="() => SetTeamSort(col)">
             @label@(_teamSort == col ? (_teamSortAsc ? " ▲" : " ▼") : "")
         </th>;
+
+    private RenderFragment PlayoffTh(string col, string label) =>
+        @<th data-sortable="true" class="@(_playoffSort == col ? "sort-active" : "")"
+             style="text-align:center;"
+             @onclick="() => SetPlayoffSort(col)">
+            @label@(_playoffSort == col ? (_playoffSortAsc ? " ▲" : " ▼") : "")
+        </th>;
+
+    private static string FmtPct(double v) => (v * 100.0).ToString("F1") + "%";
 
     // REST: 0 = grey, 1-5 = yellow, 6-15 = orange, 16+ = red
     private static string RestColor(int rest) =>

@@ -31,11 +31,26 @@ public static class RotationManager
     // ── Overall rating ────────────────────────────────────────────────────────
     // Composite used only for rotation priority. Does NOT affect play-by-play math.
     internal static double ComputeOverall(Player p) =>
-        (p.Attr_Inside + p.Attr_MidRange + p.Attr_ThreePoint +
-         p.Attr_oBBIQ + p.Attr_dBBIQ + p.Attr_Hustle + p.Attr_Passing +
-         p.Attr_PerimeterDefense + p.Attr_InteriorDefense +
-         p.Attr_Rebounding_Off + p.Attr_Rebounding_Def +
-         p.Speed + p.Endurance) / 13.0;
+        (p.Attr_Inside           * 6 +
+         p.Attr_Passing          * 6 +
+         p.Attr_ThreePoint       * 5 +
+         p.Attr_PerimeterDefense * 5 +
+         p.Attr_InteriorDefense  * 5 +
+         p.Speed                 * 4 +
+         p.Attr_MidRange         * 3 +
+         p.Attr_oBBIQ            * 3 +
+         p.Attr_dBBIQ            * 3 +
+         p.Attr_Dribbling        * 3 +
+         p.Jumping               * 3 +
+         p.Strength              * 3 +
+         p.Endurance             * 3 +
+         p.Height                * 3 +
+         p.Attr_Rebounding_Def   * 3 +
+         p.Attr_Rebounding_Off   * 2 +
+         p.Attr_Hustle           * 2 +
+         p.Attr_Dunks            * 2 +
+         p.Attr_FreeThrow        * 1
+        ) / 65.0;
 
     // Fatigue-adjusted overall: fatigued players look worse to the rotation algorithm,
     // earning fewer minutes. At SF=100 → mult=1.0; at SF=60 → mult=0.84; at SF=55 → mult=0.82.
@@ -77,10 +92,11 @@ public static class RotationManager
     public static Dictionary<string, double> ComputeTargetMinutes(
         Team team,
         IReadOnlyDictionary<string, double>? fatigue = null,
-        IReadOnlyCollection<string>? dnp = null)
+        IReadOnlyCollection<string>? dnp = null,
+        int? depthOverride = null)
     {
         var targets = new Dictionary<string, double>();
-        int depth   = Math.Clamp(team.RotationDepth, 5, team.Roster.Count);
+        int depth   = Math.Clamp(depthOverride ?? team.RotationDepth, 5, team.Roster.Count);
         // Skip DNP players before taking depth so injured slots pull in the next healthy player.
         var rotation = (dnp != null
             ? team.Roster.Where(p => !dnp.Contains(p.Name))
@@ -91,6 +107,12 @@ public static class RotationManager
 
         double equalShare  = 240.0 / depth;                      // equal minutes if no bias
         double biasFactor  = Math.Clamp(team.StarterBias / 100.0, 0.0, 1.0);
+
+        // Relative OVR range across the whole rotation — used to normalise gap so the
+        // formula adapts regardless of where the overall rating scale sits.
+        double minOvr    = rotation.Min(p => VetAdjustedOverall(p, fatigue, team.Coach));
+        double maxOvr    = rotation.Max(p => VetAdjustedOverall(p, fatigue, team.Coach));
+        double ovrRange  = Math.Max(maxOvr - minOvr, 5.0);
 
         double[] starterMin = new double[5];
         for (int i = 0; i < 5; i++)
@@ -107,18 +129,18 @@ public static class RotationManager
             var backup = FindDesignatedBackup(s, bench.Where(p => dnp == null || !dnp.Contains(p.Name)));
 
             double sOvr  = VetAdjustedOverall(s, fatigue, team.Coach);
-            double bOvr  = backup != null ? VetAdjustedOverall(backup, fatigue, team.Coach) : sOvr - 30.0;
-            // gap: 0 = backup is equal or better; 1 = 25+ point gap (starter is irreplaceable)
-            double gap   = Math.Clamp((sOvr - bOvr) / 25.0, 0.0, 1.0);
+            double bOvr  = backup != null ? VetAdjustedOverall(backup, fatigue, team.Coach) : sOvr - ovrRange;
+            // gap: 0 = backup is equal or better; 1 = starter advantage spans half the rotation range
+            double gap   = Math.Clamp((sOvr - bOvr) / (ovrRange * 0.5), 0.0, 1.0);
 
             // Blend between equal share (bias=0) and gap-based target (bias=100)
-            double gapBased = 30.0 + gap * 10.0;  // [30, 40]: higher baseline + steeper quality reward
+            double gapBased = 30.0 + gap * 10.0;
             double baseMin  = equalShare + (gapBased - equalShare) * biasFactor;
             double endBonus = (s.Endurance - 50.0) / 50.0 * 4.0;      // ±4.0 — endurance drives real extra minutes
 
             double sfMult = fatigue != null && fatigue.TryGetValue(s.Name, out double sf)
                 ? FatigueMinutesMult(sf) : 1.0;
-            starterMin[i]   = Math.Clamp((baseMin + endBonus) * sfMult, 10.0, 40.0);
+            starterMin[i]   = (baseMin + endBonus) * sfMult;
             targets[s.Name] = starterMin[i];
         }
 
@@ -130,21 +152,18 @@ public static class RotationManager
 
         if (activeBench.Count > 0 && benchTotal > 0)
         {
-            double totalOvr = activeBench.Sum(p => VetAdjustedOverall(p, fatigue, team.Coach));
-            if (totalOvr > 0)
+            var rankedBench = activeBench
+                .OrderByDescending(p => VetAdjustedOverall(p, fatigue, team.Coach)).ToList();
+            const double decay = 0.65;
+            double[] weights = Enumerable.Range(0, rankedBench.Count)
+                                         .Select(k => Math.Pow(decay, k)).ToArray();
+            double wSum = weights.Sum();
+            for (int k = 0; k < rankedBench.Count; k++)
             {
-                foreach (var bp in activeBench)
-                {
-                    double share   = VetAdjustedOverall(bp, fatigue, team.Coach) / totalOvr;
-                    double bsfMult = fatigue != null && fatigue.TryGetValue(bp.Name, out double bsf)
-                        ? FatigueMinutesMult(bsf) : 1.0;
-                    targets[bp.Name] = Math.Clamp(benchTotal * share * bsfMult, 1.0, 22.0);
-                }
-            }
-            else
-            {
-                foreach (var bp in activeBench)
-                    targets[bp.Name] = benchTotal / activeBench.Count;
+                var bp = rankedBench[k];
+                double bsfMult = fatigue != null && fatigue.TryGetValue(bp.Name, out double bsf)
+                    ? FatigueMinutesMult(bsf) : 1.0;
+                targets[bp.Name] = benchTotal * weights[k] / wSum * bsfMult;
             }
         }
 
