@@ -214,26 +214,36 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
         .Where(p => p.GP > 0).ToList();
     var poSorted  = ApplySort(poPlayers, _playoffSort, _playoffSortAsc);
     // Awards tab: candidate pools
-    bool hasFullStats = !isLive;
-    int minWinsForMvp = isLive ? 5 : 40;
+    int minWinsForMvp  = isLive ? 5 : 40;
+    int minWinsForDpoy = isLive ? 5 : 30;
     var aTeamWins = isLive && _liveState is not null
         ? _liveState.Standings.ToDictionary(kv => kv.Key, kv => kv.Value.Wins, StringComparer.OrdinalIgnoreCase)
         : (_season?.TeamStats.ToDictionary(t => t.TeamName, t => t.Wins, StringComparer.OrdinalIgnoreCase) ?? new Dictionary<string, int>());
     // Populate PER/WS/USG% on live player aggregates so Shen-Nagy MVP scoring works mid-season
     if (isLive && _liveState is not null)
         SeasonScheduleService.ComputeLiveAdvancedStats(_liveState);
+    // Games each team has played so far — used to determine if a player can still reach GP thresholds
+    var aTeamGP = isLive && _liveState is not null
+        ? _liveState.Standings.ToDictionary(kv => kv.Key, kv => kv.Value.GP, StringComparer.OrdinalIgnoreCase)
+        : null;
+    // Max possible GP = current GP + remaining team games (0 at end of season)
+    int MaxPossibleGP(PlayerSeasonStats p) =>
+        p.GP + (aTeamGP != null ? Math.Max(0, 82 - aTeamGP.GetValueOrDefault(p.Team, 82)) : 0);
+    // Live pool: anyone with games played; final pool: ≥50 GP (minimum across all awards)
     var aPool = (isLive && _liveState is not null
-        ? (IEnumerable<PlayerSeasonStats>)_liveState.PlayerAgg.Values.Where(p => p.GP >= 10)
-        : (_season?.PlayerStats.Where(p => p.GP >= 40) ?? Enumerable.Empty<PlayerSeasonStats>())).ToList();
+        ? (IEnumerable<PlayerSeasonStats>)_liveState.PlayerAgg.Values.Where(p => p.GP > 0)
+        : (_season?.PlayerStats.Where(p => p.GP >= 50) ?? Enumerable.Empty<PlayerSeasonStats>())).ToList();
+    // For live races, eliminate players who can no longer reach the required GP threshold
+    bool CanReach65(PlayerSeasonStats p) => isLive ? MaxPossibleGP(p) >= 65 : p.GP >= 65;
+    bool CanReach50(PlayerSeasonStats p) => isLive ? MaxPossibleGP(p) >= 50 : p.GP >= 50;
     var mvpCands = SeasonScheduleService.RankMvpCandidates(aPool,
-        p => aTeamWins.TryGetValue(p.Team, out var mw) && mw >= minWinsForMvp);
-    int minWinsForDpoy = isLive ? 5 : 30;
+        p => CanReach65(p) && aTeamWins.TryGetValue(p.Team, out var mw) && mw >= minWinsForMvp);
     var dpoyCands = SeasonScheduleService.RankDpoyCandidates(aPool,
-        p => aTeamWins.TryGetValue(p.Team, out var dw) && dw >= minWinsForDpoy);
+        p => CanReach65(p) && aTeamWins.TryGetValue(p.Team, out var dw) && dw >= minWinsForDpoy);
     var sixmoyCands = SeasonScheduleService.RankSixMoyCandidates(aPool,
-        p => p.GamesStarted < p.GP / 2.0 && p.Mpg >= 12);
+        p => CanReach50(p) && p.GamesStarted < p.GP / 2.0 && p.Mpg >= 12);
     var rotyCands = SeasonScheduleService.RankRotyCandidates(aPool,
-        p => p.IsRookie && p.GP >= (isLive ? 5 : 20));
+        p => CanReach50(p) && p.IsRookie);
     // Rotations tab: selected team and computed rotation data
     IReadOnlyDictionary<string, Team> rotTeams = isLive && _liveState is not null
         ? (IReadOnlyDictionary<string, Team>)_liveState.Teams

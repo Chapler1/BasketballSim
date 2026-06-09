@@ -1028,71 +1028,71 @@ public class SeasonScheduleService
     {
         var awards  = new SeasonAwards();
         var teamMap = result.TeamStats.ToDictionary(t => t.TeamName, StringComparer.OrdinalIgnoreCase);
-        var players = result.PlayerStats.Where(p => p.GP >= 40 && p.TotalMIN > 0).ToList();
+        var players = result.PlayerStats.Where(p => p.GP >= 50 && p.TotalMIN > 0).ToList();
         if (players.Count == 0) return awards;
 
-        // MVP: Shen-Nagy formula — PER-anchored + correlation-weighted WS and USG% terms
+        // MVP: ≥65 GP, team ≥40 wins
         var mvpTop10 = RankMvpCandidates(players,
-            p => teamMap.TryGetValue(p.Team, out var tm) && tm.Wins >= 40);
+            p => p.GP >= 65 && teamMap.TryGetValue(p.Team, out var tm) && tm.Wins >= 40);
         if (mvpTop10.Count > 0)
         {
             var (mvp, score) = mvpTop10[0];
             awards.MVP = new(mvp.Name, mvp.Team, mvp.TeamAbbr, score, mvp.Position);
         }
 
-        // DPOY: Shen-style DWS-anchored formula with dynamic STL/BLK correlations
+        // DPOY: ≥65 GP, team ≥30 wins
         var dpoyTop10 = RankDpoyCandidates(players,
-            p => teamMap.TryGetValue(p.Team, out var dtm) && dtm.Wins >= 30);
+            p => p.GP >= 65 && teamMap.TryGetValue(p.Team, out var dtm) && dtm.Wins >= 30);
         if (dpoyTop10.Count > 0)
         {
             var (dpoy, dpoyScore) = dpoyTop10[0];
             awards.DPOY = new(dpoy.Name, dpoy.Team, dpoy.TeamAbbr, dpoyScore, dpoy.Position);
         }
 
-        // 6MOY: Shen-style PER-anchored formula; eligibility = more bench games than starts
+        // 6MOY: ≥50 GP, more bench games than starts
         var sixmoyTop10 = RankSixMoyCandidates(players,
-            p => p.GamesStarted < p.GP / 2.0 && p.Mpg >= 12);
+            p => p.GP >= 50 && p.GamesStarted < p.GP / 2.0 && p.Mpg >= 12);
         if (sixmoyTop10.Count > 0)
         {
             var (sixmoy, sixmoyScore) = sixmoyTop10[0];
             awards.SixMOY = new(sixmoy.Name, sixmoy.Team, sixmoy.TeamAbbr, sixmoyScore, sixmoy.Position);
         }
 
-        // ROTY: same Shen-Nagy formula as MVP but restricted to rookies
-        var rotyTop10 = RankRotyCandidates(players, p => p.IsRookie && p.GP >= 20);
+        // ROTY: ≥50 GP, rookie
+        var rotyTop10 = RankRotyCandidates(players, p => p.IsRookie && p.GP >= 50);
         if (rotyTop10.Count > 0)
         {
             var (roty, rotyScore) = rotyTop10[0];
             awards.ROTY = new(roty.Name, roty.Team, roty.TeamAbbr, rotyScore, roty.Position);
         }
 
-        // All-NBA: 2 guards + 2 forwards + 1 center per team, 3 teams
-        var guards   = players.Where(p => p.Position is Position.PG or Position.SG)
-                              .OrderByDescending(p => p.PER).Take(6).ToList();
-        var forwards = players.Where(p => p.Position is Position.SF or Position.PF)
-                              .OrderByDescending(p => p.PER).Take(6).ToList();
-        var centers  = players.Where(p => p.Position == Position.C)
-                              .OrderByDescending(p => p.PER).Take(3).ToList();
+        // All-NBA/All-Def: ≥65 GP per position
+        var guards65   = players.Where(p => p.GP >= 65 && p.Position is Position.PG or Position.SG)
+                                .OrderByDescending(p => p.PER).Take(6).ToList();
+        var forwards65 = players.Where(p => p.GP >= 65 && p.Position is Position.SF or Position.PF)
+                                .OrderByDescending(p => p.PER).Take(6).ToList();
+        var centers65  = players.Where(p => p.GP >= 65 && p.Position == Position.C)
+                                .OrderByDescending(p => p.PER).Take(3).ToList();
 
         static AwardWinner ToW(PlayerSeasonStats p, double s) => new(p.Name, p.Team, p.TeamAbbr, s, p.Position);
-        if (guards.Count >= 2 && forwards.Count >= 2 && centers.Count >= 1)
-            awards.AllNba1 = [ToW(guards[0], guards[0].PER), ToW(guards[1], guards[1].PER),
-                              ToW(forwards[0], forwards[0].PER), ToW(forwards[1], forwards[1].PER),
-                              ToW(centers[0], centers[0].PER)];
-        if (guards.Count >= 4 && forwards.Count >= 4 && centers.Count >= 2)
-            awards.AllNba2 = [ToW(guards[2], guards[2].PER), ToW(guards[3], guards[3].PER),
-                              ToW(forwards[2], forwards[2].PER), ToW(forwards[3], forwards[3].PER),
-                              ToW(centers[1], centers[1].PER)];
-        if (guards.Count >= 6 && forwards.Count >= 6 && centers.Count >= 3)
-            awards.AllNba3 = [ToW(guards[4], guards[4].PER), ToW(guards[5], guards[5].PER),
-                              ToW(forwards[4], forwards[4].PER), ToW(forwards[5], forwards[5].PER),
-                              ToW(centers[2], centers[2].PER)];
+        if (guards65.Count >= 2 && forwards65.Count >= 2 && centers65.Count >= 1)
+            awards.AllNba1 = [ToW(guards65[0], guards65[0].PER), ToW(guards65[1], guards65[1].PER),
+                              ToW(forwards65[0], forwards65[0].PER), ToW(forwards65[1], forwards65[1].PER),
+                              ToW(centers65[0], centers65[0].PER)];
+        if (guards65.Count >= 4 && forwards65.Count >= 4 && centers65.Count >= 2)
+            awards.AllNba2 = [ToW(guards65[2], guards65[2].PER), ToW(guards65[3], guards65[3].PER),
+                              ToW(forwards65[2], forwards65[2].PER), ToW(forwards65[3], forwards65[3].PER),
+                              ToW(centers65[1], centers65[1].PER)];
+        if (guards65.Count >= 6 && forwards65.Count >= 6 && centers65.Count >= 3)
+            awards.AllNba3 = [ToW(guards65[4], guards65[4].PER), ToW(guards65[5], guards65[5].PER),
+                              ToW(forwards65[4], forwards65[4].PER), ToW(forwards65[5], forwards65[5].PER),
+                              ToW(centers65[2], centers65[2].PER)];
 
-        // All-Defense: 2G + 2F + 1C × 2 teams
+        // All-Defense: ≥65 GP
         var defScore = (PlayerSeasonStats p) => p.DWS * 0.5 + p.Bpg * 1.5 + p.Spg * 1.5 + Math.Max(0, 0.50 - p.OppFgPct) * 20;
-        var dGuards  = players.Where(p => p.Position is Position.PG or Position.SG).OrderByDescending(defScore).Take(4).ToList();
-        var dForward = players.Where(p => p.Position is Position.SF or Position.PF).OrderByDescending(defScore).Take(4).ToList();
-        var dCenter  = players.Where(p => p.Position == Position.C).OrderByDescending(defScore).Take(2).ToList();
+        var dGuards  = players.Where(p => p.GP >= 65 && p.Position is Position.PG or Position.SG).OrderByDescending(defScore).Take(4).ToList();
+        var dForward = players.Where(p => p.GP >= 65 && p.Position is Position.SF or Position.PF).OrderByDescending(defScore).Take(4).ToList();
+        var dCenter  = players.Where(p => p.GP >= 65 && p.Position == Position.C).OrderByDescending(defScore).Take(2).ToList();
         if (dGuards.Count >= 2 && dForward.Count >= 2 && dCenter.Count >= 1)
             awards.AllDef1 = [ToW(dGuards[0], defScore(dGuards[0])), ToW(dGuards[1], defScore(dGuards[1])),
                               ToW(dForward[0], defScore(dForward[0])), ToW(dForward[1], defScore(dForward[1])),
