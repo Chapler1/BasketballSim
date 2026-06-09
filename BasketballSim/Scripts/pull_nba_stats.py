@@ -1,17 +1,21 @@
 """
 Pull historical NBA per-game + advanced player stats from stats.nba.com via nba_api.
-Saves to BasketballSim/Data/historical_player_stats.json.
+Saves to:
+  BasketballSim/Data/historical_player_stats.json  — full per-season stats
+  BasketballSim/Data/seasons_played.json           — {normalizedName: seasonCount}
 
 Install:  pip install nba_api
 Run from repo root:  python BasketballSim/Scripts/pull_nba_stats.py
 
 Pulls seasons 2000-01 through 2024-25 (all real completed seasons).
 The 2025-26 season is your sim season — it won't appear here.
+Players absent from this file are treated as 2025-26 rookies by the sim.
 """
 
 import json
 import os
 import time
+import unicodedata
 
 try:
     from nba_api.stats.endpoints import leaguedashplayerstats
@@ -21,6 +25,13 @@ except ImportError:
 
 SEASONS  = [f"{y}-{str(y + 1)[2:]:0>2}" for y in range(2000, 2025)]
 OUT_PATH = os.path.join(os.path.dirname(__file__), "..", "Data", "historical_player_stats.json")
+SP_PATH  = os.path.join(os.path.dirname(__file__), "..", "Data", "seasons_played.json")
+
+def normalize_name(name: str) -> str:
+    """Lowercase, strip diacritics, remove . ' - so names match across data sources."""
+    nfd = unicodedata.normalize("NFD", name)
+    stripped = "".join(c for c in nfd if unicodedata.category(c) != "Mn")
+    return stripped.lower().replace(".", "").replace("'", "").replace("-", " ").strip()
 
 # key: (player_name, season) → season record dict
 index: dict[tuple, dict] = {}
@@ -103,7 +114,7 @@ for season in SEASONS:
         print(f"ERROR: {e}")
     time.sleep(1.5)
 
-# ── Write output ──────────────────────────────────────────────────────────────
+# ── Write historical_player_stats.json ───────────────────────────────────────
 os.makedirs(os.path.dirname(OUT_PATH), exist_ok=True)
 with open(OUT_PATH, "w", encoding="utf-8") as f:
     json.dump(result, f, separators=(",", ":"))
@@ -111,3 +122,17 @@ with open(OUT_PATH, "w", encoding="utf-8") as f:
 total_seasons = sum(len(v) for v in result.values())
 print(f"\nDone. {len(result)} players, {total_seasons} player-seasons.")
 print(f"Saved to: {os.path.abspath(OUT_PATH)}")
+
+# ── Write seasons_played.json ─────────────────────────────────────────────────
+# Keyed by normalized name so the C# loader can match despite diacritics / punctuation.
+# Players absent from this file have no real NBA history and are treated as 2025-26 rookies.
+seasons_played: dict[str, int] = {}
+for name, season_list in result.items():
+    key = normalize_name(name)
+    # If multiple raw names normalize to the same key, keep the highest count
+    seasons_played[key] = max(seasons_played.get(key, 0), len(season_list))
+
+with open(SP_PATH, "w", encoding="utf-8") as f:
+    json.dump(seasons_played, f, separators=(",", ":"), sort_keys=True)
+
+print(f"Seasons played ({len(seasons_played)} players) → {os.path.abspath(SP_PATH)}")
