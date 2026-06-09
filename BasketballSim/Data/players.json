@@ -6296,7 +6296,7 @@
     },
     {
       "Name": "Gradey Dick",
-      "IsRookie": true,
+
       "Team": "Toronto Raptors",
       "TeamAbbr": "TOR",
       "Positions": [
@@ -11561,7 +11561,7 @@
     },
     {
       "Name": "Ausar Thompson",
-      "IsRookie": true,
+
       "Team": "Detroit Pistons",
       "TeamAbbr": "DET",
       "Positions": [
@@ -18229,7 +18229,7 @@
     },
     {
       "Name": "Brandon Miller",
-      "IsRookie": true,
+
       "Team": "Charlotte Hornets",
       "TeamAbbr": "CHA",
       "Positions": [
@@ -19720,7 +19720,7 @@
     },
     {
       "Name": "Jaime Jaquez Jr.",
-      "IsRookie": true,
+
       "Team": "Miami Heat",
       "TeamAbbr": "MIA",
       "Positions": [
@@ -22000,7 +22000,7 @@
     },
     {
       "Name": "Bilal Coulibaly",
-      "IsRookie": true,
+
       "Team": "Washington Wizards",
       "TeamAbbr": "WSH",
       "Positions": [
@@ -27435,7 +27435,7 @@
     },
     {
       "Name": "Cason Wallace",
-      "IsRookie": true,
+
       "Team": "Oklahoma City Thunder",
       "TeamAbbr": "OKC",
       "Positions": [
@@ -28224,7 +28224,7 @@
     },
     {
       "Name": "Chet Holmgren",
-      "IsRookie": true,
+
       "Team": "Oklahoma City Thunder",
       "TeamAbbr": "OKC",
       "Positions": [
@@ -28488,7 +28488,7 @@
     },
     {
       "Name": "Scoot Henderson",
-      "IsRookie": true,
+
       "Team": "Portland Trail Blazers",
       "TeamAbbr": "POR",
       "Positions": [
@@ -30156,7 +30156,7 @@
     },
     {
       "Name": "Keyonte George",
-      "IsRookie": true,
+
       "Team": "Utah Jazz",
       "TeamAbbr": "UTAH",
       "Positions": [
@@ -40761,7 +40761,7 @@
     },
     {
       "Name": "Dereck Lively II",
-      "IsRookie": true,
+
       "Team": "Dallas Mavericks",
       "TeamAbbr": "DAL",
       "Positions": [
@@ -41288,7 +41288,7 @@
     },
     {
       "Name": "Amen Thompson",
-      "IsRookie": true,
+
       "Team": "Houston Rockets",
       "TeamAbbr": "HOU",
       "Positions": [
@@ -46726,7 +46726,6 @@
     },
     {
       "Name": "Victor Wembanyama",
-      "IsRookie": true,
       "Team": "San Antonio Spurs",
       "TeamAbbr": "SA",
       "Positions": [

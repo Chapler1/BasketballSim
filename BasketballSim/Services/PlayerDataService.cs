@@ -286,6 +286,7 @@ public class PlayerDataService(IWebHostEnvironment env, Nba2kCacheService nba2k)
                 Positions = positions,
                 Height   = d?.HeightStr ?? "6'7\"",
                 Overall  = d?.Overall ?? 75,
+                SeasonsPlayed = 0,   // new player = rookie until a season is completed
             };
 
             if (d != null)
@@ -350,6 +351,20 @@ public class PlayerDataService(IWebHostEnvironment env, Nba2kCacheService nba2k)
             if (stripped != norm) dict.TryAdd(stripped, p);
         }
         return dict;
+    }
+
+    /// <summary>
+    /// Increments SeasonsPlayed for every player who appeared in the completed season,
+    /// then saves players.json. Call once after each full season sim.
+    /// </summary>
+    public async Task UpdateSeasonsPlayedAsync(IEnumerable<string> playerNamesWhoPlayed)
+    {
+        var db      = GetDb();
+        var played  = playerNamesWhoPlayed.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (var record in db.Players)
+            if (played.Contains(record.Name))
+                record.SeasonsPlayed++;
+        await SaveAsync();
     }
 
     public async Task SaveAsync()

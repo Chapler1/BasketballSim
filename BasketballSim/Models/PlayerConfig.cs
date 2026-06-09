@@ -54,9 +54,11 @@ public class PlayerConfig
     public DominantHand DominantHand { get; set; } = DominantHand.Right;
     public Dictionary<string, int> InjuryRatings { get; set; } = new();
 
+    public bool IsRookie { get; set; }
+
     public Player ToPlayer() => new()
     {
-        Name = Name, Team = Team, Position = Position,
+        Name = Name, Team = Team, Position = Position, IsRookie = IsRookie,
         Height = Height, Strength = Strength, Speed = Speed,
         Jumping = Jumping, Endurance = Endurance,
         Attr_Inside = Inside, Attr_Dunks = Dunks, Attr_FreeThrow = FreeThrow,

@@ -3400,6 +3400,7 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
         _season    = await Task.Run(() => SeasonSvc.SimulateSeason(_teams, progress, disableInjuries: _disableInjuries));
         _awards    = SeasonScheduleService.ComputeAwards(_season);
         _savedPath = await Task.Run(() => SaveResults(_season));
+        await PlayerSvc.UpdateSeasonsPlayedAsync(_season.PlayerStats.Where(p => p.GP > 0).Select(p => p.Name));
         _phase = Phase.Done;
         StateHasChanged();
     }
@@ -3427,6 +3428,7 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
         }
 
         _awards = SeasonScheduleService.ComputeAwards(seasonResult);
+        await PlayerSvc.UpdateSeasonsPlayedAsync(seasonResult.PlayerStats.Where(p => p.GP > 0).Select(p => p.Name));
         if (_season is null && _liveState?.Result is not null)
             _season = _liveState.Result;
         _phase    = Phase.Done;
@@ -3460,6 +3462,7 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
             return;
         }
         _awards = SeasonScheduleService.ComputeAwards(seasonResult);
+        await PlayerSvc.UpdateSeasonsPlayedAsync(seasonResult.PlayerStats.Where(p => p.GP > 0).Select(p => p.Name));
         if (_season is null && _liveState?.Result is not null)
             _season = _liveState.Result;
         _phase    = Phase.Done;
