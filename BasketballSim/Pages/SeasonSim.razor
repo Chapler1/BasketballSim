@@ -1769,7 +1769,17 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
             <!-- Header -->
             <div style="display:flex;justify-content:space-between;align-items:center;padding:0.85rem 1.25rem;border-bottom:1px solid #1e1e1e;gap:1rem;">
                 <div style="flex:1;">
-                    <div style="font-size:1.3rem;font-weight:800;color:#e8e8e8;letter-spacing:1px;">@_detailPlayer.Name</div>
+                    <div style="display:flex;align-items:baseline;gap:8px;">
+                        <div style="font-size:1.3rem;font-weight:800;color:#e8e8e8;letter-spacing:1px;">@_detailPlayer.Name</div>
+                        @if (_detailRecord is not null)
+                        {
+                            int _totalExp = _detailRecord.SeasonsPlayed + _detailRecord.SimSeasonsCompleted;
+                            bool _isRookie = _totalExp == 0;
+                            <span style="font-size:0.72rem;font-weight:700;padding:2px 6px;border-radius:3px;letter-spacing:1px;background:@(_isRookie?"#001a28":"#1a1a1a");color:@(_isRookie?"#40c8ff":"#666");border:1px solid @(_isRookie?"#004060":"#2a2a2a");">
+                                @(_isRookie ? "R" : _totalExp + "YR")
+                            </span>
+                        }
+                    </div>
                     <div style="font-size:0.88rem;color:#555;margin-top:2px;">
                         @_detailPlayer.Team
                         <span style="color:#2a2a2a;">&nbsp;·&nbsp;</span>@_detailPlayer.Position

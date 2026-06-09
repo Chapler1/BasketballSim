@@ -353,9 +353,8 @@ public class PlayerDataService(IWebHostEnvironment env, Nba2kCacheService nba2k)
     }
 
     /// <summary>
-    /// Increments SeasonsPlayed for every player who appeared in the completed season,
-    /// writes back to both players.json and seasons_played.json so sim-accumulated seasons
-    /// survive the next load's file-based override.
+    /// Increments SimSeasonsCompleted for every player who appeared in the completed season.
+    /// seasons_played.json is never written here — it is a read-only historical baseline.
     /// </summary>
     public async Task UpdateSeasonsPlayedAsync(IEnumerable<string> playerNamesWhoPlayed)
     {
@@ -363,25 +362,7 @@ public class PlayerDataService(IWebHostEnvironment env, Nba2kCacheService nba2k)
         var played = playerNamesWhoPlayed.ToHashSet(StringComparer.OrdinalIgnoreCase);
         foreach (var record in db.Players)
             if (played.Contains(record.Name))
-                record.SeasonsPlayed++;
-
-        // Persist updated counts back to seasons_played.json so the next load
-        // doesn't reset sim-incremented rookies back to 0.
-        var spPath = SpPath;
-        Dictionary<string, int> spData = File.Exists(spPath)
-            ? JsonSerializer.Deserialize<Dictionary<string, int>>(
-                  File.ReadAllText(spPath), new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
-              ?? []
-            : [];
-
-        foreach (var record in db.Players.Where(r => played.Contains(r.Name)))
-        {
-            var key = NormalizeForLookup(record.Name);
-            spData[key] = Math.Max(spData.GetValueOrDefault(key, 0), record.SeasonsPlayed);
-        }
-
-        await File.WriteAllTextAsync(spPath, JsonSerializer.Serialize(spData,
-            new JsonSerializerOptions { WriteIndented = false }));
+                record.SimSeasonsCompleted++;
         await SaveAsync();
     }
 
@@ -411,13 +392,12 @@ public class PlayerDataService(IWebHostEnvironment env, Nba2kCacheService nba2k)
         }
         catch { return; }
 
+        // Directly set SeasonsPlayed from historical file (no Math.Max — this field is purely historical).
+        // Players absent from the file have no real NBA history → SeasonsPlayed = 0 → rookie.
         foreach (var record in db.Players)
         {
             var key = NormalizeForLookup(record.Name);
-            if (spData.TryGetValue(key, out int fromFile))
-                record.SeasonsPlayed = Math.Max(record.SeasonsPlayed, fromFile);
-            else
-                record.SeasonsPlayed = 0;  // not in real NBA history → rookie
+            record.SeasonsPlayed = spData.TryGetValue(key, out int fromFile) ? fromFile : 0;
         }
     }
 

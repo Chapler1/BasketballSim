@@ -309,7 +309,7 @@ public static class EspnTeamFactory
         return new PlayerConfig
         {
             Name = r.Name, Team = r.Team, Position = pos,
-            IsRookie         = r.SeasonsPlayed == 0,
+            IsRookie         = r.SeasonsPlayed == 0 && r.SimSeasonsCompleted == 0,
             Height           = A(r.Attrs, "Height"),
             Strength         = A(r.Attrs, "Strength"),
             Speed            = A(r.Attrs, "Speed"),

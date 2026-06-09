@@ -8,8 +8,11 @@ public class PlayerRecord
     public List<string> Positions { get; set; } = ["PG"];
     public string       Height    { get; set; } = "6'7\"";
     public int          Overall   { get; set; } = 75;
-    // Counts completed NBA seasons. 0 = no prior season data = rookie.
-    public int          SeasonsPlayed { get; set; }
+    // Seasons from real NBA history (populated by seasons_played.json, never modified by sim).
+    // 0 = no prior NBA history. Set via ApplySeasonsPlayedFile on every load.
+    public int          SeasonsPlayed     { get; set; }
+    // Seasons completed inside this sim (incremented by UpdateSeasonsPlayedAsync after each season).
+    public int          SimSeasonsCompleted { get; set; }
     public Dictionary<string, int> Attrs { get; set; } = new();
     public Dictionary<string, int> Tends { get; set; } = new();
 
