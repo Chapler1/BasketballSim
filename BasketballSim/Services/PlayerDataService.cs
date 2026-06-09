@@ -383,6 +383,16 @@ public class PlayerDataService(IWebHostEnvironment env, Nba2kCacheService nba2k)
         else
             db = GenerateFromSources();
 
+        // One-time migration: all players already in the DB are veterans (≥1 season played).
+        // Only newly-synced players (SeasonsPlayed still 0 after this runs) are rookies.
+        if (!db.SeasonsPlayedSeeded)
+        {
+            foreach (var p in db.Players)
+                if (p.SeasonsPlayed == 0) p.SeasonsPlayed = 1;
+            db.SeasonsPlayedSeeded = true;
+            File.WriteAllText(DataPath, JsonSerializer.Serialize(db, _opts));
+        }
+
         // Migrate: ensure all players have the new injury body-part ratings (default 70)
         // and remove the legacy 3-bucket injury attributes.
         foreach (var p in db.Players)

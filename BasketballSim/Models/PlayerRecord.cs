@@ -18,9 +18,11 @@ public class PlayerRecord
 
 public class PlayerDb
 {
-    public DateTime           SavedAt { get; set; } = DateTime.Now;
-    public List<TeamMeta>     Teams   { get; set; } = [];
-    public List<PlayerRecord> Players { get; set; } = [];
+    public DateTime           SavedAt              { get; set; } = DateTime.Now;
+    // Set to true after the one-time migration that bootstraps pre-existing players to SeasonsPlayed=1.
+    public bool               SeasonsPlayedSeeded  { get; set; }
+    public List<TeamMeta>     Teams                { get; set; } = [];
+    public List<PlayerRecord> Players              { get; set; } = [];
 }
 
 public class TeamMeta
