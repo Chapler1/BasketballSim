@@ -286,7 +286,6 @@ public class PlayerDataService(IWebHostEnvironment env, Nba2kCacheService nba2k)
                 Positions = positions,
                 Height   = d?.HeightStr ?? "6'7\"",
                 Overall  = d?.Overall ?? 75,
-                SeasonsPlayed = 0,   // new player = rookie until a season is completed
             };
 
             if (d != null)
