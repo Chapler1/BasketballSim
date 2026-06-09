@@ -1340,10 +1340,14 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
                                     </table>
                                 </div>
                                 @* ROTY Race *@
-                                @if (rotyCands.Count > 0)
-                                {
                                 <div>
                                     <div class="section-title" style="color:#40c8ff;margin-bottom:6px;">ROTY RACE</div>
+                                    @if (rotyCands.Count == 0)
+                                    {
+                                        <div style="font-size:0.75rem;color:#333;padding:6px 0;">No rookie candidates — run Sync Rosters to add new draft-class players</div>
+                                    }
+                                    else
+                                    {
                                     <table style="width:100%;font-size:0.83rem;border-collapse:collapse;">
                                         <thead><tr>
                                             <th style="width:20px;text-align:center;color:#444;font-size:0.7rem;padding-bottom:3px;">#</th>
@@ -1375,8 +1379,8 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
                                         }
                                         </tbody>
                                     </table>
+                                    }
                                 </div>
-                                }
                             </div>
                         </div>
                     }
