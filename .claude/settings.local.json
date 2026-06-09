@@ -79,7 +79,9 @@
       "Bash(Get-Content BasketballSim/Data/nba2k_cache.json)",
       "Bash(Select-String \"ThreePt\")",
       "Bash(Select-Object -First 5)",
-      "PowerShell(dotnet build *)"
+      "PowerShell(dotnet build *)",
+      "Bash(where node *)",
+      "Bash(echo \"Downloaded: $?\")"
     ]
   }
 }

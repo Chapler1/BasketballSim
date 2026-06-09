@@ -296,6 +296,18 @@ public class GameEngine
 
     private Dictionary<string, double> GetOrComputeTargetMinutes(Team team)
     {
+        // User-applied rotation takes priority — use it directly (DNP exclusions still apply).
+        if (team.AppliedTargetMinutes != null)
+        {
+            if (_dnpPlayers.Count == 0)
+                return new Dictionary<string, double>(team.AppliedTargetMinutes);
+            // Remove DNP players and redistribute their minutes proportionally.
+            var active = team.AppliedTargetMinutes
+                .Where(kv => !_dnpPlayers.Contains(kv.Key))
+                .ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.OrdinalIgnoreCase);
+            return active;
+        }
+
         // DNP players change each game (injury/rest) — always recompute when any are active.
         // For a healthy roster, reuse the cached result until the roster composition changes.
         if (_dnpPlayers.Count == 0)

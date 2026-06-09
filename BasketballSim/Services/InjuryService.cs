@@ -158,8 +158,25 @@ public static class InjuryService
         double debuffSeverity = 1.0 - (deb.Shooting + deb.Physical + deb.Speed + deb.Jump) / 4.0;
         double injuryRisk = daysFactor * 0.5 + susceptibility * 0.3 + debuffSeverity * 0.2;
 
+        // Deterministic: player plays if probability >= 50%. rng retained for signature compatibility.
         double playProb = 1.0 / (1.0 + Math.Exp(-(threshold - injuryRisk) * 8.0));
-        return rng.NextDouble() < playProb;
+        return playProb >= 0.5;
+    }
+
+    // Deterministic version — returns probability directly (no RNG).
+    // Use for display/planning; ShouldPlayThroughG1 is the authoritative per-game call.
+    public static double PlayThroughG1Probability(
+        Player player, int teamRank, ActiveInjury injury, double gameImportance = 0.25)
+    {
+        double playerImportance = Math.Exp(-0.35 * (teamRank - 1));
+        double threshold        = gameImportance * playerImportance;
+        double daysFactor       = Math.Min(injury.DaysRemaining / 7.0, 1.0);
+        int bodyPartRating      = player.InjuryRatings.GetValueOrDefault(injury.BodyPartKey, 99);
+        double susceptibility   = (100 - bodyPartRating) / 100.0;
+        var deb = injury.EffectiveDebuff;
+        double debuffSeverity   = 1.0 - (deb.Shooting + deb.Physical + deb.Speed + deb.Jump) / 4.0;
+        double injuryRisk       = daysFactor * 0.5 + susceptibility * 0.3 + debuffSeverity * 0.2;
+        return 1.0 / (1.0 + Math.Exp(-(threshold - injuryRisk) * 8.0));
     }
 
     // ── Tick recovery (calendar days between games) ───────────────────────────

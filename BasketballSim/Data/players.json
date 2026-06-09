@@ -1,5 +1,5 @@
 {
-  "SavedAt": "2026-06-09T16:15:37.141124-04:00",
+  "SavedAt": "2026-06-09T17:22:21.4170235-04:00",
   "Teams": [
     {
       "Name": "Boston Celtics",
@@ -253,6 +253,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 91,
+      "SeasonsPlayed": 10,
       "Attrs": {
         "Height": 45,
         "Strength": 64,
@@ -340,6 +341,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 70,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 45,
         "Strength": 45,
@@ -428,6 +430,7 @@
       ],
       "Height": "6\u00274\u0022",
       "Overall": 68,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 35,
         "Strength": 34,
@@ -515,6 +518,7 @@
       ],
       "Height": "6\u00271\u0022",
       "Overall": 80,
+      "SeasonsPlayed": 6,
       "Attrs": {
         "Height": 20,
         "Strength": 24,
@@ -603,6 +607,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 71,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 45,
         "Strength": 43,
@@ -691,6 +696,7 @@
       ],
       "Height": "6\u00274\u0022",
       "Overall": 68,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 35,
         "Strength": 41,
@@ -778,6 +784,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 69,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 40,
         "Strength": 45,
@@ -866,6 +873,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 70,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 45,
         "Strength": 43,
@@ -954,6 +962,7 @@
       ],
       "Height": "6\u00274\u0022",
       "Overall": 84,
+      "SeasonsPlayed": 9,
       "Attrs": {
         "Height": 35,
         "Strength": 32,
@@ -1042,6 +1051,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 76,
+      "SeasonsPlayed": 5,
       "Attrs": {
         "Height": 50,
         "Strength": 58,
@@ -1130,6 +1140,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 94,
+      "SeasonsPlayed": 9,
       "Attrs": {
         "Height": 55,
         "Strength": 67,
@@ -1218,6 +1229,7 @@
       ],
       "Height": "6\u002710\u0022",
       "Overall": 69,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 65,
         "Strength": 64,
@@ -1305,6 +1317,7 @@
       ],
       "Height": "6\u002710\u0022",
       "Overall": 73,
+      "SeasonsPlayed": 4,
       "Attrs": {
         "Height": 65,
         "Strength": 64,
@@ -1392,6 +1405,7 @@
       ],
       "Height": "7\u00274\u0022",
       "Overall": 76,
+      "SeasonsPlayed": 5,
       "Attrs": {
         "Height": 75,
         "Strength": 73,
@@ -1479,6 +1493,7 @@
       ],
       "Height": "6\u002710\u0022",
       "Overall": 83,
+      "SeasonsPlayed": 15,
       "Attrs": {
         "Height": 65,
         "Strength": 85,
@@ -1567,6 +1582,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 73,
+      "SeasonsPlayed": 4,
       "Attrs": {
         "Height": 40,
         "Strength": 57,
@@ -1655,6 +1671,7 @@
       ],
       "Height": "6\u00279\u0022",
       "Overall": 72,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 60,
         "Strength": 50,
@@ -1743,6 +1760,7 @@
       ],
       "Height": "6\u00272\u0022",
       "Overall": 70,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 25,
         "Strength": 29,
@@ -1831,6 +1849,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 77,
+      "SeasonsPlayed": 7,
       "Attrs": {
         "Height": 40,
         "Strength": 38,
@@ -1919,6 +1938,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 70,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 45,
         "Strength": 43,
@@ -2007,6 +2027,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 69,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 40,
         "Strength": 41,
@@ -2094,6 +2115,7 @@
       ],
       "Height": "6\u00274\u0022",
       "Overall": 70,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 35,
         "Strength": 46,
@@ -2182,6 +2204,7 @@
       ],
       "Height": "6\u00279\u0022",
       "Overall": 73,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 60,
         "Strength": 57,
@@ -2269,6 +2292,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -2357,6 +2381,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 70,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 45,
         "Strength": 59,
@@ -2445,6 +2470,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 76,
+      "SeasonsPlayed": 4,
       "Attrs": {
         "Height": 55,
         "Strength": 54,
@@ -2532,6 +2558,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -2620,6 +2647,7 @@
       ],
       "Height": "6\u002710\u0022",
       "Overall": 83,
+      "SeasonsPlayed": 7,
       "Attrs": {
         "Height": 65,
         "Strength": 63,
@@ -2708,6 +2736,7 @@
       ],
       "Height": "6\u00279\u0022",
       "Overall": 76,
+      "SeasonsPlayed": 5,
       "Attrs": {
         "Height": 60,
         "Strength": 22,
@@ -2796,6 +2825,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 74,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 45,
         "Strength": 5,
@@ -2884,6 +2914,7 @@
       ],
       "Height": "7\u00272\u0022",
       "Overall": 71,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 70,
         "Strength": 50,
@@ -2971,6 +3002,7 @@
       ],
       "Height": "6\u002711\u0022",
       "Overall": 80,
+      "SeasonsPlayed": 7,
       "Attrs": {
         "Height": 70,
         "Strength": 67,
@@ -3058,6 +3090,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 5,
       "Attrs": {
         "Height": 60,
         "Strength": 74,
@@ -3146,6 +3179,7 @@
       ],
       "Height": "6\u00271\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 5,
       "Attrs": {
         "Height": 15,
         "Strength": 26,
@@ -3234,6 +3268,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 84,
+      "SeasonsPlayed": 8,
       "Attrs": {
         "Height": 45,
         "Strength": 40,
@@ -3321,6 +3356,7 @@
       ],
       "Height": "6\u00272\u0022",
       "Overall": 93,
+      "SeasonsPlayed": 8,
       "Attrs": {
         "Height": 25,
         "Strength": 60,
@@ -3409,6 +3445,7 @@
       ],
       "Height": "6\u00273\u0022",
       "Overall": 76,
+      "SeasonsPlayed": 12,
       "Attrs": {
         "Height": 30,
         "Strength": 43,
@@ -3497,6 +3534,7 @@
       ],
       "Height": "6\u00274\u0022",
       "Overall": 78,
+      "SeasonsPlayed": 9,
       "Attrs": {
         "Height": 35,
         "Strength": 57,
@@ -3585,6 +3623,7 @@
       ],
       "Height": "6\u00273\u0022",
       "Overall": 71,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 30,
         "Strength": 43,
@@ -3673,6 +3712,7 @@
       ],
       "Height": "6\u00271\u0022",
       "Overall": 76,
+      "SeasonsPlayed": 5,
       "Attrs": {
         "Height": 25,
         "Strength": 29,
@@ -3761,6 +3801,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 69,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 45,
         "Strength": 45,
@@ -3849,6 +3890,7 @@
       ],
       "Height": "6\u00274\u0022",
       "Overall": 73,
+      "SeasonsPlayed": 8,
       "Attrs": {
         "Height": 35,
         "Strength": 24,
@@ -3937,6 +3979,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 85,
+      "SeasonsPlayed": 9,
       "Attrs": {
         "Height": 50,
         "Strength": 70,
@@ -4025,6 +4068,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 69,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 55,
         "Strength": 38,
@@ -4113,6 +4157,7 @@
       ],
       "Height": "6\u00279\u0022",
       "Overall": 68,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 60,
         "Strength": 64,
@@ -4200,6 +4245,7 @@
       ],
       "Height": "6\u002710\u0022",
       "Overall": 71,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 65,
         "Strength": 73,
@@ -4287,6 +4333,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -4375,6 +4422,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 77,
+      "SeasonsPlayed": 4,
       "Attrs": {
         "Height": 55,
         "Strength": 50,
@@ -4463,6 +4511,7 @@
       ],
       "Height": "6\u002711\u0022",
       "Overall": 71,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 75,
         "Strength": 63,
@@ -4550,6 +4599,7 @@
       ],
       "Height": "7\u00272\u0022",
       "Overall": 78,
+      "SeasonsPlayed": 8,
       "Attrs": {
         "Height": 75,
         "Strength": 82,
@@ -4638,6 +4688,7 @@
       ],
       "Height": "7\u00274\u0022",
       "Overall": 90,
+      "SeasonsPlayed": 11,
       "Attrs": {
         "Height": 75,
         "Strength": 85,
@@ -4725,6 +4776,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 81,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 40,
         "Strength": 47,
@@ -4813,6 +4865,7 @@
       ],
       "Height": "6\u00274\u0022",
       "Overall": 80,
+      "SeasonsPlayed": 5,
       "Attrs": {
         "Height": 35,
         "Strength": 45,
@@ -4901,6 +4954,7 @@
       ],
       "Height": "6\u00272\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 20,
       "Attrs": {
         "Height": 25,
         "Strength": 61,
@@ -4989,6 +5043,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 74,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 45,
         "Strength": 49,
@@ -5077,6 +5132,7 @@
       ],
       "Height": "6\u00272\u0022",
       "Overall": 89,
+      "SeasonsPlayed": 6,
       "Attrs": {
         "Height": 25,
         "Strength": 29,
@@ -5165,6 +5221,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 80,
+      "SeasonsPlayed": 11,
       "Attrs": {
         "Height": 55,
         "Strength": 48,
@@ -5252,6 +5309,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 10,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -5340,6 +5398,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 71,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 55,
         "Strength": 54,
@@ -5427,6 +5486,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -5515,6 +5575,7 @@
       ],
       "Height": "6\u002710\u0022",
       "Overall": 70,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 65,
         "Strength": 67,
@@ -5603,6 +5664,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 50,
         "Strength": 48,
@@ -5691,6 +5753,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 81,
+      "SeasonsPlayed": 16,
       "Attrs": {
         "Height": 55,
         "Strength": 65,
@@ -5779,6 +5842,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 72,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 50,
         "Strength": 47,
@@ -5867,6 +5931,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 72,
+      "SeasonsPlayed": 4,
       "Attrs": {
         "Height": 50,
         "Strength": 29,
@@ -5955,6 +6020,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 74,
+      "SeasonsPlayed": 5,
       "Attrs": {
         "Height": 55,
         "Strength": 76,
@@ -6042,6 +6108,7 @@
       ],
       "Height": "6\u002710\u0022",
       "Overall": 74,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 65,
         "Strength": 69,
@@ -6129,6 +6196,7 @@
       ],
       "Height": "6\u002711\u0022",
       "Overall": 76,
+      "SeasonsPlayed": 14,
       "Attrs": {
         "Height": 70,
         "Strength": 93,
@@ -6216,6 +6284,7 @@
       ],
       "Height": "7\u00275\u0022",
       "Overall": 90,
+      "SeasonsPlayed": 10,
       "Attrs": {
         "Height": 75,
         "Strength": 95,
@@ -6296,7 +6365,6 @@
     },
     {
       "Name": "Gradey Dick",
-
       "Team": "Toronto Raptors",
       "TeamAbbr": "TOR",
       "Positions": [
@@ -6305,6 +6373,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 76,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 45,
         "Strength": 43,
@@ -6392,6 +6461,7 @@
       ],
       "Height": "6\u00272\u0022",
       "Overall": 68,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 25,
         "Strength": 27,
@@ -6480,6 +6550,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 73,
+      "SeasonsPlayed": 4,
       "Attrs": {
         "Height": 45,
         "Strength": 12,
@@ -6568,6 +6639,7 @@
       ],
       "Height": "6\u00272\u0022",
       "Overall": 69,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 25,
         "Strength": 54,
@@ -6656,6 +6728,7 @@
       ],
       "Height": "6\u00272\u0022",
       "Overall": 79,
+      "SeasonsPlayed": 6,
       "Attrs": {
         "Height": 25,
         "Strength": 43,
@@ -6744,6 +6817,7 @@
       ],
       "Height": "6\u00271\u0022",
       "Overall": 74,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 20,
         "Strength": 36,
@@ -6832,6 +6906,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 70,
+      "SeasonsPlayed": 15,
       "Attrs": {
         "Height": 40,
         "Strength": 29,
@@ -6919,6 +6994,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 40,
         "Strength": 46,
@@ -7007,6 +7083,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 86,
+      "SeasonsPlayed": 5,
       "Attrs": {
         "Height": 50,
         "Strength": 68,
@@ -7095,6 +7172,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 82,
+      "SeasonsPlayed": 7,
       "Attrs": {
         "Height": 45,
         "Strength": 73,
@@ -7183,6 +7261,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 74,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 50,
         "Strength": 42,
@@ -7271,6 +7350,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 85,
+      "SeasonsPlayed": 10,
       "Attrs": {
         "Height": 55,
         "Strength": 26,
@@ -7359,6 +7439,7 @@
       ],
       "Height": "6\u00279\u0022",
       "Overall": 73,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 60,
         "Strength": 56,
@@ -7447,6 +7528,7 @@
       ],
       "Height": "6\u00279\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 5,
       "Attrs": {
         "Height": 60,
         "Strength": 69,
@@ -7535,6 +7617,7 @@
       ],
       "Height": "6\u00279\u0022",
       "Overall": 74,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 60,
         "Strength": 63,
@@ -7623,6 +7706,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 77,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 50,
         "Strength": 62,
@@ -7710,6 +7794,7 @@
       ],
       "Height": "7\u00273\u0022",
       "Overall": 79,
+      "SeasonsPlayed": 10,
       "Attrs": {
         "Height": 75,
         "Strength": 78,
@@ -7798,6 +7883,7 @@
       ],
       "Height": "6\u00273\u0022",
       "Overall": 73,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 30,
         "Strength": 21,
@@ -7886,6 +7972,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 85,
+      "SeasonsPlayed": 5,
       "Attrs": {
         "Height": 55,
         "Strength": 50,
@@ -7974,6 +8061,7 @@
       ],
       "Height": "6\u00274\u0022",
       "Overall": 79,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 35,
         "Strength": 43,
@@ -8061,6 +8149,7 @@
       ],
       "Height": "6\u00271\u0022",
       "Overall": 78,
+      "SeasonsPlayed": 6,
       "Attrs": {
         "Height": 20,
         "Strength": 50,
@@ -8148,6 +8237,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -8235,6 +8325,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -8323,6 +8414,7 @@
       ],
       "Height": "6\u00273\u0022",
       "Overall": 80,
+      "SeasonsPlayed": 8,
       "Attrs": {
         "Height": 30,
         "Strength": 35,
@@ -8411,6 +8503,7 @@
       ],
       "Height": "6\u00273\u0022",
       "Overall": 78,
+      "SeasonsPlayed": 8,
       "Attrs": {
         "Height": 30,
         "Strength": 24,
@@ -8499,6 +8592,7 @@
       ],
       "Height": "6\u002710\u0022",
       "Overall": 80,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 65,
         "Strength": 50,
@@ -8586,6 +8680,7 @@
       ],
       "Height": "6\u002711\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 8,
       "Attrs": {
         "Height": 70,
         "Strength": 50,
@@ -8674,6 +8769,7 @@
       ],
       "Height": "6\u00279\u0022",
       "Overall": 72,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 60,
         "Strength": 45,
@@ -8762,6 +8858,7 @@
       ],
       "Height": "6\u002710\u0022",
       "Overall": 70,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 65,
         "Strength": 45,
@@ -8850,6 +8947,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 74,
+      "SeasonsPlayed": 6,
       "Attrs": {
         "Height": 40,
         "Strength": 61,
@@ -8938,6 +9036,7 @@
       ],
       "Height": "6\u00279\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 6,
       "Attrs": {
         "Height": 60,
         "Strength": 59,
@@ -9025,6 +9124,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 76,
+      "SeasonsPlayed": 6,
       "Attrs": {
         "Height": 50,
         "Strength": 55,
@@ -9113,6 +9213,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 4,
       "Attrs": {
         "Height": 55,
         "Strength": 70,
@@ -9201,6 +9302,7 @@
       ],
       "Height": "6\u002710\u0022",
       "Overall": 68,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 65,
         "Strength": 63,
@@ -9288,6 +9390,7 @@
       ],
       "Height": "7\u00272\u0022",
       "Overall": 76,
+      "SeasonsPlayed": 5,
       "Attrs": {
         "Height": 60,
         "Strength": 59,
@@ -9376,6 +9479,7 @@
       ],
       "Height": "6\u00274\u0022",
       "Overall": 76,
+      "SeasonsPlayed": 4,
       "Attrs": {
         "Height": 35,
         "Strength": 35,
@@ -9464,6 +9568,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 89,
+      "SeasonsPlayed": 17,
       "Attrs": {
         "Height": 40,
         "Strength": 67,
@@ -9552,6 +9657,7 @@
       ],
       "Height": "6\u00274\u0022",
       "Overall": 76,
+      "SeasonsPlayed": 6,
       "Attrs": {
         "Height": 35,
         "Strength": 41,
@@ -9640,6 +9746,7 @@
       ],
       "Height": "6\u00273\u0022",
       "Overall": 93,
+      "SeasonsPlayed": 9,
       "Attrs": {
         "Height": 30,
         "Strength": 50,
@@ -9727,6 +9834,7 @@
       ],
       "Height": "6\u00271\u0022",
       "Overall": 73,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 20,
         "Strength": 35,
@@ -9815,6 +9923,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 69,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 40,
         "Strength": 39,
@@ -9903,6 +10012,7 @@
       ],
       "Height": "6\u00271\u0022",
       "Overall": 79,
+      "SeasonsPlayed": 13,
       "Attrs": {
         "Height": 20,
         "Strength": 32,
@@ -9991,6 +10101,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 77,
+      "SeasonsPlayed": 7,
       "Attrs": {
         "Height": 40,
         "Strength": 22,
@@ -10079,6 +10190,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 74,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 45,
         "Strength": 56,
@@ -10166,6 +10278,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -10254,6 +10367,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 67,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 50,
         "Strength": 47,
@@ -10342,6 +10456,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 74,
+      "SeasonsPlayed": 11,
       "Attrs": {
         "Height": 55,
         "Strength": 64,
@@ -10429,6 +10544,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -10516,6 +10632,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 60,
         "Strength": 46,
@@ -10604,6 +10721,7 @@
       ],
       "Height": "6\u00279\u0022",
       "Overall": 74,
+      "SeasonsPlayed": 7,
       "Attrs": {
         "Height": 60,
         "Strength": 50,
@@ -10691,6 +10809,7 @@
       ],
       "Height": "6\u00279\u0022",
       "Overall": 84,
+      "SeasonsPlayed": 9,
       "Attrs": {
         "Height": 60,
         "Strength": 82,
@@ -10778,6 +10897,7 @@
       ],
       "Height": "6\u002710\u0022",
       "Overall": 73,
+      "SeasonsPlayed": 9,
       "Attrs": {
         "Height": 65,
         "Strength": 78,
@@ -10866,6 +10986,7 @@
       ],
       "Height": "6\u002711\u0022",
       "Overall": 89,
+      "SeasonsPlayed": 5,
       "Attrs": {
         "Height": 70,
         "Strength": 70,
@@ -10954,6 +11075,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 92,
+      "SeasonsPlayed": 5,
       "Attrs": {
         "Height": 45,
         "Strength": 54,
@@ -11042,6 +11164,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 72,
+      "SeasonsPlayed": 7,
       "Attrs": {
         "Height": 40,
         "Strength": 32,
@@ -11130,6 +11253,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 77,
+      "SeasonsPlayed": 8,
       "Attrs": {
         "Height": 50,
         "Strength": 35,
@@ -11218,6 +11342,7 @@
       ],
       "Height": "6\u00273\u0022",
       "Overall": 70,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 30,
         "Strength": 30,
@@ -11305,6 +11430,7 @@
       ],
       "Height": "6\u00274\u0022",
       "Overall": 68,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 35,
         "Strength": 35,
@@ -11393,6 +11519,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 76,
+      "SeasonsPlayed": 10,
       "Attrs": {
         "Height": 45,
         "Strength": 43,
@@ -11481,6 +11608,7 @@
       ],
       "Height": "6\u00272\u0022",
       "Overall": 74,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 25,
         "Strength": 34,
@@ -11561,7 +11689,6 @@
     },
     {
       "Name": "Ausar Thompson",
-
       "Team": "Detroit Pistons",
       "TeamAbbr": "DET",
       "Positions": [
@@ -11570,6 +11697,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 82,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 45,
         "Strength": 38,
@@ -11658,6 +11786,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 80,
+      "SeasonsPlayed": 15,
       "Attrs": {
         "Height": 55,
         "Strength": 69,
@@ -11745,6 +11874,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -11833,6 +11963,7 @@
       ],
       "Height": "6\u00279\u0022",
       "Overall": 69,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 60,
         "Strength": 45,
@@ -11921,6 +12052,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 70,
+      "SeasonsPlayed": 4,
       "Attrs": {
         "Height": 40,
         "Strength": 48,
@@ -12009,6 +12141,7 @@
       ],
       "Height": "6\u00279\u0022",
       "Overall": 72,
+      "SeasonsPlayed": 6,
       "Attrs": {
         "Height": 60,
         "Strength": 82,
@@ -12097,6 +12230,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 76,
+      "SeasonsPlayed": 7,
       "Attrs": {
         "Height": 50,
         "Strength": 12,
@@ -12185,6 +12319,7 @@
       ],
       "Height": "6\u002711\u0022",
       "Overall": 67,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 70,
         "Strength": 78,
@@ -12273,6 +12408,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 77,
+      "SeasonsPlayed": 6,
       "Attrs": {
         "Height": 55,
         "Strength": 88,
@@ -12360,6 +12496,7 @@
       ],
       "Height": "6\u002710\u0022",
       "Overall": 84,
+      "SeasonsPlayed": 4,
       "Attrs": {
         "Height": 65,
         "Strength": 79,
@@ -12448,6 +12585,7 @@
       ],
       "Height": "6\u00279\u0022",
       "Overall": 71,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 60,
         "Strength": 65,
@@ -12536,6 +12674,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 71,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 50,
         "Strength": 68,
@@ -12624,6 +12763,7 @@
       ],
       "Height": "6\u00279\u0022",
       "Overall": 70,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 60,
         "Strength": 43,
@@ -12712,6 +12852,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 93,
+      "SeasonsPlayed": 6,
       "Attrs": {
         "Height": 40,
         "Strength": 49,
@@ -12800,6 +12941,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 4,
       "Attrs": {
         "Height": 40,
         "Strength": 26,
@@ -12888,6 +13030,7 @@
       ],
       "Height": "6\u00274\u0022",
       "Overall": 68,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 35,
         "Strength": 41,
@@ -12975,6 +13118,7 @@
       ],
       "Height": "6\u00271\u0022",
       "Overall": 80,
+      "SeasonsPlayed": 11,
       "Attrs": {
         "Height": 20,
         "Strength": 29,
@@ -13063,6 +13207,7 @@
       ],
       "Height": "6\u00274\u0022",
       "Overall": 81,
+      "SeasonsPlayed": 4,
       "Attrs": {
         "Height": 35,
         "Strength": 32,
@@ -13151,6 +13296,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 80,
+      "SeasonsPlayed": 6,
       "Attrs": {
         "Height": 45,
         "Strength": 41,
@@ -13238,6 +13384,7 @@
       ],
       "Height": "6\u00274\u0022",
       "Overall": 68,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 35,
         "Strength": 24,
@@ -13326,6 +13473,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 74,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 45,
         "Strength": 43,
@@ -13413,6 +13561,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -13501,6 +13650,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 89,
+      "SeasonsPlayed": 10,
       "Attrs": {
         "Height": 55,
         "Strength": 65,
@@ -13588,6 +13738,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -13675,6 +13826,7 @@
       ],
       "Height": "6\u00279\u0022",
       "Overall": 80,
+      "SeasonsPlayed": 6,
       "Attrs": {
         "Height": 60,
         "Strength": 70,
@@ -13763,6 +13915,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 76,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 50,
         "Strength": 75,
@@ -13850,6 +14003,7 @@
       ],
       "Height": "7\u00271\u0022",
       "Overall": 74,
+      "SeasonsPlayed": 5,
       "Attrs": {
         "Height": 80,
         "Strength": 54,
@@ -13937,6 +14091,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 4,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -14024,6 +14179,7 @@
       ],
       "Height": "7\u00274\u0022",
       "Overall": 87,
+      "SeasonsPlayed": 10,
       "Attrs": {
         "Height": 75,
         "Strength": 89,
@@ -14112,6 +14268,7 @@
       ],
       "Height": "6\u00274\u0022",
       "Overall": 76,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 35,
         "Strength": 26,
@@ -14200,6 +14357,7 @@
       ],
       "Height": "6\u00274\u0022",
       "Overall": 73,
+      "SeasonsPlayed": 12,
       "Attrs": {
         "Height": 35,
         "Strength": 42,
@@ -14288,6 +14446,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 71,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 45,
         "Strength": 38,
@@ -14376,6 +14535,7 @@
       ],
       "Height": "6\u00274\u0022",
       "Overall": 76,
+      "SeasonsPlayed": 6,
       "Attrs": {
         "Height": 35,
         "Strength": 41,
@@ -14464,6 +14624,7 @@
       ],
       "Height": "6\u00273\u0022",
       "Overall": 79,
+      "SeasonsPlayed": 4,
       "Attrs": {
         "Height": 30,
         "Strength": 21,
@@ -14551,6 +14712,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -14638,6 +14800,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 4,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -14726,6 +14889,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 77,
+      "SeasonsPlayed": 8,
       "Attrs": {
         "Height": 40,
         "Strength": 48,
@@ -14814,6 +14978,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 68,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 55,
         "Strength": 47,
@@ -14902,6 +15067,7 @@
       ],
       "Height": "6\u002711\u0022",
       "Overall": 97,
+      "SeasonsPlayed": 13,
       "Attrs": {
         "Height": 70,
         "Strength": 93,
@@ -14990,6 +15156,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 69,
+      "SeasonsPlayed": 6,
       "Attrs": {
         "Height": 50,
         "Strength": 23,
@@ -15078,6 +15245,7 @@
       ],
       "Height": "6\u00279\u0022",
       "Overall": 72,
+      "SeasonsPlayed": 4,
       "Attrs": {
         "Height": 60,
         "Strength": 54,
@@ -15166,6 +15334,7 @@
       ],
       "Height": "6\u00279\u0022",
       "Overall": 77,
+      "SeasonsPlayed": 9,
       "Attrs": {
         "Height": 60,
         "Strength": 70,
@@ -15254,6 +15423,7 @@
       ],
       "Height": "6\u002710\u0022",
       "Overall": 67,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 65,
         "Strength": 64,
@@ -15341,6 +15511,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 10,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -15429,6 +15600,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 10,
       "Attrs": {
         "Height": 45,
         "Strength": 50,
@@ -15516,6 +15688,7 @@
       ],
       "Height": "6\u002710\u0022",
       "Overall": 71,
+      "SeasonsPlayed": 4,
       "Attrs": {
         "Height": 65,
         "Strength": 59,
@@ -15603,6 +15776,7 @@
       ],
       "Height": "6\u002711\u0022",
       "Overall": 81,
+      "SeasonsPlayed": 11,
       "Attrs": {
         "Height": 70,
         "Strength": 78,
@@ -15691,6 +15865,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 80,
+      "SeasonsPlayed": 7,
       "Attrs": {
         "Height": 40,
         "Strength": 50,
@@ -15779,6 +15954,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 82,
+      "SeasonsPlayed": 4,
       "Attrs": {
         "Height": 50,
         "Strength": 38,
@@ -15867,6 +16043,7 @@
       ],
       "Height": "6\u00272\u0022",
       "Overall": 71,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 25,
         "Strength": 26,
@@ -15955,6 +16132,7 @@
       ],
       "Height": "6\u00274\u0022",
       "Overall": 76,
+      "SeasonsPlayed": 10,
       "Attrs": {
         "Height": 35,
         "Strength": 24,
@@ -16043,6 +16221,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 73,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 55,
         "Strength": 22,
@@ -16131,6 +16310,7 @@
       ],
       "Height": "6\u00273\u0022",
       "Overall": 79,
+      "SeasonsPlayed": 13,
       "Attrs": {
         "Height": 30,
         "Strength": 50,
@@ -16219,6 +16399,7 @@
       ],
       "Height": "6\u00272\u0022",
       "Overall": 74,
+      "SeasonsPlayed": 6,
       "Attrs": {
         "Height": 25,
         "Strength": 22,
@@ -16307,6 +16488,7 @@
       ],
       "Height": "6\u00273\u0022",
       "Overall": 70,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 30,
         "Strength": 36,
@@ -16395,6 +16577,7 @@
       ],
       "Height": "6\u002710\u0022",
       "Overall": 74,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 65,
         "Strength": 56,
@@ -16483,6 +16666,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 85,
+      "SeasonsPlayed": 5,
       "Attrs": {
         "Height": 55,
         "Strength": 63,
@@ -16571,6 +16755,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 76,
+      "SeasonsPlayed": 5,
       "Attrs": {
         "Height": 45,
         "Strength": 50,
@@ -16659,6 +16844,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 81,
+      "SeasonsPlayed": 5,
       "Attrs": {
         "Height": 50,
         "Strength": 66,
@@ -16746,6 +16932,7 @@
       ],
       "Height": "6\u002711\u0022",
       "Overall": 73,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 70,
         "Strength": 61,
@@ -16833,6 +17020,7 @@
       ],
       "Height": "6\u002710\u0022",
       "Overall": 81,
+      "SeasonsPlayed": 6,
       "Attrs": {
         "Height": 65,
         "Strength": 65,
@@ -16921,6 +17109,7 @@
       ],
       "Height": "6\u002710\u0022",
       "Overall": 78,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 55,
         "Strength": 46,
@@ -17008,6 +17197,7 @@
       ],
       "Height": "7\u00275\u0022",
       "Overall": 71,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 70,
         "Strength": 49,
@@ -17095,6 +17285,7 @@
       ],
       "Height": "6\u002711\u0022",
       "Overall": 76,
+      "SeasonsPlayed": 5,
       "Attrs": {
         "Height": 70,
         "Strength": 57,
@@ -17183,6 +17374,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 88,
+      "SeasonsPlayed": 6,
       "Attrs": {
         "Height": 50,
         "Strength": 35,
@@ -17271,6 +17463,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 72,
+      "SeasonsPlayed": 11,
       "Attrs": {
         "Height": 40,
         "Strength": 30,
@@ -17359,6 +17552,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 73,
+      "SeasonsPlayed": 6,
       "Attrs": {
         "Height": 40,
         "Strength": 50,
@@ -17446,6 +17640,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 76,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 45,
         "Strength": 80,
@@ -17534,6 +17729,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 79,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 50,
         "Strength": 52,
@@ -17622,6 +17818,7 @@
       ],
       "Height": "6\u00273\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 5,
       "Attrs": {
         "Height": 30,
         "Strength": 42,
@@ -17709,6 +17906,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 70,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 50,
         "Strength": 41,
@@ -17797,6 +17995,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 70,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 40,
         "Strength": 21,
@@ -17885,6 +18084,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 83,
+      "SeasonsPlayed": 7,
       "Attrs": {
         "Height": 40,
         "Strength": 46,
@@ -17973,6 +18173,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 82,
+      "SeasonsPlayed": 7,
       "Attrs": {
         "Height": 50,
         "Strength": 80,
@@ -18061,6 +18262,7 @@
       ],
       "Height": "6\u00279\u0022",
       "Overall": 77,
+      "SeasonsPlayed": 4,
       "Attrs": {
         "Height": 60,
         "Strength": 50,
@@ -18149,6 +18351,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 70,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 50,
         "Strength": 47,
@@ -18229,7 +18432,6 @@
     },
     {
       "Name": "Brandon Miller",
-
       "Team": "Charlotte Hornets",
       "TeamAbbr": "CHA",
       "Positions": [
@@ -18238,6 +18440,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 82,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 50,
         "Strength": 36,
@@ -18326,6 +18529,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 72,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 55,
         "Strength": 50,
@@ -18413,6 +18617,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 5,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -18501,6 +18706,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 73,
+      "SeasonsPlayed": 7,
       "Attrs": {
         "Height": 45,
         "Strength": 69,
@@ -18589,6 +18795,7 @@
       ],
       "Height": "6\u002710\u0022",
       "Overall": 68,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 65,
         "Strength": 65,
@@ -18676,6 +18883,7 @@
       ],
       "Height": "7\u00271\u0022",
       "Overall": 78,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 80,
         "Strength": 61,
@@ -18764,6 +18972,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 86,
+      "SeasonsPlayed": 7,
       "Attrs": {
         "Height": 40,
         "Strength": 49,
@@ -18852,6 +19061,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 71,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 45,
         "Strength": 50,
@@ -18939,6 +19149,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -19027,6 +19238,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 40,
         "Strength": 45,
@@ -19115,6 +19327,7 @@
       ],
       "Height": "6\u00274\u0022",
       "Overall": 77,
+      "SeasonsPlayed": 5,
       "Attrs": {
         "Height": 35,
         "Strength": 50,
@@ -19203,6 +19416,7 @@
       ],
       "Height": "6\u00274\u0022",
       "Overall": 85,
+      "SeasonsPlayed": 11,
       "Attrs": {
         "Height": 35,
         "Strength": 32,
@@ -19290,6 +19504,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 10,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -19378,6 +19593,7 @@
       ],
       "Height": "6\u00272\u0022",
       "Overall": 73,
+      "SeasonsPlayed": 4,
       "Attrs": {
         "Height": 25,
         "Strength": 27,
@@ -19465,6 +19681,7 @@
       ],
       "Height": "6\u00271\u0022",
       "Overall": 67,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 20,
         "Strength": 39,
@@ -19553,6 +19770,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 4,
       "Attrs": {
         "Height": 50,
         "Strength": 52,
@@ -19640,6 +19858,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 68,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 45,
         "Strength": 54,
@@ -19720,7 +19939,6 @@
     },
     {
       "Name": "Jaime Jaquez Jr.",
-
       "Team": "Miami Heat",
       "TeamAbbr": "MIA",
       "Positions": [
@@ -19729,6 +19947,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 80,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 45,
         "Strength": 63,
@@ -19817,6 +20036,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 69,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 50,
         "Strength": 56,
@@ -19905,6 +20125,7 @@
       ],
       "Height": "6\u002710\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 4,
       "Attrs": {
         "Height": 65,
         "Strength": 29,
@@ -19993,6 +20214,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 80,
+      "SeasonsPlayed": 12,
       "Attrs": {
         "Height": 50,
         "Strength": 46,
@@ -20080,6 +20302,7 @@
       ],
       "Height": "6\u00279\u0022",
       "Overall": 89,
+      "SeasonsPlayed": 9,
       "Attrs": {
         "Height": 60,
         "Strength": 83,
@@ -20167,6 +20390,7 @@
       ],
       "Height": "7\u00275\u0022",
       "Overall": 68,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 75,
         "Strength": 65,
@@ -20254,6 +20478,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 75,
         "Strength": 58,
@@ -20342,6 +20567,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 81,
+      "SeasonsPlayed": 6,
       "Attrs": {
         "Height": 40,
         "Strength": 46,
@@ -20430,6 +20656,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 79,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 50,
         "Strength": 47,
@@ -20518,6 +20745,7 @@
       ],
       "Height": "6\u00271\u0022",
       "Overall": 73,
+      "SeasonsPlayed": 8,
       "Attrs": {
         "Height": 20,
         "Strength": 50,
@@ -20606,6 +20834,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 72,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 45,
         "Strength": 48,
@@ -20693,6 +20922,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -20781,6 +21011,7 @@
       ],
       "Height": "6\u00273\u0022",
       "Overall": 70,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 30,
         "Strength": 47,
@@ -20869,6 +21100,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 82,
+      "SeasonsPlayed": 5,
       "Attrs": {
         "Height": 40,
         "Strength": 49,
@@ -20957,6 +21189,7 @@
       ],
       "Height": "6\u002710\u0022",
       "Overall": 90,
+      "SeasonsPlayed": 4,
       "Attrs": {
         "Height": 65,
         "Strength": 74,
@@ -21045,6 +21278,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 70,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 45,
         "Strength": 50,
@@ -21133,6 +21367,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 76,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 55,
         "Strength": 54,
@@ -21220,6 +21455,7 @@
       ],
       "Height": "6\u002710\u0022",
       "Overall": 73,
+      "SeasonsPlayed": 7,
       "Attrs": {
         "Height": 65,
         "Strength": 65,
@@ -21308,6 +21544,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 72,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 55,
         "Strength": 65,
@@ -21396,6 +21633,7 @@
       ],
       "Height": "6\u002710\u0022",
       "Overall": 86,
+      "SeasonsPlayed": 5,
       "Attrs": {
         "Height": 65,
         "Strength": 59,
@@ -21484,6 +21722,7 @@
       ],
       "Height": "6\u002711\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 8,
       "Attrs": {
         "Height": 70,
         "Strength": 75,
@@ -21571,6 +21810,7 @@
       ],
       "Height": "6\u002710\u0022",
       "Overall": 76,
+      "SeasonsPlayed": 7,
       "Attrs": {
         "Height": 65,
         "Strength": 86,
@@ -21658,6 +21898,7 @@
       ],
       "Height": "6\u002710\u0022",
       "Overall": 79,
+      "SeasonsPlayed": 8,
       "Attrs": {
         "Height": 65,
         "Strength": 80,
@@ -21745,6 +21986,7 @@
       ],
       "Height": "6\u002710\u0022",
       "Overall": 70,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 65,
         "Strength": 56,
@@ -21833,6 +22075,7 @@
       ],
       "Height": "6\u00274\u0022",
       "Overall": 76,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 35,
         "Strength": 43,
@@ -21920,6 +22163,7 @@
       ],
       "Height": "6\u00271\u0022",
       "Overall": 71,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 20,
         "Strength": 21,
@@ -22000,7 +22244,6 @@
     },
     {
       "Name": "Bilal Coulibaly",
-
       "Team": "Washington Wizards",
       "TeamAbbr": "WSH",
       "Positions": [
@@ -22009,6 +22252,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 79,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 55,
         "Strength": 56,
@@ -22097,6 +22341,7 @@
       ],
       "Height": "6\u00273\u0022",
       "Overall": 73,
+      "SeasonsPlayed": 4,
       "Attrs": {
         "Height": 30,
         "Strength": 21,
@@ -22184,6 +22429,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 76,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 45,
         "Strength": 43,
@@ -22271,6 +22517,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -22358,6 +22605,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 70,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 55,
         "Strength": 30,
@@ -22445,6 +22693,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 11,
       "Attrs": {
         "Height": 30,
         "Strength": 41,
@@ -22532,6 +22781,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 69,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 50,
         "Strength": 48,
@@ -22619,6 +22869,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -22706,6 +22957,7 @@
       ],
       "Height": "6\u00271\u0022",
       "Overall": 88,
+      "SeasonsPlayed": 8,
       "Attrs": {
         "Height": 20,
         "Strength": 38,
@@ -22793,6 +23045,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -22881,6 +23134,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 74,
+      "SeasonsPlayed": 5,
       "Attrs": {
         "Height": 45,
         "Strength": 22,
@@ -22969,6 +23223,7 @@
       ],
       "Height": "6\u002710\u0022",
       "Overall": 93,
+      "SeasonsPlayed": 14,
       "Attrs": {
         "Height": 65,
         "Strength": 88,
@@ -23057,6 +23312,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 81,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 55,
         "Strength": 50,
@@ -23145,6 +23401,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 71,
+      "SeasonsPlayed": 6,
       "Attrs": {
         "Height": 55,
         "Strength": 50,
@@ -23232,6 +23489,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -23320,6 +23578,7 @@
       ],
       "Height": "6\u002710\u0022",
       "Overall": 71,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 65,
         "Strength": 68,
@@ -23408,6 +23667,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 50,
         "Strength": 60,
@@ -23495,6 +23755,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 5,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -23582,6 +23843,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -23670,6 +23932,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 79,
+      "SeasonsPlayed": 4,
       "Attrs": {
         "Height": 45,
         "Strength": 32,
@@ -23758,6 +24021,7 @@
       ],
       "Height": "6\u00274\u0022",
       "Overall": 76,
+      "SeasonsPlayed": 8,
       "Attrs": {
         "Height": 35,
         "Strength": 72,
@@ -23846,6 +24110,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 79,
+      "SeasonsPlayed": 13,
       "Attrs": {
         "Height": 40,
         "Strength": 45,
@@ -23934,6 +24199,7 @@
       ],
       "Height": "6\u00274\u0022",
       "Overall": 68,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 35,
         "Strength": 36,
@@ -24021,6 +24287,7 @@
       ],
       "Height": "6\u00271\u0022",
       "Overall": 74,
+      "SeasonsPlayed": 10,
       "Attrs": {
         "Height": 20,
         "Strength": 12,
@@ -24109,6 +24376,7 @@
       ],
       "Height": "6\u00274\u0022",
       "Overall": 87,
+      "SeasonsPlayed": 9,
       "Attrs": {
         "Height": 35,
         "Strength": 43,
@@ -24197,6 +24465,7 @@
       ],
       "Height": "6\u00272\u0022",
       "Overall": 71,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 25,
         "Strength": 49,
@@ -24284,6 +24553,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 72,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 40,
         "Strength": 41,
@@ -24372,6 +24642,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 74,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 45,
         "Strength": 42,
@@ -24460,6 +24731,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 76,
+      "SeasonsPlayed": 4,
       "Attrs": {
         "Height": 50,
         "Strength": 42,
@@ -24547,6 +24819,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 83,
+      "SeasonsPlayed": 12,
       "Attrs": {
         "Height": 55,
         "Strength": 68,
@@ -24635,6 +24908,7 @@
       ],
       "Height": "6\u002710\u0022",
       "Overall": 71,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 65,
         "Strength": 50,
@@ -24723,6 +24997,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 79,
+      "SeasonsPlayed": 7,
       "Attrs": {
         "Height": 55,
         "Strength": 50,
@@ -24811,6 +25086,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 67,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 50,
         "Strength": 35,
@@ -24899,6 +25175,7 @@
       ],
       "Height": "6\u00279\u0022",
       "Overall": 72,
+      "SeasonsPlayed": 6,
       "Attrs": {
         "Height": 60,
         "Strength": 65,
@@ -24986,6 +25263,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -25073,6 +25351,7 @@
       ],
       "Height": "6\u002711\u0022",
       "Overall": 98,
+      "SeasonsPlayed": 11,
       "Attrs": {
         "Height": 70,
         "Strength": 95,
@@ -25160,6 +25439,7 @@
       ],
       "Height": "6\u002711\u0022",
       "Overall": 78,
+      "SeasonsPlayed": 14,
       "Attrs": {
         "Height": 70,
         "Strength": 90,
@@ -25247,6 +25527,7 @@
       ],
       "Height": "6\u00274\u0022",
       "Overall": 74,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 35,
         "Strength": 45,
@@ -25334,6 +25615,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 77,
+      "SeasonsPlayed": 19,
       "Attrs": {
         "Height": 45,
         "Strength": 22,
@@ -25422,6 +25704,7 @@
       ],
       "Height": "6\u00274\u0022",
       "Overall": 78,
+      "SeasonsPlayed": 8,
       "Attrs": {
         "Height": 35,
         "Strength": 50,
@@ -25510,6 +25793,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 77,
+      "SeasonsPlayed": 5,
       "Attrs": {
         "Height": 40,
         "Strength": 41,
@@ -25598,6 +25882,7 @@
       ],
       "Height": "6\u00274\u0022",
       "Overall": 95,
+      "SeasonsPlayed": 6,
       "Attrs": {
         "Height": 35,
         "Strength": 54,
@@ -25686,6 +25971,7 @@
       ],
       "Height": "6\u00272\u0022",
       "Overall": 73,
+      "SeasonsPlayed": 5,
       "Attrs": {
         "Height": 25,
         "Strength": 9,
@@ -25773,6 +26059,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -25861,6 +26148,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 73,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 45,
         "Strength": 48,
@@ -25949,6 +26237,7 @@
       ],
       "Height": "6\u00279\u0022",
       "Overall": 74,
+      "SeasonsPlayed": 12,
       "Attrs": {
         "Height": 60,
         "Strength": 54,
@@ -26037,6 +26326,7 @@
       ],
       "Height": "6\u002711\u0022",
       "Overall": 70,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 70,
         "Strength": 59,
@@ -26125,6 +26415,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 69,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 50,
         "Strength": 50,
@@ -26213,6 +26504,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 73,
+      "SeasonsPlayed": 12,
       "Attrs": {
         "Height": 55,
         "Strength": 57,
@@ -26301,6 +26593,7 @@
       ],
       "Height": "6\u00279\u0022",
       "Overall": 83,
+      "SeasonsPlayed": 6,
       "Attrs": {
         "Height": 60,
         "Strength": 50,
@@ -26389,6 +26682,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 72,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 55,
         "Strength": 22,
@@ -26477,6 +26771,7 @@
       ],
       "Height": "6\u00279\u0022",
       "Overall": 88,
+      "SeasonsPlayed": 12,
       "Attrs": {
         "Height": 60,
         "Strength": 90,
@@ -26564,6 +26859,7 @@
       ],
       "Height": "7\u00271\u0022",
       "Overall": 83,
+      "SeasonsPlayed": 13,
       "Attrs": {
         "Height": 80,
         "Strength": 90,
@@ -26652,6 +26948,7 @@
       ],
       "Height": "6\u00279\u0022",
       "Overall": 82,
+      "SeasonsPlayed": 7,
       "Attrs": {
         "Height": 60,
         "Strength": 85,
@@ -26739,6 +27036,7 @@
       ],
       "Height": "7\u00274\u0022",
       "Overall": 68,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 90,
         "Strength": 59,
@@ -26827,6 +27125,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 80,
+      "SeasonsPlayed": 9,
       "Attrs": {
         "Height": 40,
         "Strength": 7,
@@ -26915,6 +27214,7 @@
       ],
       "Height": "6\u00274\u0022",
       "Overall": 80,
+      "SeasonsPlayed": 7,
       "Attrs": {
         "Height": 35,
         "Strength": 65,
@@ -27003,6 +27303,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 98,
+      "SeasonsPlayed": 8,
       "Attrs": {
         "Height": 45,
         "Strength": 54,
@@ -27091,6 +27392,7 @@
       ],
       "Height": "6\u00273\u0022",
       "Overall": 79,
+      "SeasonsPlayed": 5,
       "Attrs": {
         "Height": 30,
         "Strength": 34,
@@ -27179,6 +27481,7 @@
       ],
       "Height": "6\u00273\u0022",
       "Overall": 80,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 30,
         "Strength": 41,
@@ -27267,6 +27570,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 79,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 40,
         "Strength": 42,
@@ -27355,6 +27659,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 72,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 45,
         "Strength": 49,
@@ -27435,7 +27740,6 @@
     },
     {
       "Name": "Cason Wallace",
-
       "Team": "Oklahoma City Thunder",
       "TeamAbbr": "OKC",
       "Positions": [
@@ -27444,6 +27748,7 @@
       ],
       "Height": "6\u00273\u0022",
       "Overall": 79,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 30,
         "Strength": 45,
@@ -27532,6 +27837,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 79,
+      "SeasonsPlayed": 5,
       "Attrs": {
         "Height": 40,
         "Strength": 30,
@@ -27620,6 +27926,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 90,
+      "SeasonsPlayed": 4,
       "Attrs": {
         "Height": 40,
         "Strength": 65,
@@ -27708,6 +28015,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 76,
+      "SeasonsPlayed": 8,
       "Attrs": {
         "Height": 45,
         "Strength": 56,
@@ -27796,6 +28104,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 69,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 45,
         "Strength": 61,
@@ -27883,6 +28192,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -27970,6 +28280,7 @@
       ],
       "Height": "6\u00279\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 4,
       "Attrs": {
         "Height": 60,
         "Strength": 50,
@@ -28057,6 +28368,7 @@
       ],
       "Height": "7\u00274\u0022",
       "Overall": 70,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 75,
         "Strength": 50,
@@ -28144,6 +28456,7 @@
       ],
       "Height": "7\u00272\u0022",
       "Overall": 82,
+      "SeasonsPlayed": 8,
       "Attrs": {
         "Height": 75,
         "Strength": 85,
@@ -28224,7 +28537,6 @@
     },
     {
       "Name": "Chet Holmgren",
-
       "Team": "Oklahoma City Thunder",
       "TeamAbbr": "OKC",
       "Positions": [
@@ -28233,6 +28545,7 @@
       ],
       "Height": "7\u00271\u0022",
       "Overall": 88,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 80,
         "Strength": 30,
@@ -28320,6 +28633,7 @@
       ],
       "Height": "6\u002710\u0022",
       "Overall": 71,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 65,
         "Strength": 68,
@@ -28408,6 +28722,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 70,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 45,
         "Strength": 48,
@@ -28488,7 +28803,6 @@
     },
     {
       "Name": "Scoot Henderson",
-
       "Team": "Portland Trail Blazers",
       "TeamAbbr": "POR",
       "Positions": [
@@ -28497,6 +28811,7 @@
       ],
       "Height": "6\u00273\u0022",
       "Overall": 78,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 30,
         "Strength": 42,
@@ -28585,6 +28900,7 @@
       ],
       "Height": "6\u00274\u0022",
       "Overall": 82,
+      "SeasonsPlayed": 17,
       "Attrs": {
         "Height": 35,
         "Strength": 36,
@@ -28672,6 +28988,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -28760,6 +29077,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 73,
+      "SeasonsPlayed": 5,
       "Attrs": {
         "Height": 55,
         "Strength": 22,
@@ -28847,6 +29165,7 @@
       ],
       "Height": "6\u00272\u0022",
       "Overall": 88,
+      "SeasonsPlayed": 14,
       "Attrs": {
         "Height": 25,
         "Strength": 56,
@@ -28934,6 +29253,7 @@
       ],
       "Height": "6\u00274\u0022",
       "Overall": 68,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 35,
         "Strength": 39,
@@ -29022,6 +29342,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 81,
+      "SeasonsPlayed": 4,
       "Attrs": {
         "Height": 40,
         "Strength": 38,
@@ -29110,6 +29431,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 7,
       "Attrs": {
         "Height": 40,
         "Strength": 49,
@@ -29198,6 +29520,7 @@
       ],
       "Height": "6\u00273\u0022",
       "Overall": 73,
+      "SeasonsPlayed": 4,
       "Attrs": {
         "Height": 30,
         "Strength": 22,
@@ -29286,6 +29609,7 @@
       ],
       "Height": "6\u00274\u0022",
       "Overall": 68,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 35,
         "Strength": 41,
@@ -29374,6 +29698,7 @@
       ],
       "Height": "6\u00279\u0022",
       "Overall": 84,
+      "SeasonsPlayed": 6,
       "Attrs": {
         "Height": 60,
         "Strength": 59,
@@ -29462,6 +29787,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 82,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 50,
         "Strength": 72,
@@ -29550,6 +29876,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 81,
+      "SeasonsPlayed": 12,
       "Attrs": {
         "Height": 50,
         "Strength": 61,
@@ -29638,6 +29965,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 73,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 55,
         "Strength": 50,
@@ -29725,6 +30053,7 @@
       ],
       "Height": "7\u00272\u0022",
       "Overall": 80,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 80,
         "Strength": 75,
@@ -29812,6 +30141,7 @@
       ],
       "Height": "7\u00272\u0022",
       "Overall": 70,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 85,
         "Strength": 59,
@@ -29900,6 +30230,7 @@
       ],
       "Height": "6\u00279\u0022",
       "Overall": 78,
+      "SeasonsPlayed": 8,
       "Attrs": {
         "Height": 60,
         "Strength": 81,
@@ -29988,6 +30319,7 @@
       ],
       "Height": "6\u002710\u0022",
       "Overall": 73,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 65,
         "Strength": 52,
@@ -30076,6 +30408,7 @@
       ],
       "Height": "6\u00273\u0022",
       "Overall": 78,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 30,
         "Strength": 50,
@@ -30156,7 +30489,6 @@
     },
     {
       "Name": "Keyonte George",
-
       "Team": "Utah Jazz",
       "TeamAbbr": "UTAH",
       "Positions": [
@@ -30165,6 +30497,7 @@
       ],
       "Height": "6\u00274\u0022",
       "Overall": 82,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 35,
         "Strength": 45,
@@ -30253,6 +30586,7 @@
       ],
       "Height": "6\u00273\u0022",
       "Overall": 67,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 30,
         "Strength": 47,
@@ -30341,6 +30675,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 7,
       "Attrs": {
         "Height": 40,
         "Strength": 22,
@@ -30429,6 +30764,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 73,
+      "SeasonsPlayed": 7,
       "Attrs": {
         "Height": 50,
         "Strength": 41,
@@ -30517,6 +30853,7 @@
       ],
       "Height": "6\u002711\u0022",
       "Overall": 77,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 70,
         "Strength": 54,
@@ -30604,6 +30941,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -30692,6 +31030,7 @@
       ],
       "Height": "6\u002710\u0022",
       "Overall": 87,
+      "SeasonsPlayed": 8,
       "Attrs": {
         "Height": 65,
         "Strength": 80,
@@ -30780,6 +31119,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 73,
+      "SeasonsPlayed": 18,
       "Attrs": {
         "Height": 55,
         "Strength": 78,
@@ -30868,6 +31208,7 @@
       ],
       "Height": "6\u002711\u0022",
       "Overall": 87,
+      "SeasonsPlayed": 9,
       "Attrs": {
         "Height": 70,
         "Strength": 52,
@@ -30956,6 +31297,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 76,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 40,
         "Strength": 57,
@@ -31044,6 +31386,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 72,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 50,
         "Strength": 36,
@@ -31131,6 +31474,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 7,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -31218,6 +31562,7 @@
       ],
       "Height": "7\u00274\u0022",
       "Overall": 83,
+      "SeasonsPlayed": 4,
       "Attrs": {
         "Height": 85,
         "Strength": 70,
@@ -31305,6 +31650,7 @@
       ],
       "Height": "7\u00272\u0022",
       "Overall": 77,
+      "SeasonsPlayed": 12,
       "Attrs": {
         "Height": 70,
         "Strength": 89,
@@ -31393,6 +31739,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 70,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 55,
         "Strength": 64,
@@ -31480,6 +31827,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -31567,6 +31915,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 11,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -31655,6 +32004,7 @@
       ],
       "Height": "6\u00272\u0022",
       "Overall": 95,
+      "SeasonsPlayed": 17,
       "Attrs": {
         "Height": 25,
         "Strength": 40,
@@ -31742,6 +32092,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 8,
       "Attrs": {
         "Height": 30,
         "Strength": 26,
@@ -31830,6 +32181,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 78,
+      "SeasonsPlayed": 5,
       "Attrs": {
         "Height": 40,
         "Strength": 63,
@@ -31918,6 +32270,7 @@
       ],
       "Height": "6\u00272\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 10,
       "Attrs": {
         "Height": 25,
         "Strength": 35,
@@ -32006,6 +32359,7 @@
       ],
       "Height": "6\u00274\u0022",
       "Overall": 78,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 35,
         "Strength": 43,
@@ -32093,6 +32447,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 40,
         "Strength": 46,
@@ -32181,6 +32536,7 @@
       ],
       "Height": "6\u00273\u0022",
       "Overall": 69,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 30,
         "Strength": 43,
@@ -32268,6 +32624,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -32355,6 +32712,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 14,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -32443,6 +32801,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 80,
+      "SeasonsPlayed": 14,
       "Attrs": {
         "Height": 45,
         "Strength": 83,
@@ -32530,6 +32889,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -32618,6 +32978,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 72,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 45,
         "Strength": 38,
@@ -32706,6 +33067,7 @@
       ],
       "Height": "6\u00279\u0022",
       "Overall": 77,
+      "SeasonsPlayed": 19,
       "Attrs": {
         "Height": 60,
         "Strength": 90,
@@ -32794,6 +33156,7 @@
       ],
       "Height": "7\u00272\u0022",
       "Overall": 85,
+      "SeasonsPlayed": 10,
       "Attrs": {
         "Height": 85,
         "Strength": 70,
@@ -32881,6 +33244,7 @@
       ],
       "Height": "7\u00273\u0022",
       "Overall": 74,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 75,
         "Strength": 65,
@@ -32969,6 +33333,7 @@
       ],
       "Height": "6\u00274\u0022",
       "Overall": 77,
+      "SeasonsPlayed": 14,
       "Attrs": {
         "Height": 35,
         "Strength": 54,
@@ -33057,6 +33422,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 9,
       "Attrs": {
         "Height": 40,
         "Strength": 56,
@@ -33145,6 +33511,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 68,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 45,
         "Strength": 26,
@@ -33233,6 +33600,7 @@
       ],
       "Height": "6\u00273\u0022",
       "Overall": 76,
+      "SeasonsPlayed": 10,
       "Attrs": {
         "Height": 30,
         "Strength": 40,
@@ -33321,6 +33689,7 @@
       ],
       "Height": "6\u00271\u0022",
       "Overall": 87,
+      "SeasonsPlayed": 7,
       "Attrs": {
         "Height": 20,
         "Strength": 22,
@@ -33409,6 +33778,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 81,
+      "SeasonsPlayed": 4,
       "Attrs": {
         "Height": 40,
         "Strength": 43,
@@ -33497,6 +33867,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 71,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 40,
         "Strength": 41,
@@ -33584,6 +33955,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -33672,6 +34044,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 68,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 55,
         "Strength": 26,
@@ -33759,6 +34132,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -33847,6 +34221,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 18,
       "Attrs": {
         "Height": 55,
         "Strength": 59,
@@ -33935,6 +34310,7 @@
       ],
       "Height": "6\u00279\u0022",
       "Overall": 81,
+      "SeasonsPlayed": 9,
       "Attrs": {
         "Height": 60,
         "Strength": 72,
@@ -34023,6 +34399,7 @@
       ],
       "Height": "6\u00279\u0022",
       "Overall": 74,
+      "SeasonsPlayed": 5,
       "Attrs": {
         "Height": 60,
         "Strength": 59,
@@ -34111,6 +34488,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 77,
+      "SeasonsPlayed": 10,
       "Attrs": {
         "Height": 45,
         "Strength": 49,
@@ -34199,6 +34577,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 92,
+      "SeasonsPlayed": 14,
       "Attrs": {
         "Height": 50,
         "Strength": 74,
@@ -34286,6 +34665,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -34373,6 +34753,7 @@
       ],
       "Height": "7\u00271\u0022",
       "Overall": 78,
+      "SeasonsPlayed": 18,
       "Attrs": {
         "Height": 80,
         "Strength": 88,
@@ -34460,6 +34841,7 @@
       ],
       "Height": "6\u002711\u0022",
       "Overall": 69,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 70,
         "Strength": 57,
@@ -34548,6 +34930,7 @@
       ],
       "Height": "6\u00274\u0022",
       "Overall": 71,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 35,
         "Strength": 22,
@@ -34636,6 +35019,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 97,
+      "SeasonsPlayed": 8,
       "Attrs": {
         "Height": 45,
         "Strength": 68,
@@ -34723,6 +35107,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -34811,6 +35196,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 8,
       "Attrs": {
         "Height": 40,
         "Strength": 22,
@@ -34899,6 +35285,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 68,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 40,
         "Strength": 48,
@@ -34987,6 +35374,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 88,
+      "SeasonsPlayed": 5,
       "Attrs": {
         "Height": 40,
         "Strength": 29,
@@ -35075,6 +35463,7 @@
       ],
       "Height": "6\u00273\u0022",
       "Overall": 78,
+      "SeasonsPlayed": 12,
       "Attrs": {
         "Height": 30,
         "Strength": 69,
@@ -35163,6 +35552,7 @@
       ],
       "Height": "6\u00272\u0022",
       "Overall": 73,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 25,
         "Strength": 35,
@@ -35251,6 +35641,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 80,
+      "SeasonsPlayed": 7,
       "Attrs": {
         "Height": 55,
         "Strength": 76,
@@ -35339,6 +35730,7 @@
       ],
       "Height": "6\u00279\u0022",
       "Overall": 94,
+      "SeasonsPlayed": 23,
       "Attrs": {
         "Height": 60,
         "Strength": 88,
@@ -35427,6 +35819,7 @@
       ],
       "Height": "6\u002710\u0022",
       "Overall": 73,
+      "SeasonsPlayed": 9,
       "Attrs": {
         "Height": 65,
         "Strength": 76,
@@ -35515,6 +35908,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 76,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 45,
         "Strength": 38,
@@ -35603,6 +35997,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 78,
+      "SeasonsPlayed": 4,
       "Attrs": {
         "Height": 50,
         "Strength": 52,
@@ -35691,6 +36086,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 70,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 55,
         "Strength": 64,
@@ -35778,6 +36174,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -35866,6 +36263,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 77,
+      "SeasonsPlayed": 8,
       "Attrs": {
         "Height": 55,
         "Strength": 65,
@@ -35953,6 +36351,7 @@
       ],
       "Height": "7\u00276\u0022",
       "Overall": 80,
+      "SeasonsPlayed": 8,
       "Attrs": {
         "Height": 75,
         "Strength": 83,
@@ -36041,6 +36440,7 @@
       ],
       "Height": "7\u00274\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 7,
       "Attrs": {
         "Height": 75,
         "Strength": 68,
@@ -36129,6 +36529,7 @@
       ],
       "Height": "6\u00274\u0022",
       "Overall": 78,
+      "SeasonsPlayed": 8,
       "Attrs": {
         "Height": 35,
         "Strength": 29,
@@ -36217,6 +36618,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 92,
+      "SeasonsPlayed": 11,
       "Attrs": {
         "Height": 45,
         "Strength": 49,
@@ -36304,6 +36706,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -36391,6 +36794,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -36479,6 +36883,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 73,
+      "SeasonsPlayed": 6,
       "Attrs": {
         "Height": 50,
         "Strength": 38,
@@ -36566,6 +36971,7 @@
       ],
       "Height": "6\u00271\u0022",
       "Overall": 76,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 20,
         "Strength": 10,
@@ -36654,6 +37060,7 @@
       ],
       "Height": "6\u00274\u0022",
       "Overall": 73,
+      "SeasonsPlayed": 5,
       "Attrs": {
         "Height": 35,
         "Strength": 36,
@@ -36742,6 +37149,7 @@
       ],
       "Height": "6\u00274\u0022",
       "Overall": 83,
+      "SeasonsPlayed": 5,
       "Attrs": {
         "Height": 35,
         "Strength": 45,
@@ -36830,6 +37238,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 81,
+      "SeasonsPlayed": 9,
       "Attrs": {
         "Height": 45,
         "Strength": 59,
@@ -36918,6 +37327,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 77,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 55,
         "Strength": 59,
@@ -37006,6 +37416,7 @@
       ],
       "Height": "6\u00279\u0022",
       "Overall": 70,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 60,
         "Strength": 72,
@@ -37094,6 +37505,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 73,
+      "SeasonsPlayed": 6,
       "Attrs": {
         "Height": 40,
         "Strength": 38,
@@ -37181,6 +37593,7 @@
       ],
       "Height": "6\u002710\u0022",
       "Overall": 68,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 65,
         "Strength": 38,
@@ -37269,6 +37682,7 @@
       ],
       "Height": "6\u002711\u0022",
       "Overall": 73,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 70,
         "Strength": 57,
@@ -37357,6 +37771,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 71,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 45,
         "Strength": 45,
@@ -37444,6 +37859,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 9,
       "Attrs": {
         "Height": 45,
         "Strength": 59,
@@ -37531,6 +37947,7 @@
       ],
       "Height": "7\u00272\u0022",
       "Overall": 74,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 80,
         "Strength": 65,
@@ -37618,6 +38035,7 @@
       ],
       "Height": "7\u00277\u0022",
       "Overall": 79,
+      "SeasonsPlayed": 4,
       "Attrs": {
         "Height": 80,
         "Strength": 84,
@@ -37706,6 +38124,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 76,
+      "SeasonsPlayed": 6,
       "Attrs": {
         "Height": 55,
         "Strength": 75,
@@ -37793,6 +38212,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -37881,6 +38301,7 @@
       ],
       "Height": "6\u00272\u0022",
       "Overall": 74,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 25,
         "Strength": 50,
@@ -37968,6 +38389,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 72,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 40,
         "Strength": 54,
@@ -38056,6 +38478,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 85,
+      "SeasonsPlayed": 17,
       "Attrs": {
         "Height": 45,
         "Strength": 69,
@@ -38143,6 +38566,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 5,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -38231,6 +38655,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 86,
+      "SeasonsPlayed": 12,
       "Attrs": {
         "Height": 40,
         "Strength": 36,
@@ -38318,6 +38743,7 @@
       ],
       "Height": "6\u00273\u0022",
       "Overall": 80,
+      "SeasonsPlayed": 9,
       "Attrs": {
         "Height": 30,
         "Strength": 35,
@@ -38406,6 +38832,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 68,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 45,
         "Strength": 54,
@@ -38494,6 +38921,7 @@
       ],
       "Height": "6\u00274\u0022",
       "Overall": 68,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 35,
         "Strength": 35,
@@ -38581,6 +39009,7 @@
       ],
       "Height": "6\u00274\u0022",
       "Overall": 81,
+      "SeasonsPlayed": 18,
       "Attrs": {
         "Height": 35,
         "Strength": 72,
@@ -38668,6 +39097,7 @@
       ],
       "Height": "6\u002710\u0022",
       "Overall": 74,
+      "SeasonsPlayed": 8,
       "Attrs": {
         "Height": 65,
         "Strength": 63,
@@ -38755,6 +39185,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 7,
       "Attrs": {
         "Height": 55,
         "Strength": 56,
@@ -38843,6 +39274,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 71,
+      "SeasonsPlayed": 12,
       "Attrs": {
         "Height": 45,
         "Strength": 50,
@@ -38931,6 +39363,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 80,
+      "SeasonsPlayed": 4,
       "Attrs": {
         "Height": 55,
         "Strength": 50,
@@ -39018,6 +39451,7 @@
       ],
       "Height": "6\u002710\u0022",
       "Overall": 85,
+      "SeasonsPlayed": 10,
       "Attrs": {
         "Height": 65,
         "Strength": 80,
@@ -39105,6 +39539,7 @@
       ],
       "Height": "6\u002711\u0022",
       "Overall": 68,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 70,
         "Strength": 80,
@@ -39192,6 +39627,7 @@
       ],
       "Height": "7\u00271\u0022",
       "Overall": 70,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 80,
         "Strength": 56,
@@ -39280,6 +39716,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 76,
+      "SeasonsPlayed": 4,
       "Attrs": {
         "Height": 40,
         "Strength": 45,
@@ -39368,6 +39805,7 @@
       ],
       "Height": "6\u00272\u0022",
       "Overall": 90,
+      "SeasonsPlayed": 15,
       "Attrs": {
         "Height": 25,
         "Strength": 25,
@@ -39456,6 +39894,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 74,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 40,
         "Strength": 21,
@@ -39543,6 +39982,7 @@
       ],
       "Height": "6\u00272\u0022",
       "Overall": 68,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 25,
         "Strength": 17,
@@ -39630,6 +40070,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -39718,6 +40159,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 76,
+      "SeasonsPlayed": 13,
       "Attrs": {
         "Height": 40,
         "Strength": 54,
@@ -39806,6 +40248,7 @@
       ],
       "Height": "6\u00271\u0022",
       "Overall": 73,
+      "SeasonsPlayed": 5,
       "Attrs": {
         "Height": 20,
         "Strength": 54,
@@ -39894,6 +40337,7 @@
       ],
       "Height": "6\u002710\u0022",
       "Overall": 76,
+      "SeasonsPlayed": 8,
       "Attrs": {
         "Height": 65,
         "Strength": 78,
@@ -39981,6 +40425,7 @@
       ],
       "Height": "6\u00279\u0022",
       "Overall": 80,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 60,
         "Strength": 59,
@@ -40068,6 +40513,7 @@
       ],
       "Height": "6\u002710\u0022",
       "Overall": 80,
+      "SeasonsPlayed": 7,
       "Attrs": {
         "Height": 65,
         "Strength": 69,
@@ -40156,6 +40602,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 76,
+      "SeasonsPlayed": 6,
       "Attrs": {
         "Height": 45,
         "Strength": 61,
@@ -40244,6 +40691,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 73,
+      "SeasonsPlayed": 7,
       "Attrs": {
         "Height": 40,
         "Strength": 48,
@@ -40332,6 +40780,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 78,
+      "SeasonsPlayed": 14,
       "Attrs": {
         "Height": 50,
         "Strength": 66,
@@ -40419,6 +40868,7 @@
       ],
       "Height": "6\u002710\u0022",
       "Overall": 73,
+      "SeasonsPlayed": 12,
       "Attrs": {
         "Height": 65,
         "Strength": 78,
@@ -40506,6 +40956,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -40594,6 +41045,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 79,
+      "SeasonsPlayed": 7,
       "Attrs": {
         "Height": 45,
         "Strength": 63,
@@ -40681,6 +41133,7 @@
       ],
       "Height": "6\u002711\u0022",
       "Overall": 68,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 70,
         "Strength": 63,
@@ -40761,7 +41214,6 @@
     },
     {
       "Name": "Dereck Lively II",
-
       "Team": "Dallas Mavericks",
       "TeamAbbr": "DAL",
       "Positions": [
@@ -40769,6 +41221,7 @@
       ],
       "Height": "7\u00271\u0022",
       "Overall": 79,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 80,
         "Strength": 65,
@@ -40857,6 +41310,7 @@
       ],
       "Height": "6\u00271\u0022",
       "Overall": 69,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 20,
         "Strength": 43,
@@ -40945,6 +41399,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 73,
+      "SeasonsPlayed": 8,
       "Attrs": {
         "Height": 55,
         "Strength": 36,
@@ -41032,6 +41487,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -41120,6 +41576,7 @@
       ],
       "Height": "6\u00274\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 8,
       "Attrs": {
         "Height": 35,
         "Strength": 48,
@@ -41208,6 +41665,7 @@
       ],
       "Height": "6\u00272\u0022",
       "Overall": 76,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 25,
         "Strength": 46,
@@ -41288,7 +41746,6 @@
     },
     {
       "Name": "Amen Thompson",
-
       "Team": "Houston Rockets",
       "TeamAbbr": "HOU",
       "Positions": [
@@ -41297,6 +41754,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 87,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 50,
         "Strength": 48,
@@ -41384,6 +41842,7 @@
       ],
       "Height": "6\u00272\u0022",
       "Overall": 80,
+      "SeasonsPlayed": 10,
       "Attrs": {
         "Height": 25,
         "Strength": 26,
@@ -41472,6 +41931,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 68,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 45,
         "Strength": 49,
@@ -41560,6 +42020,7 @@
       ],
       "Height": "6\u002711\u0022",
       "Overall": 93,
+      "SeasonsPlayed": 18,
       "Attrs": {
         "Height": 70,
         "Strength": 56,
@@ -41648,6 +42109,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 80,
+      "SeasonsPlayed": 4,
       "Attrs": {
         "Height": 55,
         "Strength": 65,
@@ -41736,6 +42198,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 77,
+      "SeasonsPlayed": 10,
       "Attrs": {
         "Height": 50,
         "Strength": 52,
@@ -41824,6 +42287,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 73,
+      "SeasonsPlayed": 18,
       "Attrs": {
         "Height": 55,
         "Strength": 65,
@@ -41912,6 +42376,7 @@
       ],
       "Height": "6\u002710\u0022",
       "Overall": 80,
+      "SeasonsPlayed": 4,
       "Attrs": {
         "Height": 65,
         "Strength": 50,
@@ -41999,6 +42464,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 6,
       "Attrs": {
         "Height": 35,
         "Strength": 56,
@@ -42086,6 +42552,7 @@
       ],
       "Height": "6\u002711\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 12,
       "Attrs": {
         "Height": 70,
         "Strength": 95,
@@ -42173,6 +42640,7 @@
       ],
       "Height": "6\u002710\u0022",
       "Overall": 77,
+      "SeasonsPlayed": 11,
       "Attrs": {
         "Height": 65,
         "Strength": 80,
@@ -42260,6 +42728,7 @@
       ],
       "Height": "6\u002711\u0022",
       "Overall": 88,
+      "SeasonsPlayed": 5,
       "Attrs": {
         "Height": 70,
         "Strength": 84,
@@ -42348,6 +42817,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 76,
+      "SeasonsPlayed": 13,
       "Attrs": {
         "Height": 40,
         "Strength": 50,
@@ -42435,6 +42905,7 @@
       ],
       "Height": "6\u00272\u0022",
       "Overall": 73,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 25,
         "Strength": 34,
@@ -42523,6 +42994,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 79,
+      "SeasonsPlayed": 7,
       "Attrs": {
         "Height": 40,
         "Strength": 32,
@@ -42610,6 +43082,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -42697,6 +43170,7 @@
       ],
       "Height": "6\u00272\u0022",
       "Overall": 89,
+      "SeasonsPlayed": 7,
       "Attrs": {
         "Height": 25,
         "Strength": 41,
@@ -42784,6 +43258,7 @@
       ],
       "Height": "6\u00271\u0022",
       "Overall": 76,
+      "SeasonsPlayed": 4,
       "Attrs": {
         "Height": 25,
         "Strength": 21,
@@ -42872,6 +43347,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 72,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 45,
         "Strength": 41,
@@ -42959,6 +43435,7 @@
       ],
       "Height": "6\u00272\u0022",
       "Overall": 69,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 25,
         "Strength": 36,
@@ -43047,6 +43524,7 @@
       ],
       "Height": "6\u00274\u0022",
       "Overall": 74,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 35,
         "Strength": 30,
@@ -43135,6 +43613,7 @@
       ],
       "Height": "6\u002711\u0022",
       "Overall": 78,
+      "SeasonsPlayed": 5,
       "Attrs": {
         "Height": 70,
         "Strength": 65,
@@ -43223,6 +43702,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 78,
+      "SeasonsPlayed": 6,
       "Attrs": {
         "Height": 55,
         "Strength": 57,
@@ -43311,6 +43791,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 80,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 40,
         "Strength": 47,
@@ -43398,6 +43879,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 16,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -43486,6 +43968,7 @@
       ],
       "Height": "6\u00279\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 60,
         "Strength": 54,
@@ -43574,6 +44057,7 @@
       ],
       "Height": "6\u00279\u0022",
       "Overall": 74,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 60,
         "Strength": 54,
@@ -43662,6 +44146,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 72,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 50,
         "Strength": 50,
@@ -43750,6 +44235,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 76,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 55,
         "Strength": 50,
@@ -43837,6 +44323,7 @@
       ],
       "Height": "7\u00274\u0022",
       "Overall": 79,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 95,
         "Strength": 82,
@@ -43925,6 +44412,7 @@
       ],
       "Height": "6\u00274\u0022",
       "Overall": 68,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 35,
         "Strength": 12,
@@ -44013,6 +44501,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 76,
+      "SeasonsPlayed": 5,
       "Attrs": {
         "Height": 50,
         "Strength": 61,
@@ -44101,6 +44590,7 @@
       ],
       "Height": "6\u00274\u0022",
       "Overall": 78,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 35,
         "Strength": 36,
@@ -44189,6 +44679,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 72,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 40,
         "Strength": 35,
@@ -44277,6 +44768,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 70,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 45,
         "Strength": 35,
@@ -44365,6 +44857,7 @@
       ],
       "Height": "6\u00274\u0022",
       "Overall": 81,
+      "SeasonsPlayed": 9,
       "Attrs": {
         "Height": 35,
         "Strength": 22,
@@ -44453,6 +44946,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 69,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 50,
         "Strength": 40,
@@ -44541,6 +45035,7 @@
       ],
       "Height": "6\u00274\u0022",
       "Overall": 80,
+      "SeasonsPlayed": 7,
       "Attrs": {
         "Height": 35,
         "Strength": 52,
@@ -44629,6 +45124,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 79,
+      "SeasonsPlayed": 5,
       "Attrs": {
         "Height": 50,
         "Strength": 48,
@@ -44716,6 +45212,7 @@
       ],
       "Height": "6\u00279\u0022",
       "Overall": 74,
+      "SeasonsPlayed": 11,
       "Attrs": {
         "Height": 60,
         "Strength": 70,
@@ -44804,6 +45301,7 @@
       ],
       "Height": "6\u002710\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 65,
         "Strength": 74,
@@ -44892,6 +45390,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 80,
+      "SeasonsPlayed": 5,
       "Attrs": {
         "Height": 55,
         "Strength": 50,
@@ -44980,6 +45479,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 87,
+      "SeasonsPlayed": 6,
       "Attrs": {
         "Height": 45,
         "Strength": 91,
@@ -45067,6 +45567,7 @@
       ],
       "Height": "7\u00271\u0022",
       "Overall": 68,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 80,
         "Strength": 70,
@@ -45154,6 +45655,7 @@
       ],
       "Height": "6\u002711\u0022",
       "Overall": 74,
+      "SeasonsPlayed": 17,
       "Attrs": {
         "Height": 70,
         "Strength": 83,
@@ -45242,6 +45744,7 @@
       ],
       "Height": "6\u002711\u0022",
       "Overall": 79,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 70,
         "Strength": 68,
@@ -45329,6 +45832,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 10,
         "Strength": 10,
@@ -45417,6 +45921,7 @@
       ],
       "Height": "6\u002710\u0022",
       "Overall": 74,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 65,
         "Strength": 69,
@@ -45505,6 +46010,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 84,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 45,
         "Strength": 49,
@@ -45592,6 +46098,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 9,
       "Attrs": {
         "Height": 30,
         "Strength": 29,
@@ -45680,6 +46187,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 79,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 45,
         "Strength": 41,
@@ -45767,6 +46275,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 72,
+      "SeasonsPlayed": 6,
       "Attrs": {
         "Height": 40,
         "Strength": 41,
@@ -45855,6 +46364,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 81,
+      "SeasonsPlayed": 6,
       "Attrs": {
         "Height": 40,
         "Strength": 50,
@@ -45943,6 +46453,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 78,
+      "SeasonsPlayed": 14,
       "Attrs": {
         "Height": 55,
         "Strength": 65,
@@ -46030,6 +46541,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 72,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 55,
         "Strength": 50,
@@ -46118,6 +46630,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 73,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 50,
         "Strength": 16,
@@ -46206,6 +46719,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 69,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 40,
         "Strength": 69,
@@ -46294,6 +46808,7 @@
       ],
       "Height": "6\u00275\u0022",
       "Overall": 78,
+      "SeasonsPlayed": 7,
       "Attrs": {
         "Height": 40,
         "Strength": 65,
@@ -46382,6 +46897,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 68,
+      "SeasonsPlayed": 0,
       "Attrs": {
         "Height": 45,
         "Strength": 49,
@@ -46470,6 +46986,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 68,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 50,
         "Strength": 50,
@@ -46558,6 +47075,7 @@
       ],
       "Height": "6\u002711\u0022",
       "Overall": 76,
+      "SeasonsPlayed": 13,
       "Attrs": {
         "Height": 70,
         "Strength": 65,
@@ -46646,6 +47164,7 @@
       ],
       "Height": "6\u00276\u0022",
       "Overall": 73,
+      "SeasonsPlayed": 4,
       "Attrs": {
         "Height": 45,
         "Strength": 10,
@@ -46734,6 +47253,7 @@
       ],
       "Height": "7\u00273\u0022",
       "Overall": 95,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 100,
         "Strength": 49,
@@ -46821,6 +47341,7 @@
       ],
       "Height": "6\u00278\u0022",
       "Overall": 70,
+      "SeasonsPlayed": 14,
       "Attrs": {
         "Height": 55,
         "Strength": 78,
@@ -46908,6 +47429,7 @@
       ],
       "Height": "7\u00271\u0022",
       "Overall": 77,
+      "SeasonsPlayed": 9,
       "Attrs": {
         "Height": 80,
         "Strength": 60,
@@ -46995,6 +47517,7 @@
       ],
       "Height": "6\u002710\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 13,
       "Attrs": {
         "Height": 65,
         "Strength": 78,
@@ -47082,6 +47605,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 5,
       "Attrs": {
         "Height": 60,
         "Strength": 50,
@@ -47169,6 +47693,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 40,
         "Strength": 50,
@@ -47256,6 +47781,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 60,
         "Strength": 50,
@@ -47343,6 +47869,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 65,
         "Strength": 50,
@@ -47430,6 +47957,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 40,
         "Strength": 50,
@@ -47517,6 +48045,7 @@
       ],
       "Height": "6\u002710\u0022",
       "Overall": 73,
+      "SeasonsPlayed": 7,
       "Attrs": {
         "Height": 65,
         "Strength": 80,
@@ -47604,6 +48133,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 2,
       "Attrs": {
         "Height": 15,
         "Strength": 50,
@@ -47691,6 +48221,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 40,
         "Strength": 50,
@@ -47778,6 +48309,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 40,
         "Strength": 50,
@@ -47865,6 +48397,7 @@
       ],
       "Height": "6\u002710\u0022",
       "Overall": 72,
+      "SeasonsPlayed": 5,
       "Attrs": {
         "Height": 65,
         "Strength": 60,
@@ -47952,6 +48485,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 4,
       "Attrs": {
         "Height": 75,
         "Strength": 50,
@@ -48039,6 +48573,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 55,
         "Strength": 50,
@@ -48126,6 +48661,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 40,
         "Strength": 50,
@@ -48213,6 +48749,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 1,
       "Attrs": {
         "Height": 60,
         "Strength": 50,
@@ -48300,6 +48837,7 @@
       ],
       "Height": "6\u00277\u0022",
       "Overall": 75,
+      "SeasonsPlayed": 3,
       "Attrs": {
         "Height": 50,
         "Strength": 50,

@@ -9,10 +9,10 @@
 
 @if (_players.Count == 0)
 {
-    <div class="p-4">
-        <div class="alert alert-warning">
+    <div style="padding:1rem;background:#111;min-height:100vh;font-family:monospace;">
+        <div style="background:#1a0d00;border:1px solid #4a3000;color:#fca;padding:0.75rem 1rem;border-radius:4px;">
             <strong>No player data found.</strong>
-            Go to <a href="/season">Season Sim</a> and fetch ESPN rosters first.
+            Go to <a href="/season" style="color:#fca;">Season Sim</a> and fetch ESPN rosters first.
         </div>
     </div>
     return;
@@ -20,8 +20,8 @@
 
 <div class="re-page">
 
-    @* ── Controls ───────────────────────────────────────────────────────── *@
-    <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+    @* ── Primary controls ─────────────────────────────────────────────── *@
+    <div class="re-controls">
         <select class="re-select" @bind="_selectedTeam">
             <option value="">All Teams</option>
             @foreach (var t in _teams)
@@ -30,47 +30,62 @@
             }
         </select>
 
-        <button class="re-tab @(_tab=="attrs"?"active":"")" @onclick='()=>{ _tab="attrs"; _editingPlayer=null; }'>Attributes</button>
-        <button class="re-tab @(_tab=="tends"?"active":"")" @onclick='()=>{ _tab="tends"; _editingPlayer=null; }'>Tendencies</button>
+        <span class="re-sep">|</span>
 
+        @foreach (var pos in new[]{"","PG","SG","SF","PF","C"})
+        {
+            string posLabel = pos == "" ? "ALL" : pos;
+            <button class="re-pos @(_posFilter==pos?"active":"")"
+                    @onclick="() => _posFilter = pos">@posLabel</button>
+        }
+
+        <span class="re-sep">|</span>
+
+        <button class="re-tab @(_tab=="attrs"?"active":"")" @onclick='()=>{ _tab="attrs"; _editingPlayer=null; }'>ATTRS</button>
+        <button class="re-tab @(_tab=="tends"?"active":"")" @onclick='()=>{ _tab="tends"; _editingPlayer=null; }'>TENDS</button>
+
+        <div style="flex:1;"></div>
+        <span class="re-hint">dbl-click to edit</span>
+        <button class="re-save @(_savedMsg?"saved":_dirtyCount>0?"dirty":"")"
+                @onclick="SaveAsync" disabled="@(_dirtyCount==0&&!_savedMsg)">
+            @(_savedMsg ? "✓ Saved" : (_dirtyCount > 0 ? $"Save ({_dirtyCount})" : "Saved"))
+        </button>
+    </div>
+
+    @* ── Secondary / admin controls ────────────────────────────────────── *@
+    <div class="re-controls-sub">
         @if (!string.IsNullOrEmpty(_selectedTeam))
         {
             <button class="re-btn" @onclick="()=>BumpAll(+1)">All +1</button>
             <button class="re-btn" @onclick="()=>BumpAll(-1)">All −1</button>
+            <span class="re-sep">|</span>
         }
-
         <button class="re-btn" @onclick="RefreshIqHustleAsync" disabled="@_refreshing"
                 title="Re-map oBBIQ, dBBIQ, Hustle from 2K source for all players">
             @(_refreshMsg ?? "Re-map IQ/Hustle")
         </button>
-
         <button class="re-btn" @onclick="FixDefaultPlayersAsync" disabled="@_refreshing"
                 title="Re-map apostrophe-broken players from 2K; set genuinely unmatched players (G-League etc.) to 10">
             @(_fixMsg ?? "Fix Defaults")
         </button>
-
-        <button class="re-btn @(_savedMsg?"saved":_dirtyCount>0?"dirty":"")"
-                @onclick="SaveAsync" disabled="@(_dirtyCount==0&&!_savedMsg)">
-            @(_savedMsg ? "✓ Saved" : $"Save ({_dirtyCount})")
-        </button>
-
-        <span class="re-hint">Double-click a row to edit</span>
     </div>
 
     @* ── Distribution graph ─────────────────────────────────────────────── *@
-    <div class="dist-wrap mb-2">
+    <div class="dist-wrap">
         <span class="dist-label">@_distAttr &nbsp;
-            <span style="color:#f5a623">— fit</span>
-            <span style="color:#6ab0f5"> · players</span>
+            <span style="color:#c8a040;">— fit</span>
+            <span style="color:#6ab0f5;"> · players</span>
         </span>
         @((MarkupString)BuildDistSvg(_distAttr, _tab))
     </div>
 
     @* ── Table ──────────────────────────────────────────────────────────── *@
     @{
-        var rawList = string.IsNullOrEmpty(_selectedTeam)
-            ? _players
-            : _players.Where(p => p.Team.Equals(_selectedTeam, StringComparison.OrdinalIgnoreCase)).ToList();
+        var rawList = _players.AsEnumerable();
+        if (!string.IsNullOrEmpty(_selectedTeam))
+            rawList = rawList.Where(p => p.Team.Equals(_selectedTeam, StringComparison.OrdinalIgnoreCase));
+        if (!string.IsNullOrEmpty(_posFilter))
+            rawList = rawList.Where(p => p.PrimaryPosition.Equals(_posFilter, StringComparison.OrdinalIgnoreCase));
         var visible = Sorted(rawList);
         var cols    = _tab == "attrs" ? AttrCols : TendCols;
     }
@@ -78,28 +93,30 @@
         <table class="re-table">
             <thead>
                 <tr>
-                    <th colspan="2" class="group-th"></th>
+                    <th colspan="3" class="group-th"></th>
                     @if (_tab == "attrs")
                     {
-                        <th colspan="5" class="group-th">Physical</th>
-                        <th colspan="5" class="group-th">Shooting</th>
-                        <th colspan="5" class="group-th">Skill</th>
-                        <th colspan="5" class="group-th">Defense</th>
-                        <th colspan="3" class="group-th">Injury</th>
+                        <th colspan="5" class="group-th labeled">PHYSICAL</th>
+                        <th colspan="5" class="group-th labeled">SHOOTING</th>
+                        <th colspan="5" class="group-th labeled">SKILL</th>
+                        <th colspan="5" class="group-th labeled">DEFENSE</th>
+                        <th colspan="3" class="group-th labeled">INJURY</th>
                     }
                     else
                     {
-                        <th colspan="9"  class="group-th">Offense</th>
-                        <th colspan="2"  class="group-th">Defense</th>
+                        <th colspan="9" class="group-th labeled">OFFENSE</th>
+                        <th colspan="2" class="group-th labeled">DEFENSE</th>
                     }
                     <th class="group-th"></th>
                 </tr>
                 <tr>
-                    <th class="th-name sort-th" @onclick='()=>SetSort("Name")'>Player @SI("Name")</th>
-                    <th class="th-pos  sort-th" @onclick='()=>SetSort("Position")'>Pos @SI("Position")</th>
+                    <th class="th-name sort-th @(_sortKey=="Name"?"active-sort":"")"    @onclick='()=>SetSort("Name")'>PLAYER @SI("Name")</th>
+                    <th class="th-pos  sort-th @(_sortKey=="Position"?"active-sort":"")" @onclick='()=>SetSort("Position")'>POS @SI("Position")</th>
+                    <th class="th-ovr  sort-th @(_sortKey=="OVR"?"active-sort":"")"     @onclick='()=>SetSort("OVR")'>OVR @SI("OVR")</th>
                     @foreach (var col in cols)
                     {
-                        <th class="@(_distAttr==col.Key?"th-sel":"")" @onclick="()=>SetSort(col.Key)">
+                        <th class="sort-th @(_distAttr==col.Key?"th-sel":"") @(_sortKey==col.Key?"active-sort":"")"
+                            @onclick="()=>SetSort(col.Key)">
                             @col.Label @SI(col.Key)
                             @if (!string.IsNullOrEmpty(_selectedTeam))
                             {
@@ -118,10 +135,24 @@
                 {
                     bool editing = _editingPlayer == player.Name;
                     <tr @key="player.Name"
-                        class="@(editing?"tr-edit":_dirty.Contains(player.Name)?"tr-dirty":"")"
+                        class="@(editing?"tr-edit":_dirty.Contains(player.Name)?"tr-dirty tr-dirty-row":"")"
                         @ondblclick="()=>{ _editingPlayer = player.Name; }">
                         <td class="td-name">@player.Name</td>
                         <td class="td-pos">@player.PrimaryPosition</td>
+                        @{
+                            int rd = OvrRankDiff(player);
+                        }
+                        <td class="td-ovr" title="@(rd < -75 ? $"⚠ May be underrated (2K ranks {-rd} spots higher)" : rd > 75 ? $"⚠ May be overrated (2K ranks {rd} spots lower)" : "")">
+                            @ComputeOverall(player)
+                            @if (rd < -75)
+                            {
+                                <span style="color:#f06060;font-size:0.6rem;margin-left:2px;vertical-align:super;" title="Formula likely underrates this player">▼</span>
+                            }
+                            else if (rd > 75)
+                            {
+                                <span style="color:#fca;font-size:0.6rem;margin-left:2px;vertical-align:super;" title="Formula may overrate this player">▲</span>
+                            }
+                        </td>
                         @foreach (var col in cols)
                         {
                             var dict = _tab == "attrs" ? player.Attrs : player.Tends;
@@ -179,6 +210,10 @@
     private List<PlayerRecord> _players      = [];
     private List<TeamMeta>     _teams        = [];
     private string             _selectedTeam = "";
+    private string             _posFilter    = "";
+    // rank maps: 0 = best player. Rebuilt whenever _players changes.
+    private Dictionary<string, int> _ovrRankMap  = new(StringComparer.OrdinalIgnoreCase);
+    private Dictionary<string, int> _twokRankMap = new(StringComparer.OrdinalIgnoreCase);
     private string             _tab          = "attrs";
     private string             _distAttr     = "ThreePoint";
     private string?            _editingPlayer = null;
@@ -192,14 +227,32 @@
     {
         _players = PlayerSvc.GetPlayers().ToList();
         _teams   = PlayerSvc.GetTeams().ToList();
+        BuildRankOrders();
     }
+
+    private void BuildRankOrders()
+    {
+        _ovrRankMap  = _players.OrderByDescending(ComputeOverall)
+            .Select((p, i) => (p.Name, i))
+            .ToDictionary(x => x.Name, x => x.i, StringComparer.OrdinalIgnoreCase);
+        _twokRankMap = _players.OrderByDescending(p => p.Overall)
+            .Select((p, i) => (p.Name, i))
+            .ToDictionary(x => x.Name, x => x.i, StringComparer.OrdinalIgnoreCase);
+    }
+
+    // Positive → our formula ranks them higher than 2K (potentially overrated by us).
+    // Negative → our formula ranks them lower than 2K (potentially underrated by us).
+    private int OvrRankDiff(PlayerRecord p) =>
+        _ovrRankMap.TryGetValue(p.Name, out int ovrR) &&
+        _twokRankMap.TryGetValue(p.Name, out int twokR)
+            ? twokR - ovrR : 0;
 
     // ── Sort ───────────────────────────────────────────────────────────────
     private void SetSort(string key)
     {
         if (_sortKey == key) _sortAsc = !_sortAsc;
         else { _sortKey = key; _sortAsc = false; }
-        if (key != "Name" && key != "Position") _distAttr = key;
+        if (key != "Name" && key != "Position" && key != "OVR") _distAttr = key;
         _editingPlayer = null;
     }
 
@@ -209,10 +262,37 @@
         (string.IsNullOrEmpty(_sortKey) ? src :
             _sortKey switch
             {
-                "Name"     => _sortAsc ? src.OrderBy(p=>p.Name)           : src.OrderByDescending(p=>p.Name),
-                "Position" => _sortAsc ? src.OrderBy(p=>p.PrimaryPosition) : src.OrderByDescending(p=>p.PrimaryPosition),
-                _          => _sortAsc ? src.OrderBy(p=>GetVal(p,_sortKey)) : src.OrderByDescending(p=>GetVal(p,_sortKey))
+                "Name"     => _sortAsc ? src.OrderBy(p=>p.Name)             : src.OrderByDescending(p=>p.Name),
+                "Position" => _sortAsc ? src.OrderBy(p=>p.PrimaryPosition)   : src.OrderByDescending(p=>p.PrimaryPosition),
+                "OVR"      => _sortAsc ? src.OrderBy(ComputeOverall)         : src.OrderByDescending(ComputeOverall),
+                _          => _sortAsc ? src.OrderBy(p=>GetVal(p,_sortKey))  : src.OrderByDescending(p=>GetVal(p,_sortKey))
             }).ToList();
+
+    private static int ComputeOverall(PlayerRecord p)
+    {
+        int A(string k) => p.Attrs.TryGetValue(k, out var v) ? v : 50;
+        return (int)Math.Round(
+            (A("Inside")     * 6 +
+             A("Passing")    * 6 +
+             A("ThreePoint") * 5 +
+             A("PerimDef")   * 5 +
+             A("IntDef")     * 5 +
+             A("Speed")      * 4 +
+             A("MidRange")   * 3 +
+             A("oBBIQ")      * 3 +
+             A("dBBIQ")      * 3 +
+             A("Dribbling")  * 3 +
+             A("Jumping")    * 3 +
+             A("Strength")   * 3 +
+             A("Endurance")  * 3 +
+             A("Height")     * 3 +
+             A("RebDef")     * 3 +
+             A("RebOff")     * 2 +
+             A("Hustle")     * 2 +
+             A("Dunks")      * 2 +
+             A("FreeThrow")  * 1
+            ) / 65.0);
+    }
 
     private int GetVal(PlayerRecord p, string key)
     {
@@ -255,10 +335,15 @@
         _savedMsg = false;
     }
 
-    private IEnumerable<PlayerRecord> FilteredPlayers() =>
-        string.IsNullOrEmpty(_selectedTeam)
-            ? _players
-            : _players.Where(p => p.Team.Equals(_selectedTeam, StringComparison.OrdinalIgnoreCase));
+    private IEnumerable<PlayerRecord> FilteredPlayers()
+    {
+        var q = _players.AsEnumerable();
+        if (!string.IsNullOrEmpty(_selectedTeam))
+            q = q.Where(p => p.Team.Equals(_selectedTeam, StringComparison.OrdinalIgnoreCase));
+        if (!string.IsNullOrEmpty(_posFilter))
+            q = q.Where(p => p.PrimaryPosition.Equals(_posFilter, StringComparison.OrdinalIgnoreCase));
+        return q;
+    }
 
     // ── Selective 2K re-map ────────────────────────────────────────────────
     private bool   _refreshing;
@@ -274,6 +359,7 @@
         var (remapped, setToTen) = await PlayerSvc.FixDefaultPlayersAsync();
         _players = [.. PlayerSvc.GetPlayers()];
         _dirty.Clear();
+        BuildRankOrders();
 
         _fixMsg = $"✓ {remapped} mapped, {setToTen} set to 10";
         _refreshing = false;
@@ -292,6 +378,7 @@
         int n = await PlayerSvc.RefreshAttrsAsync(["oBBIQ", "dBBIQ", "Hustle"]);
         _players = [.. PlayerSvc.GetPlayers()];
         _dirty.Clear();
+        BuildRankOrders();
 
         _refreshMsg = $"✓ {n} players updated";
         _refreshing = false;
@@ -306,6 +393,7 @@
     {
         await PlayerSvc.SaveAsync();
         _dirty.Clear();
+        BuildRankOrders();
         _savedMsg = true;
         StateHasChanged();
         await Task.Delay(2000);

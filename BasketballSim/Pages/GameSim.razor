@@ -411,12 +411,12 @@ else
         <div style="display:flex;gap:0.5rem;justify-content:center;margin-top:0.75rem;">
             @if (_finished)
             {
-                <button class="btn btn-secondary px-4" @onclick="Replay">Replay</button>
-                <button @onclick="BackToLobby" class="btn btn-outline-secondary px-4">New Teams</button>
+                <button style="background:#374151;color:#e8e8e8;border:1px solid #4b5563;padding:6px 1rem;border-radius:4px;cursor:pointer;font-family:monospace;" @onclick="Replay">Replay</button>
+                <button @onclick="BackToLobby" style="background:transparent;color:#888;border:1px solid #4b5563;padding:6px 1rem;border-radius:4px;cursor:pointer;font-family:monospace;">New Teams</button>
             }
             else if (!_debugMode)
             {
-                <button class="btn btn-warning px-4" @onclick="TogglePause">@(_paused ? "Resume" : "Pause")</button>
+                <button style="background:#f59e0b;color:#1a1a1a;border:none;padding:6px 1rem;border-radius:4px;cursor:pointer;font-family:monospace;" @onclick="TogglePause">@(_paused ? "Resume" : "Pause")</button>
             }
         </div>
 
