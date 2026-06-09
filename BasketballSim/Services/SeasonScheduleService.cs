@@ -296,6 +296,14 @@ public class SeasonScheduleService
             foreach (var p in homeTeam.Roster.Concat(awayTeam.Roster))
                 preGameFatigue[p.Name] = fatigue.GetValueOrDefault(p.Name, 100.0);
 
+            // First 5 non-DNP roster slots are starters — used to track GS
+            var homeStarters = homeTeam.Roster
+                .Where(p => !dnpThisGame.Contains(p.Name)).Take(5)
+                .Select(p => p.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var awayStarters = awayTeam.Roster
+                .Where(p => !dnpThisGame.Contains(p.Name)).Take(5)
+                .Select(p => p.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
             var result = engine.SimulateGame(homeTeam, awayTeam,
                 startingFatigue: fatigue,
                 dnpPlayers: dnpThisGame.Count > 0 ? dnpThisGame : null);
@@ -371,9 +379,18 @@ public class SeasonScheduleService
                     {
                         Name = ps.Name, Team = ps.Team,
                         TeamAbbr = st.Abbreviation, Position = ps.Position,
+                        IsRookie = homeTeam.Roster.Concat(awayTeam.Roster)
+                            .FirstOrDefault(p => string.Equals(p.Name, ps.Name, StringComparison.OrdinalIgnoreCase))?.IsRookie ?? false,
                     };
                 bool played = ps.MinutesPlayed > 0;
-                if (played) pagg.GP++;
+                if (played)
+                {
+                    pagg.GP++;
+                    bool isStarter = ps.Team == homeTeam.Name
+                        ? homeStarters.Contains(ps.Name)
+                        : awayStarters.Contains(ps.Name);
+                    if (isStarter) pagg.GamesStarted++;
+                }
                 if (played && preGameFatigue.TryGetValue(ps.Name, out double pgf))
                     pagg.TotalFatigueIn += pgf;
 
@@ -933,6 +950,78 @@ public class SeasonScheduleService
             .ToList();
     }
 
+    // Top-10-by-DWS eligible players, sorted by Shen-style DPOY score.
+    // Anchor = DWS; dynamic Pearson correlations weight STL and BLK terms.
+    internal static List<(PlayerSeasonStats Player, double Score)> RankDpoyCandidates(
+        IEnumerable<PlayerSeasonStats> pool,
+        Func<PlayerSeasonStats, bool>  eligible)
+    {
+        var top10 = pool.Where(eligible).OrderByDescending(p => p.DWS).Take(10).ToList();
+        if (top10.Count == 0) return [];
+
+        double maxDWS = top10.Max(p => p.DWS);
+        double maxSTL = top10.Max(p => p.Spg);
+        double maxBLK = top10.Max(p => p.Bpg);
+
+        double corSTL = PearsonCorrelation(top10.Select(p => p.Spg).ToArray(), top10.Select(p => p.DWS).ToArray());
+        double corBLK = PearsonCorrelation(top10.Select(p => p.Bpg).ToArray(), top10.Select(p => p.DWS).ToArray());
+
+        double Shen(PlayerSeasonStats p) =>
+            (maxDWS > 0 ? p.DWS / maxDWS : 0)
+          + corSTL * (maxSTL > 0 ? p.Spg / maxSTL : 0)
+          + corBLK * (maxBLK > 0 ? p.Bpg / maxBLK : 0);
+
+        return top10.OrderByDescending(Shen).Select(p => (p, Shen(p))).ToList();
+    }
+
+    // Top-10-by-PER bench-eligible players, sorted by Shen-style 6MOY score.
+    // Anchor = PER; dynamic Pearson correlations weight PPG and WS terms.
+    // Eligibility enforced by caller: GamesStarted < GP/2, Mpg >= 12.
+    internal static List<(PlayerSeasonStats Player, double Score)> RankSixMoyCandidates(
+        IEnumerable<PlayerSeasonStats> pool,
+        Func<PlayerSeasonStats, bool>  eligible)
+    {
+        var top10 = pool.Where(eligible).OrderByDescending(p => p.PER).Take(10).ToList();
+        if (top10.Count == 0) return [];
+
+        double maxPER = top10.Max(p => p.PER);
+        double maxPPG = top10.Max(p => p.Ppg);
+        double maxWS  = top10.Max(p => p.WS);
+
+        double corPPG = PearsonCorrelation(top10.Select(p => p.Ppg).ToArray(), top10.Select(p => p.PER).ToArray());
+        double corWS  = PearsonCorrelation(top10.Select(p => p.WS).ToArray(),  top10.Select(p => p.PER).ToArray());
+
+        double Shen(PlayerSeasonStats p) =>
+            (maxPER > 0 ? p.PER / maxPER : 0)
+          + corPPG * (maxPPG > 0 ? p.Ppg / maxPPG : 0)
+          + corWS  * (maxWS  > 0 ? p.WS  / maxWS  : 0);
+
+        return top10.OrderByDescending(Shen).Select(p => (p, Shen(p))).ToList();
+    }
+
+    // Same Shen-Nagy formula as MVP but filtered to rookie-eligible players.
+    internal static List<(PlayerSeasonStats Player, double Score)> RankRotyCandidates(
+        IEnumerable<PlayerSeasonStats> pool,
+        Func<PlayerSeasonStats, bool>  eligible)
+    {
+        var top10 = pool.Where(eligible).OrderByDescending(p => p.PER).Take(10).ToList();
+        if (top10.Count == 0) return [];
+
+        double maxPER = top10.Max(p => p.PER);
+        double maxWS  = top10.Max(p => p.WS);
+        double maxUSG = top10.Max(p => p.UsgPct);
+
+        double corWS  = PearsonCorrelation(top10.Select(p => p.WS).ToArray(),     top10.Select(p => p.PER).ToArray());
+        double corUSG = PearsonCorrelation(top10.Select(p => p.UsgPct).ToArray(), top10.Select(p => p.PER).ToArray());
+
+        double Shen(PlayerSeasonStats p) =>
+            (maxPER > 0 ? p.PER / maxPER : 0)
+          + corWS  * (maxWS  > 0 ? p.WS     / maxWS  : 0)
+          + corUSG * (maxUSG > 0 ? p.UsgPct / maxUSG : 0);
+
+        return top10.OrderByDescending(Shen).Select(p => (p, Shen(p))).ToList();
+    }
+
     // ── Awards ────────────────────────────────────────────────────────────────
 
     public static SeasonAwards ComputeAwards(SeasonResult result)
@@ -951,17 +1040,31 @@ public class SeasonScheduleService
             awards.MVP = new(mvp.Name, mvp.Team, mvp.TeamAbbr, score, mvp.Position);
         }
 
-        // DPOY: defensive win shares + blocks + steals + opponent FG% suppression
-        var dpoyScore = (PlayerSeasonStats p) => p.DWS * 0.45 + p.Bpg * 2.0 + p.Spg * 1.5 + Math.Max(0, 0.50 - p.OppFgPct) * 30;
-        var dpoy = players.OrderByDescending(dpoyScore).FirstOrDefault();
-        if (dpoy is not null)
-            awards.DPOY = new(dpoy.Name, dpoy.Team, dpoy.TeamAbbr, dpoyScore(dpoy), dpoy.Position);
+        // DPOY: Shen-style DWS-anchored formula with dynamic STL/BLK correlations
+        var dpoyTop10 = RankDpoyCandidates(players,
+            p => teamMap.TryGetValue(p.Team, out var dtm) && dtm.Wins >= 30);
+        if (dpoyTop10.Count > 0)
+        {
+            var (dpoy, dpoyScore) = dpoyTop10[0];
+            awards.DPOY = new(dpoy.Name, dpoy.Team, dpoy.TeamAbbr, dpoyScore, dpoy.Position);
+        }
 
-        // 6th Man of Year: high PER, low minutes (bench role)
-        var sixmoy = players.Where(p => p.Mpg is >= 12 and < 28)
-            .OrderByDescending(p => p.PER).FirstOrDefault();
-        if (sixmoy is not null)
-            awards.SixMOY = new(sixmoy.Name, sixmoy.Team, sixmoy.TeamAbbr, sixmoy.PER, sixmoy.Position);
+        // 6MOY: Shen-style PER-anchored formula; eligibility = more bench games than starts
+        var sixmoyTop10 = RankSixMoyCandidates(players,
+            p => p.GamesStarted < p.GP / 2.0 && p.Mpg >= 12);
+        if (sixmoyTop10.Count > 0)
+        {
+            var (sixmoy, sixmoyScore) = sixmoyTop10[0];
+            awards.SixMOY = new(sixmoy.Name, sixmoy.Team, sixmoy.TeamAbbr, sixmoyScore, sixmoy.Position);
+        }
+
+        // ROTY: same Shen-Nagy formula as MVP but restricted to rookies
+        var rotyTop10 = RankRotyCandidates(players, p => p.IsRookie && p.GP >= 20);
+        if (rotyTop10.Count > 0)
+        {
+            var (roty, rotyScore) = rotyTop10[0];
+            awards.ROTY = new(roty.Name, roty.Team, roty.TeamAbbr, rotyScore, roty.Position);
+        }
 
         // All-NBA: 2 guards + 2 forwards + 1 center per team, 3 teams
         var guards   = players.Where(p => p.Position is Position.PG or Position.SG)
@@ -1510,6 +1613,13 @@ public class SeasonScheduleService
         foreach (var p in homeTeam.Roster.Concat(awayTeam.Roster))
             preGame[p.Name] = s.Fatigue.GetValueOrDefault(p.Name, 100.0);
 
+        var liveHomeStarters = homeTeam.Roster
+            .Where(p => !dnp.Contains(p.Name)).Take(5)
+            .Select(p => p.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var liveAwayStarters = awayTeam.Roster
+            .Where(p => !dnp.Contains(p.Name)).Take(5)
+            .Select(p => p.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
         var result   = s.Engine.SimulateGame(homeTeam, awayTeam,
             startingFatigue: s.Fatigue, dnpPlayers: dnp.Count > 0 ? dnp : null);
         bool homeWon = result.FinalHomeScore > result.FinalAwayScore;
@@ -1569,10 +1679,21 @@ public class SeasonScheduleService
             var key = $"{ps.Name}|{ps.Team}";
             if (!s.PlayerAgg.TryGetValue(key, out var pagg))
                 s.PlayerAgg[key] = pagg = new PlayerSeasonStats
-                    { Name = ps.Name, Team = ps.Team, TeamAbbr = st.Abbreviation, Position = ps.Position };
+                {
+                    Name = ps.Name, Team = ps.Team, TeamAbbr = st.Abbreviation, Position = ps.Position,
+                    IsRookie = (ps.Team == homeTeam.Name ? homeTeam : awayTeam).Roster
+                        .FirstOrDefault(p => string.Equals(p.Name, ps.Name, StringComparison.OrdinalIgnoreCase))?.IsRookie ?? false,
+                };
 
             bool played = ps.MinutesPlayed > 0;
-            if (played) pagg.GP++;
+            if (played)
+            {
+                pagg.GP++;
+                bool isStarter = ps.Team == homeTeam.Name
+                    ? liveHomeStarters.Contains(ps.Name)
+                    : liveAwayStarters.Contains(ps.Name);
+                if (isStarter) pagg.GamesStarted++;
+            }
             if (played && preGame.TryGetValue(ps.Name, out double pgf))
                 pagg.TotalFatigueIn += pgf;
 

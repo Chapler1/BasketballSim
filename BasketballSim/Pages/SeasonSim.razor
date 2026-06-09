@@ -227,9 +227,13 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
         : (_season?.PlayerStats.Where(p => p.GP >= 40) ?? Enumerable.Empty<PlayerSeasonStats>())).ToList();
     var mvpCands = SeasonScheduleService.RankMvpCandidates(aPool,
         p => aTeamWins.TryGetValue(p.Team, out var mw) && mw >= minWinsForMvp);
-    var dpoyCands  = GetAwardTop10(aPool, p => AwardsDpoyScore(p, hasFullStats), null);
-    var sixmoyCands = GetAwardTop10(aPool.Where(p => p.Mpg is >= 12 and < 28),
-        p => AwardsSixMoyScore(p, hasFullStats), null);
+    int minWinsForDpoy = isLive ? 5 : 30;
+    var dpoyCands = SeasonScheduleService.RankDpoyCandidates(aPool,
+        p => aTeamWins.TryGetValue(p.Team, out var dw) && dw >= minWinsForDpoy);
+    var sixmoyCands = SeasonScheduleService.RankSixMoyCandidates(aPool,
+        p => p.GamesStarted < p.GP / 2.0 && p.Mpg >= 12);
+    var rotyCands = SeasonScheduleService.RankRotyCandidates(aPool,
+        p => p.IsRookie && p.GP >= (isLive ? 5 : 20));
     // Rotations tab: selected team and computed rotation data
     IReadOnlyDictionary<string, Team> rotTeams = isLive && _liveState is not null
         ? (IReadOnlyDictionary<string, Team>)_liveState.Teams
@@ -691,6 +695,7 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
                                     <th style="text-align:left;min-width:34px;">TEAM</th>
                                     <th style="text-align:center;width:28px;">POS</th>
                                     @LeagueTh("gp",  "G")
+                                    @LeagueTh("gs",  "GS")
                                     @LeagueTh("min", "MIN")
                                     @LeagueTh("pts", "PTS")
                                     @LeagueTh("orb", "ORB")
@@ -728,6 +733,7 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
                                     <td style="color:#666;font-size:0.8rem;">@p.TeamAbbr</td>
                                     <td style="text-align:center;color:#555;font-size:0.78rem;">@p.Position</td>
                                     <td style="text-align:center;color:#777;">@p.GP</td>
+                                    <td style="text-align:center;color:#555;">@p.GamesStarted</td>
                                     <td style="text-align:center;color:#888;">@p.Mpg.ToString("F1")</td>
                                     <td style="text-align:center;color:#e8c060;font-weight:600;">@p.Ppg.ToString("F1")</td>
                                     <td style="text-align:center;color:#aaa;">@p.Opg.ToString("F1")</td>
@@ -1210,10 +1216,11 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
                         @if (_awards is not null)
                         {
                             <div style="flex-shrink:0;padding:10px 14px 8px;border-bottom:1px solid #1a1a1a;">
-                                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;">
+                                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:1rem;">
                                     @if (_awards.MVP    is not null) { @AwardCard("MOST VALUABLE PLAYER",    _awards.MVP,    "#fca",    "#0d0900", "#2a1800") }
                                     @if (_awards.DPOY   is not null) { @AwardCard("DEF. PLAYER OF THE YEAR", _awards.DPOY,   "#4af0c0", "#000d0d", "#001e1e") }
                                     @if (_awards.SixMOY is not null) { @AwardCard("6TH MAN OF THE YEAR",     _awards.SixMOY, "#b080ff", "#0a000d", "#1e0030") }
+                                    @if (_awards.ROTY   is not null) { @AwardCard("ROOKIE OF THE YEAR",      _awards.ROTY,   "#40c8ff", "#00060d", "#001428") }
                                 </div>
                             </div>
                         }
@@ -1222,7 +1229,7 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
                             {
                                 <div style="font-size:0.7rem;color:#444;letter-spacing:1px;margin-bottom:10px;">MID-SEASON RACE — based on current stats</div>
                             }
-                            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.25rem;">
+                            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1.25rem;">
                                 @* MVP Race *@
                                 <div>
                                     <div class="section-title" style="color:#fca;margin-bottom:6px;">MVP RACE</div>
@@ -1269,13 +1276,16 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
                                         <thead><tr>
                                             <th style="width:20px;text-align:center;color:#444;font-size:0.7rem;padding-bottom:3px;">#</th>
                                             <th style="text-align:left;color:#444;font-size:0.7rem;padding:0 6px 3px;">PLAYER</th>
-                                            <th style="text-align:right;color:#a0e080;font-size:0.7rem;padding:0 5px 3px;">STL</th>
+                                            <th style="text-align:right;color:#4af0c0;font-size:0.7rem;padding:0 5px 3px;">SCORE</th>
+                                            <th style="text-align:right;color:#a0e080;font-size:0.7rem;padding:0 4px 3px;">STL</th>
                                             <th style="text-align:right;color:#e08060;font-size:0.7rem;padding:0 4px 3px;">BLK</th>
+                                            <th style="text-align:right;color:#60c8a0;font-size:0.7rem;padding:0 4px 3px;">DWS</th>
+                                            <th style="text-align:right;color:#d06060;font-size:0.7rem;padding:0 4px 3px;">OPP%</th>
                                         </tr></thead>
                                         <tbody>
                                         @for (int ai = 0; ai < dpoyCands.Count; ai++)
                                         {
-                                            var ap = dpoyCands[ai];
+                                            var (ap, apDpoy) = dpoyCands[ai];
                                             bool isDpoyW = _awards?.DPOY?.Name == ap.Name;
                                             <tr class="clickable-row" @onclick="() => OpenPlayerModal(ap)" style="@(isDpoyW?"background:#00100d;":"")border-bottom:1px solid #1a1a1a;">
                                                 <td style="text-align:center;color:@(ai==0?"#4af0c0":"#3a3a3a");">@(ai+1)</td>
@@ -1284,8 +1294,11 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
                                                     <span style="color:#3a3a3a;font-size:0.75rem;margin-left:3px;">@ap.TeamAbbr</span>
                                                     @if (isDpoyW) { <span style="font-size:0.6rem;color:#4af0c0;margin-left:3px;vertical-align:middle;">✓</span> }
                                                 </td>
-                                                <td style="text-align:right;padding:3px 5px;color:#80b060;">@ap.Spg.ToString("F1")</td>
+                                                <td style="text-align:right;padding:3px 5px;color:#4af0c0;font-weight:600;">@apDpoy.ToString("F3")</td>
+                                                <td style="text-align:right;padding:3px 4px;color:#80b060;">@ap.Spg.ToString("F1")</td>
                                                 <td style="text-align:right;padding:3px 4px;color:#b06040;">@ap.Bpg.ToString("F1")</td>
+                                                <td style="text-align:right;padding:3px 4px;color:#40a080;">@ap.DWS.ToString("F1")</td>
+                                                <td style="text-align:right;padding:3px 4px;color:#c05050;">@(ap.TotalDefFGA>0?ap.OppFgPct.ToString("P0"):"—")</td>
                                             </tr>
                                         }
                                         </tbody>
@@ -1298,13 +1311,16 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
                                         <thead><tr>
                                             <th style="width:20px;text-align:center;color:#444;font-size:0.7rem;padding-bottom:3px;">#</th>
                                             <th style="text-align:left;color:#444;font-size:0.7rem;padding:0 6px 3px;">PLAYER</th>
-                                            <th style="text-align:right;color:#e8c060;font-size:0.7rem;padding:0 5px 3px;">PTS</th>
-                                            <th style="text-align:right;color:#888;font-size:0.7rem;padding:0 4px 3px;">MIN</th>
+                                            <th style="text-align:right;color:#b080ff;font-size:0.7rem;padding:0 5px 3px;">SCORE</th>
+                                            <th style="text-align:right;color:#e8c060;font-size:0.7rem;padding:0 4px 3px;">PTS</th>
+                                            <th style="text-align:right;color:#888;font-size:0.7rem;padding:0 4px 3px;">REB</th>
+                                            <th style="text-align:right;color:#60c8e8;font-size:0.7rem;padding:0 4px 3px;">AST</th>
+                                            <th style="text-align:right;color:#446644;font-size:0.7rem;padding:0 4px 3px;">GS</th>
                                         </tr></thead>
                                         <tbody>
                                         @for (int ai = 0; ai < sixmoyCands.Count; ai++)
                                         {
-                                            var ap = sixmoyCands[ai];
+                                            var (ap, ap6m) = sixmoyCands[ai];
                                             bool is6moyW = _awards?.SixMOY?.Name == ap.Name;
                                             <tr class="clickable-row" @onclick="() => OpenPlayerModal(ap)" style="@(is6moyW?"background:#0a000e;":"")border-bottom:1px solid #1a1a1a;">
                                                 <td style="text-align:center;color:@(ai==0?"#b080ff":"#3a3a3a");">@(ai+1)</td>
@@ -1313,13 +1329,54 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
                                                     <span style="color:#3a3a3a;font-size:0.75rem;margin-left:3px;">@ap.TeamAbbr</span>
                                                     @if (is6moyW) { <span style="font-size:0.6rem;color:#b080ff;margin-left:3px;vertical-align:middle;">✓</span> }
                                                 </td>
-                                                <td style="text-align:right;padding:3px 5px;color:#c8a040;">@ap.Ppg.ToString("F1")</td>
-                                                <td style="text-align:right;padding:3px 4px;color:#666;">@ap.Mpg.ToString("F1")</td>
+                                                <td style="text-align:right;padding:3px 5px;color:#b080ff;font-weight:600;">@ap6m.ToString("F3")</td>
+                                                <td style="text-align:right;padding:3px 4px;color:#c8a040;">@ap.Ppg.ToString("F1")</td>
+                                                <td style="text-align:right;padding:3px 4px;color:#777;">@ap.Rpg.ToString("F1")</td>
+                                                <td style="text-align:right;padding:3px 4px;color:#4aa8b8;">@ap.Apg.ToString("F1")</td>
+                                                <td style="text-align:right;padding:3px 4px;color:#446644;">@ap.GamesStarted</td>
                                             </tr>
                                         }
                                         </tbody>
                                     </table>
                                 </div>
+                                @* ROTY Race *@
+                                @if (rotyCands.Count > 0)
+                                {
+                                <div>
+                                    <div class="section-title" style="color:#40c8ff;margin-bottom:6px;">ROTY RACE</div>
+                                    <table style="width:100%;font-size:0.83rem;border-collapse:collapse;">
+                                        <thead><tr>
+                                            <th style="width:20px;text-align:center;color:#444;font-size:0.7rem;padding-bottom:3px;">#</th>
+                                            <th style="text-align:left;color:#444;font-size:0.7rem;padding:0 6px 3px;">PLAYER</th>
+                                            <th style="text-align:right;color:#40c8ff;font-size:0.7rem;padding:0 5px 3px;">SCORE</th>
+                                            <th style="text-align:right;color:#e8c060;font-size:0.7rem;padding:0 4px 3px;">PTS</th>
+                                            <th style="text-align:right;color:#888;font-size:0.7rem;padding:0 4px 3px;">REB</th>
+                                            <th style="text-align:right;color:#60c8e8;font-size:0.7rem;padding:0 4px 3px;">AST</th>
+                                            <th style="text-align:right;color:#b080ff;font-size:0.7rem;padding:0 4px 3px;">PER</th>
+                                        </tr></thead>
+                                        <tbody>
+                                        @for (int ai = 0; ai < rotyCands.Count; ai++)
+                                        {
+                                            var (ap, apRoty) = rotyCands[ai];
+                                            bool isRotyW = _awards?.ROTY?.Name == ap.Name;
+                                            <tr class="clickable-row" @onclick="() => OpenPlayerModal(ap)" style="@(isRotyW?"background:#000a10;":"")border-bottom:1px solid #1a1a1a;">
+                                                <td style="text-align:center;color:@(ai==0?"#40c8ff":"#3a3a3a");">@(ai+1)</td>
+                                                <td style="padding:3px 6px;">
+                                                    <span style="color:@(isRotyW?"#40c8ff":"#b8b8b8");">@ap.Name</span>
+                                                    <span style="color:#3a3a3a;font-size:0.75rem;margin-left:3px;">@ap.TeamAbbr</span>
+                                                    @if (isRotyW) { <span style="font-size:0.6rem;color:#40c8ff;margin-left:3px;vertical-align:middle;">✓</span> }
+                                                </td>
+                                                <td style="text-align:right;padding:3px 5px;color:#40c8ff;font-weight:600;">@apRoty.ToString("F3")</td>
+                                                <td style="text-align:right;padding:3px 4px;color:#c8a040;">@ap.Ppg.ToString("F1")</td>
+                                                <td style="text-align:right;padding:3px 4px;color:#777;">@ap.Rpg.ToString("F1")</td>
+                                                <td style="text-align:right;padding:3px 4px;color:#4aa8b8;">@ap.Apg.ToString("F1")</td>
+                                                <td style="text-align:right;padding:3px 4px;color:#9060d0;">@ap.PER.ToString("F1")</td>
+                                            </tr>
+                                        }
+                                        </tbody>
+                                    </table>
+                                </div>
+                                }
                             </div>
                         </div>
                     }
@@ -2664,9 +2721,10 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
                             <div class="kv"><span class="kv-label">Series length</span><span class="kv-val">best-of-7 for all rounds (best-of-5 for play-in)</span></div>
                             <div class="kv"><span class="kv-label">Home court</span><span class="kv-val">higher seed hosts games 1, 2, 5, 7</span></div>
                             <p style="margin-top:8px;"><strong>Season Awards</strong> are computed from regular-season stats:</p>
-                            <div class="kv"><span class="kv-label">MVP</span><span class="kv-val">weighted PTS + AST + REB + WS-proxy + team wins</span></div>
-                            <div class="kv"><span class="kv-label">DPOY</span><span class="kv-val">STL + BLK + DefRating + IntDef/PerimDef attributes</span></div>
-                            <div class="kv"><span class="kv-label">6MOY</span><span class="kv-val">best bench contributor (GP with low starter rate)</span></div>
+                            <div class="kv"><span class="kv-label">MVP</span><span class="kv-val">Shen-Nagy: PER anchor + Cor(WS,PER)·WS + Cor(USG,PER)·USG (top-10 by PER, ≥40 wins)</span></div>
+                            <div class="kv"><span class="kv-label">DPOY</span><span class="kv-val">DWS anchor + Cor(STL,DWS)·STL + Cor(BLK,DWS)·BLK (top-10 by DWS, ≥30 wins)</span></div>
+                            <div class="kv"><span class="kv-label">6MOY</span><span class="kv-val">PER anchor + Cor(PPG,PER)·PPG + Cor(WS,PER)·WS; eligibility: GS &lt; GP/2, MPG ≥12</span></div>
+                            <div class="kv"><span class="kv-label">ROTY</span><span class="kv-val">Same Shen-Nagy as MVP; eligibility: IsRookie flag, GP ≥20</span></div>
                             <div class="kv"><span class="kv-label">All-NBA / All-Def</span><span class="kv-val">position-balanced selection from top performers</span></div>
                         </div>
                     }
@@ -4040,23 +4098,6 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
         return _teamSortAsc ? source.OrderBy(key) : source.OrderByDescending(key);
     }
 
-    private static List<PlayerSeasonStats> GetAwardTop10(
-        IEnumerable<PlayerSeasonStats> pool,
-        Func<PlayerSeasonStats, double> score,
-        Func<PlayerSeasonStats, bool>? filter)
-    {
-        var q = filter is not null ? pool.Where(filter) : pool;
-        return q.OrderByDescending(score).Take(10).ToList();
-    }
-
-    private static double AwardsDpoyScore(PlayerSeasonStats p, bool hasFullStats) => hasFullStats
-        ? p.DWS * 0.45 + p.Bpg * 2.0 + p.Spg * 1.5 + Math.Max(0, 0.50 - p.OppFgPct) * 30
-        : p.Spg * 2.0 + p.Bpg * 2.0 + (p.DefRating > 0 ? (120.0 - p.DefRating) * 0.15 : 0);
-
-    private static double AwardsSixMoyScore(PlayerSeasonStats p, bool hasFullStats) => hasFullStats
-        ? p.PER
-        : p.Ppg * 0.8 + p.Apg * 0.4 + p.Rpg * 0.3;
-
     private static IEnumerable<PlayerSeasonStats> ApplySort(
         IEnumerable<PlayerSeasonStats> src, string col, bool asc)
     {
@@ -4072,6 +4113,7 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
             "tov" => p => p.Topg,
             "min"  => p => p.Mpg,
             "gp"   => p => p.GP,
+            "gs"   => p => p.GamesStarted,
             "inj"  => p => p.GamesInjured,
             "rest" => p => p.GamesRested,
             "sf"   => p => p.AvgSeasonFatigue,
