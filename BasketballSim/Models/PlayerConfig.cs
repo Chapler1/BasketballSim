@@ -54,11 +54,11 @@ public class PlayerConfig
     public DominantHand DominantHand { get; set; } = DominantHand.Right;
     public Dictionary<string, int> InjuryRatings { get; set; } = new();
 
-    public bool IsRookie { get; set; }
+    public int YearsExperience { get; set; }  // 0 = rookie (set from historical data at sim creation)
 
     public Player ToPlayer() => new()
     {
-        Name = Name, Team = Team, Position = Position, IsRookie = IsRookie,
+        Name = Name, Team = Team, Position = Position, YearsExperience = YearsExperience,
         Height = Height, Strength = Strength, Speed = Speed,
         Jumping = Jumping, Endurance = Endurance,
         Attr_Inside = Inside, Attr_Dunks = Dunks, Attr_FreeThrow = FreeThrow,

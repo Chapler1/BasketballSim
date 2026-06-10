@@ -243,7 +243,7 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
     var sixmoyCands = SeasonScheduleService.RankSixMoyCandidates(aPool,
         p => CanReach50(p) && p.GamesStarted < p.GP / 2.0 && p.Mpg >= 12);
     var rotyCands = SeasonScheduleService.RankRotyCandidates(aPool,
-        p => CanReach50(p) && p.IsRookie);
+        p => CanReach50(p) && p.YearsExperience == 0);
     // Rotations tab: selected team and computed rotation data
     IReadOnlyDictionary<string, Team> rotTeams = isLive && _liveState is not null
         ? (IReadOnlyDictionary<string, Team>)_liveState.Teams
@@ -1771,14 +1771,14 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
                 <div style="flex:1;">
                     <div style="display:flex;align-items:baseline;gap:8px;">
                         <div style="font-size:1.3rem;font-weight:800;color:#e8e8e8;letter-spacing:1px;">@_detailPlayer.Name</div>
-                        @if (_detailRecord is not null)
-                        {
-                            int _totalExp = _detailRecord.SeasonsPlayed + _detailRecord.SimSeasonsCompleted;
+                        @{
+                            int _histExp = HistSvc.GetYearsExperience(_detailPlayer.Name);
+                            int _totalExp = _histExp + (_detailRecord?.SimSeasonsCompleted ?? 0);
                             bool _isRookie = _totalExp == 0;
-                            <span style="font-size:0.72rem;font-weight:700;padding:2px 6px;border-radius:3px;letter-spacing:1px;background:@(_isRookie?"#001a28":"#1a1a1a");color:@(_isRookie?"#40c8ff":"#666");border:1px solid @(_isRookie?"#004060":"#2a2a2a");">
-                                @(_isRookie ? "R" : _totalExp + "YR")
-                            </span>
                         }
+                        <span style="font-size:0.72rem;font-weight:700;padding:2px 6px;border-radius:3px;letter-spacing:1px;background:@(_isRookie?"#001a28":"#1a1a1a");color:@(_isRookie?"#40c8ff":"#666");border:1px solid @(_isRookie?"#004060":"#2a2a2a");">
+                            @(_isRookie ? "R" : _totalExp + "YR")
+                        </span>
                     </div>
                     <div style="font-size:0.88rem;color:#555;margin-top:2px;">
                         @_detailPlayer.Team
@@ -2748,7 +2748,7 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
                             <div class="kv"><span class="kv-label">MVP</span><span class="kv-val">Shen-Nagy: PER anchor + Cor(WS,PER)·WS + Cor(USG,PER)·USG (top-10 by PER, ≥40 wins)</span></div>
                             <div class="kv"><span class="kv-label">DPOY</span><span class="kv-val">DWS anchor + Cor(STL,DWS)·STL + Cor(BLK,DWS)·BLK (top-10 by DWS, ≥30 wins)</span></div>
                             <div class="kv"><span class="kv-label">6MOY</span><span class="kv-val">PER anchor + Cor(PPG,PER)·PPG + Cor(WS,PER)·WS; eligibility: GS &lt; GP/2, MPG ≥12</span></div>
-                            <div class="kv"><span class="kv-label">ROTY</span><span class="kv-val">Same Shen-Nagy as MVP; eligibility: IsRookie flag, GP ≥20</span></div>
+                            <div class="kv"><span class="kv-label">ROTY</span><span class="kv-val">Same Shen-Nagy as MVP; eligibility: 0 seasons in historical data (no prior NBA experience), GP ≥50</span></div>
                             <div class="kv"><span class="kv-label">All-NBA / All-Def</span><span class="kv-val">position-balanced selection from top performers</span></div>
                         </div>
                     }
@@ -3378,11 +3378,20 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
     private List<InjuryRecord>           _detailInjuryHistory = [];
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
+    // Reads historical_player_stats.json at sim creation and sets YearsExperience on every player.
+    private void ApplyYearsExperience(Dictionary<string, Team> teams)
+    {
+        foreach (var team in teams.Values)
+            foreach (var player in team.Roster)
+                player.YearsExperience = HistSvc.GetYearsExperience(player.Name);
+    }
+
     protected override Task OnInitializedAsync()
     {
         if (RosterSvc.HasData)
         {
             _teams = RosterSvc.LoadTeams();
+            ApplyYearsExperience(_teams);
             _phase = Phase.Ready;
         }
         return Task.CompletedTask;
@@ -3407,6 +3416,7 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
         (_syncUpdated, _syncAdded, _syncFreed) = await PlayerSvc.SyncRostersAsync();
 
         _teams = RosterSvc.LoadTeams();
+        ApplyYearsExperience(_teams);
         _phase = Phase.Ready;
         StateHasChanged();
     }

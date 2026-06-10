@@ -379,8 +379,8 @@ public class SeasonScheduleService
                     {
                         Name = ps.Name, Team = ps.Team,
                         TeamAbbr = st.Abbreviation, Position = ps.Position,
-                        IsRookie = homeTeam.Roster.Concat(awayTeam.Roster)
-                            .FirstOrDefault(p => string.Equals(p.Name, ps.Name, StringComparison.OrdinalIgnoreCase))?.IsRookie ?? false,
+                        YearsExperience = homeTeam.Roster.Concat(awayTeam.Roster)
+                            .FirstOrDefault(p => string.Equals(p.Name, ps.Name, StringComparison.OrdinalIgnoreCase))?.YearsExperience ?? 99,
                     };
                 bool played = ps.MinutesPlayed > 0;
                 if (played)
@@ -1058,8 +1058,8 @@ public class SeasonScheduleService
             awards.SixMOY = new(sixmoy.Name, sixmoy.Team, sixmoy.TeamAbbr, sixmoyScore, sixmoy.Position);
         }
 
-        // ROTY: ≥50 GP, rookie
-        var rotyTop10 = RankRotyCandidates(players, p => p.IsRookie && p.GP >= 50);
+        // ROTY: ≥50 GP, no prior NBA history (YearsExperience == 0)
+        var rotyTop10 = RankRotyCandidates(players, p => p.YearsExperience == 0 && p.GP >= 50);
         if (rotyTop10.Count > 0)
         {
             var (roty, rotyScore) = rotyTop10[0];
@@ -1681,8 +1681,8 @@ public class SeasonScheduleService
                 s.PlayerAgg[key] = pagg = new PlayerSeasonStats
                 {
                     Name = ps.Name, Team = ps.Team, TeamAbbr = st.Abbreviation, Position = ps.Position,
-                    IsRookie = (ps.Team == homeTeam.Name ? homeTeam : awayTeam).Roster
-                        .FirstOrDefault(p => string.Equals(p.Name, ps.Name, StringComparison.OrdinalIgnoreCase))?.IsRookie ?? false,
+                    YearsExperience = (ps.Team == homeTeam.Name ? homeTeam : awayTeam).Roster
+                        .FirstOrDefault(p => string.Equals(p.Name, ps.Name, StringComparison.OrdinalIgnoreCase))?.YearsExperience ?? 99,
                 };
 
             bool played = ps.MinutesPlayed > 0;

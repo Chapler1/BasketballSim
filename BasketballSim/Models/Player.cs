@@ -10,7 +10,7 @@ public class Player
     public          int      JerseyNumber  { get; init; }
     public required Position Position      { get; init; }
     public          int      Age           { get; init; }
-    public          bool     IsRookie      { get; init; }
+    public          int      YearsExperience { get; set; }  // 0 = rookie (no prior NBA history)
 
     // ── Physical Attributes (VISIBLE to GM) ───────────────────────
     public int Height     { get; init; }

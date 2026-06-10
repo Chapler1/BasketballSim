@@ -41,4 +41,7 @@ public class HistoricalStatsService(IWebHostEnvironment env)
             return hist;
         return [];
     }
+
+    // Returns count of real NBA seasons in historical data. 0 = no history = rookie.
+    public int GetYearsExperience(string playerName) => GetPlayerHistory(playerName).Count;
 }

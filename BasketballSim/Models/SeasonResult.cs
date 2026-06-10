@@ -125,8 +125,8 @@ public class PlayerSeasonStats
     public int              GamesPlayedThrough { get; set; }  // games played with Grade 1 or 2 injury
     public List<InjuryRecord> InjuryHistory  { get; set; } = [];
 
-    public int  GamesStarted { get; set; }  // games in which player was in the starting 5
-    public bool IsRookie     { get; set; }  // true for players in their first NBA season
+    public int GamesStarted    { get; set; }  // games in which player was in the starting 5
+    public int YearsExperience { get; set; }  // 0 = rookie (no prior NBA history)
 
     // Advanced stats — computed post-season by SeasonScheduleService.ComputeAdvancedStats()
     public double PER  { get; set; }   // Player Efficiency Rating (league avg = 15)
