@@ -1772,12 +1772,11 @@ else if ((_phase == Phase.LiveSeason && _liveState is not null) || (_phase == Ph
                     <div style="display:flex;align-items:baseline;gap:8px;">
                         <div style="font-size:1.3rem;font-weight:800;color:#e8e8e8;letter-spacing:1px;">@_detailPlayer.Name</div>
                         @{
-                            int _histExp = HistSvc.GetYearsExperience(_detailPlayer.Name);
-                            int _totalExp = _histExp + (_detailRecord?.SimSeasonsCompleted ?? 0);
-                            bool _isRookie = _totalExp == 0;
+                            int _yearsExp = HistSvc.GetYearsExperience(_detailPlayer.Name);
+                            bool _isRookie = _yearsExp == 0;
                         }
                         <span style="font-size:0.72rem;font-weight:700;padding:2px 6px;border-radius:3px;letter-spacing:1px;background:@(_isRookie?"#001a28":"#1a1a1a");color:@(_isRookie?"#40c8ff":"#666");border:1px solid @(_isRookie?"#004060":"#2a2a2a");">
-                            @(_isRookie ? "R" : _totalExp + "YR")
+                            @(_isRookie ? "R" : _yearsExp + "YR")
                         </span>
                     </div>
                     <div style="font-size:0.88rem;color:#555;margin-top:2px;">

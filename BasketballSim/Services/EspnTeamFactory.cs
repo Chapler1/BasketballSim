@@ -9,13 +9,20 @@ namespace BasketballSim.Services;
 public static class EspnTeamFactory
 {
     // ── Name / position helpers ───────────────────────────────────────────────
-    public static string NormalizeName(string name) =>
-        name.ToLowerInvariant().Trim()
+    public static string NormalizeName(string name)
+    {
+        // NFD decomposition strips diacritics (Joki\u0107\u2192Jokic, Don\u010di\u0107\u2192Doncic, Porzi\u0146\u0123is\u2192Porzingis)
+        var nfd = name.Normalize(System.Text.NormalizationForm.FormD);
+        var stripped = new string(nfd.Where(c =>
+            System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) !=
+            System.Globalization.UnicodeCategory.NonSpacingMark).ToArray());
+        return stripped.ToLowerInvariant().Trim()
             .Replace(".", "")
-            .Replace("\u2019", "")   // curly apostrophe (used in 2K cache)
-            .Replace("\u2018", "")   // left single quote
-            .Replace("'", "")        // straight apostrophe
+            .Replace("\u2019", "")
+            .Replace("\u2018", "")
+            .Replace("'", "")
             .Replace("-", " ");
+    }
 
     public static Position? ParsePosition(string s) => s switch
     {
