@@ -1,4 +1,4 @@
-@page "/lab"
+﻿@page "/lab"
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 @using BasketballSim.Models
 @using BasketballSim.Simulation
@@ -638,7 +638,6 @@
         new("Pull-Up",        "Tendencies — Off", 50, p => p.Tend_PullUp,   (p,v) => p.Tend_PullUp = v),
         new("Mid-Range",      "Tendencies — Off", 50, p => p.Tend_MidRange, (p,v) => p.Tend_MidRange = v),
         new("3-Point",        "Tendencies — Off", 50, p => p.Tend_ThreePt,  (p,v) => p.Tend_ThreePt = v),
-        new("Off. Reb.",      "Tendencies — Off", 50, p => p.Tend_OffReb,   (p,v) => p.Tend_OffReb = v),
         new("Steal",          "Tendencies — Def", 50, p => p.Tend_Steal,    (p,v) => p.Tend_Steal = v),
         new("Block",          "Tendencies — Def", 50, p => p.Tend_Block,    (p,v) => p.Tend_Block = v),
     ];
@@ -832,7 +831,7 @@
             PerimeterDefense=62, InteriorDefense=40, FoulTendency=30,
             Tend_Touches=85, Tend_Drive=80, Tend_ThreePt=58, Tend_MidRange=82,
             Tend_PostUp=55, Tend_Iso=78, Tend_PullUp=82, Tend_Cut=40,
-            Tend_OffReb=25, Tend_Steal=55, Tend_Block=30,
+            Tend_Steal=55, Tend_Block=30,
         },
         new PlayerConfig
         {
@@ -842,8 +841,7 @@
             oBBIQ=78, dBBIQ=82, Hustle=82, Dribbling=72, Passing=70, ReboundingOff=40, ReboundingDef=52,
             PerimeterDefense=86, InteriorDefense=58, FoulTendency=26,
             Tend_Touches=58, Tend_Drive=65, Tend_ThreePt=68, Tend_MidRange=62,
-            Tend_PostUp=30, Tend_Iso=55, Tend_PullUp=60, Tend_Cut=62,
-            Tend_OffReb=38, Tend_Steal=68, Tend_Block=52,
+            Tend_PostUp=30, Tend_Iso=55, Tend_PullUp=60, Tend_Cut=62, Tend_Steal=68, Tend_Block=52,
         },
         new PlayerConfig
         {
@@ -853,8 +851,7 @@
             oBBIQ=76, dBBIQ=88, Hustle=88, Dribbling=70, Passing=68, ReboundingOff=45, ReboundingDef=60,
             PerimeterDefense=90, InteriorDefense=72, FoulTendency=36,
             Tend_Touches=58, Tend_Drive=70, Tend_ThreePt=70, Tend_MidRange=55,
-            Tend_PostUp=35, Tend_Iso=50, Tend_PullUp=55, Tend_Cut=68,
-            Tend_OffReb=42, Tend_Steal=72, Tend_Block=65,
+            Tend_PostUp=35, Tend_Iso=50, Tend_PullUp=55, Tend_Cut=68, Tend_Steal=72, Tend_Block=65,
         },
         new PlayerConfig
         {
@@ -864,8 +861,7 @@
             oBBIQ=74, dBBIQ=76, Hustle=90, Dribbling=65, Passing=72, ReboundingOff=80, ReboundingDef=75,
             PerimeterDefense=78, InteriorDefense=60, FoulTendency=40,
             Tend_Touches=52, Tend_Drive=62, Tend_ThreePt=55, Tend_MidRange=48,
-            Tend_PostUp=35, Tend_Iso=42, Tend_PullUp=50, Tend_Cut=58,
-            Tend_OffReb=80, Tend_Steal=62, Tend_Block=48,
+            Tend_PostUp=35, Tend_Iso=42, Tend_PullUp=50, Tend_Cut=58, Tend_Steal=62, Tend_Block=48,
         },
         new PlayerConfig
         {
@@ -875,8 +871,7 @@
             oBBIQ=82, dBBIQ=65, Hustle=68, Dribbling=65, Passing=72, ReboundingOff=68, ReboundingDef=72,
             PerimeterDefense=50, InteriorDefense=68, FoulTendency=64,
             Tend_Touches=78, Tend_Drive=60, Tend_ThreePt=78, Tend_MidRange=68,
-            Tend_PostUp=72, Tend_Iso=62, Tend_PullUp=65, Tend_Cut=45,
-            Tend_OffReb=65, Tend_Steal=42, Tend_Block=58,
+            Tend_PostUp=72, Tend_Iso=62, Tend_PullUp=65, Tend_Cut=45, Tend_Steal=42, Tend_Block=58,
         },
         // ── Bench ──────────────────────────────────────────────────────────────
         new PlayerConfig
@@ -887,8 +882,7 @@
             oBBIQ=72, dBBIQ=70, Hustle=72, Dribbling=70, Passing=68, ReboundingOff=32, ReboundingDef=42,
             PerimeterDefense=75, InteriorDefense=42, FoulTendency=38,
             Tend_Touches=48, Tend_Drive=58, Tend_ThreePt=72, Tend_MidRange=55,
-            Tend_PostUp=22, Tend_Iso=42, Tend_PullUp=60, Tend_Cut=55,
-            Tend_OffReb=30, Tend_Steal=60, Tend_Block=32,
+            Tend_PostUp=22, Tend_Iso=42, Tend_PullUp=60, Tend_Cut=55, Tend_Steal=60, Tend_Block=32,
         },
         new PlayerConfig
         {
@@ -898,8 +892,7 @@
             oBBIQ=65, dBBIQ=68, Hustle=70, Dribbling=72, Passing=65, ReboundingOff=28, ReboundingDef=38,
             PerimeterDefense=72, InteriorDefense=40, FoulTendency=35,
             Tend_Touches=44, Tend_Drive=62, Tend_ThreePt=65, Tend_MidRange=50,
-            Tend_PostUp=18, Tend_Iso=38, Tend_PullUp=58, Tend_Cut=48,
-            Tend_OffReb=25, Tend_Steal=62, Tend_Block=28,
+            Tend_PostUp=18, Tend_Iso=38, Tend_PullUp=58, Tend_Cut=48, Tend_Steal=62, Tend_Block=28,
         },
         new PlayerConfig
         {
@@ -909,8 +902,7 @@
             oBBIQ=55, dBBIQ=60, Hustle=82, Dribbling=45, Passing=50, ReboundingOff=68, ReboundingDef=65,
             PerimeterDefense=55, InteriorDefense=65, FoulTendency=58,
             Tend_Touches=38, Tend_Drive=55, Tend_ThreePt=30, Tend_MidRange=35,
-            Tend_PostUp=48, Tend_Iso=30, Tend_PullUp=30, Tend_Cut=52,
-            Tend_OffReb=68, Tend_Steal=42, Tend_Block=52,
+            Tend_PostUp=48, Tend_Iso=30, Tend_PullUp=30, Tend_Cut=52, Tend_Steal=42, Tend_Block=52,
         },
         new PlayerConfig
         {
@@ -920,8 +912,7 @@
             oBBIQ=78, dBBIQ=58, Hustle=60, Dribbling=60, Passing=60, ReboundingOff=28, ReboundingDef=38,
             PerimeterDefense=55, InteriorDefense=40, FoulTendency=40,
             Tend_Touches=48, Tend_Drive=40, Tend_ThreePt=78, Tend_MidRange=72,
-            Tend_PostUp=30, Tend_Iso=45, Tend_PullUp=65, Tend_Cut=40,
-            Tend_OffReb=25, Tend_Steal=38, Tend_Block=25,
+            Tend_PostUp=30, Tend_Iso=45, Tend_PullUp=65, Tend_Cut=40, Tend_Steal=38, Tend_Block=25,
         },
         new PlayerConfig
         {
@@ -931,8 +922,7 @@
             oBBIQ=52, dBBIQ=72, Hustle=80, Dribbling=25, Passing=40, ReboundingOff=80, ReboundingDef=80,
             PerimeterDefense=48, InteriorDefense=82, FoulTendency=72,
             Tend_Touches=30, Tend_Drive=42, Tend_ThreePt=10, Tend_MidRange=18,
-            Tend_PostUp=52, Tend_Iso=22, Tend_PullUp=15, Tend_Cut=58,
-            Tend_OffReb=80, Tend_Steal=35, Tend_Block=72,
+            Tend_PostUp=52, Tend_Iso=22, Tend_PullUp=15, Tend_Cut=58, Tend_Steal=35, Tend_Block=72,
         },
     ];
 
@@ -946,8 +936,7 @@
             oBBIQ=92, dBBIQ=82, Hustle=82, Dribbling=95, Passing=78, ReboundingOff=30, ReboundingDef=42,
             PerimeterDefense=78, InteriorDefense=48, FoulTendency=26,
             Tend_Touches=85, Tend_Drive=85, Tend_ThreePt=60, Tend_MidRange=80,
-            Tend_PostUp=40, Tend_Iso=75, Tend_PullUp=78, Tend_Cut=45,
-            Tend_OffReb=25, Tend_Steal=65, Tend_Block=40,
+            Tend_PostUp=40, Tend_Iso=75, Tend_PullUp=78, Tend_Cut=45, Tend_Steal=65, Tend_Block=40,
         },
         new PlayerConfig
         {
@@ -957,8 +946,7 @@
             oBBIQ=70, dBBIQ=74, Hustle=74, Dribbling=65, Passing=65, ReboundingOff=35, ReboundingDef=48,
             PerimeterDefense=78, InteriorDefense=50, FoulTendency=36,
             Tend_Touches=50, Tend_Drive=60, Tend_ThreePt=70, Tend_MidRange=50,
-            Tend_PostUp=25, Tend_Iso=45, Tend_PullUp=55, Tend_Cut=55,
-            Tend_OffReb=35, Tend_Steal=70, Tend_Block=40,
+            Tend_PostUp=25, Tend_Iso=45, Tend_PullUp=55, Tend_Cut=55, Tend_Steal=70, Tend_Block=40,
         },
         new PlayerConfig
         {
@@ -968,8 +956,7 @@
             oBBIQ=65, dBBIQ=86, Hustle=88, Dribbling=60, Passing=55, ReboundingOff=42, ReboundingDef=52,
             PerimeterDefense=90, InteriorDefense=68, FoulTendency=56,
             Tend_Touches=45, Tend_Drive=65, Tend_ThreePt=50, Tend_MidRange=45,
-            Tend_PostUp=30, Tend_Iso=50, Tend_PullUp=50, Tend_Cut=45,
-            Tend_OffReb=42, Tend_Steal=68, Tend_Block=50,
+            Tend_PostUp=30, Tend_Iso=50, Tend_PullUp=50, Tend_Cut=45, Tend_Steal=68, Tend_Block=50,
         },
         new PlayerConfig
         {
@@ -979,8 +966,7 @@
             oBBIQ=86, dBBIQ=72, Hustle=76, Dribbling=82, Passing=76, ReboundingOff=52, ReboundingDef=58,
             PerimeterDefense=68, InteriorDefense=62, FoulTendency=52,
             Tend_Touches=78, Tend_Drive=78, Tend_ThreePt=65, Tend_MidRange=72,
-            Tend_PostUp=55, Tend_Iso=68, Tend_PullUp=70, Tend_Cut=50,
-            Tend_OffReb=50, Tend_Steal=55, Tend_Block=50,
+            Tend_PostUp=55, Tend_Iso=68, Tend_PullUp=70, Tend_Cut=50, Tend_Steal=55, Tend_Block=50,
         },
         new PlayerConfig
         {
@@ -990,8 +976,7 @@
             oBBIQ=84, dBBIQ=80, Hustle=70, Dribbling=58, Passing=68, ReboundingOff=55, ReboundingDef=75,
             PerimeterDefense=62, InteriorDefense=92, FoulTendency=38,
             Tend_Touches=60, Tend_Drive=50, Tend_ThreePt=72, Tend_MidRange=65,
-            Tend_PostUp=48, Tend_Iso=45, Tend_PullUp=60, Tend_Cut=55,
-            Tend_OffReb=52, Tend_Steal=48, Tend_Block=88,
+            Tend_PostUp=48, Tend_Iso=45, Tend_PullUp=60, Tend_Cut=55, Tend_Steal=48, Tend_Block=88,
         },
         // ── Bench ──────────────────────────────────────────────────────────────
         new PlayerConfig
@@ -1002,8 +987,7 @@
             oBBIQ=76, dBBIQ=74, Hustle=78, Dribbling=50, Passing=72, ReboundingOff=65, ReboundingDef=72,
             PerimeterDefense=50, InteriorDefense=72, FoulTendency=50,
             Tend_Touches=42, Tend_Drive=48, Tend_ThreePt=32, Tend_MidRange=42,
-            Tend_PostUp=55, Tend_Iso=30, Tend_PullUp=35, Tend_Cut=58,
-            Tend_OffReb=65, Tend_Steal=40, Tend_Block=60,
+            Tend_PostUp=55, Tend_Iso=30, Tend_PullUp=35, Tend_Cut=58, Tend_Steal=40, Tend_Block=60,
         },
         new PlayerConfig
         {
@@ -1013,8 +997,7 @@
             oBBIQ=78, dBBIQ=86, Hustle=90, Dribbling=68, Passing=68, ReboundingOff=30, ReboundingDef=42,
             PerimeterDefense=88, InteriorDefense=52, FoulTendency=30,
             Tend_Touches=40, Tend_Drive=60, Tend_ThreePt=65, Tend_MidRange=50,
-            Tend_PostUp=18, Tend_Iso=35, Tend_PullUp=55, Tend_Cut=58,
-            Tend_OffReb=28, Tend_Steal=78, Tend_Block=32,
+            Tend_PostUp=18, Tend_Iso=35, Tend_PullUp=55, Tend_Cut=58, Tend_Steal=78, Tend_Block=32,
         },
         new PlayerConfig
         {
@@ -1024,8 +1007,7 @@
             oBBIQ=62, dBBIQ=66, Hustle=68, Dribbling=58, Passing=55, ReboundingOff=35, ReboundingDef=45,
             PerimeterDefense=70, InteriorDefense=48, FoulTendency=40,
             Tend_Touches=44, Tend_Drive=55, Tend_ThreePt=68, Tend_MidRange=52,
-            Tend_PostUp=22, Tend_Iso=40, Tend_PullUp=58, Tend_Cut=50,
-            Tend_OffReb=32, Tend_Steal=55, Tend_Block=35,
+            Tend_PostUp=22, Tend_Iso=40, Tend_PullUp=58, Tend_Cut=50, Tend_Steal=55, Tend_Block=35,
         },
         new PlayerConfig
         {
@@ -1035,8 +1017,7 @@
             oBBIQ=70, dBBIQ=72, Hustle=80, Dribbling=55, Passing=62, ReboundingOff=45, ReboundingDef=55,
             PerimeterDefense=72, InteriorDefense=60, FoulTendency=42,
             Tend_Touches=38, Tend_Drive=52, Tend_ThreePt=55, Tend_MidRange=48,
-            Tend_PostUp=28, Tend_Iso=30, Tend_PullUp=45, Tend_Cut=55,
-            Tend_OffReb=45, Tend_Steal=58, Tend_Block=42,
+            Tend_PostUp=28, Tend_Iso=30, Tend_PullUp=45, Tend_Cut=55, Tend_Steal=58, Tend_Block=42,
         },
         new PlayerConfig
         {
@@ -1046,8 +1027,7 @@
             oBBIQ=55, dBBIQ=52, Hustle=62, Dribbling=60, Passing=55, ReboundingOff=42, ReboundingDef=50,
             PerimeterDefense=58, InteriorDefense=50, FoulTendency=45,
             Tend_Touches=38, Tend_Drive=55, Tend_ThreePt=55, Tend_MidRange=45,
-            Tend_PostUp=25, Tend_Iso=35, Tend_PullUp=45, Tend_Cut=48,
-            Tend_OffReb=40, Tend_Steal=48, Tend_Block=40,
+            Tend_PostUp=25, Tend_Iso=35, Tend_PullUp=45, Tend_Cut=48, Tend_Steal=48, Tend_Block=40,
         },
     ];
 

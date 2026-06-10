@@ -48,7 +48,7 @@ public class PlayerDataService(IWebHostEnvironment env, Nba2kCacheService nba2k)
     ];
     private static readonly string[] TendKeys = [
         "Touches","Drive","ThreePt","MidRange","PostUp",
-        "Iso","PullUp","Cut","OffReb","Steal","Block",
+        "Iso","PullUp","Cut","Steal","Block",
     ];
 
     private PlayerDb? _db;

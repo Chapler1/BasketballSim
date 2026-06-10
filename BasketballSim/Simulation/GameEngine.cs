@@ -2095,7 +2095,7 @@ public class GameEngine
         // GritAndGrind OReb bonus; PaceAndSpace fewer crashes
         double offRebBias = offTeam.Coach.OffStyle == OffensiveStyle.GritAndGrind ? 1.4 :
                             offTeam.Coach.OffStyle == OffensiveStyle.PaceAndSpace  ? 0.75 : 1.0;
-        double offRebWeight = lineup.Sum(p => p.ORebWeight * (p.Tendencies.OffRebound / 50.0)) * offRebBias;
+        double offRebWeight = lineup.Sum(p => p.ORebWeight) * offRebBias;
         double defRebWeight = defLineup.Sum(p => p.DRebWeight);
 
         double offRebPct = Math.Clamp(offRebWeight / (offRebWeight + defRebWeight * 4.0), 0.09, 0.30);
@@ -2105,7 +2105,7 @@ public class GameEngine
             // Position-aware offensive rebounder selection
             var rebounder = WeightedRandom(lineup, p =>
             {
-                double w = p.ORebWeight * (p.Tendencies.OffRebound / 50.0);
+                double w = p.ORebWeight;
                 if (lastShotType == ShotType.Inside)
                     w *= p.Position is Position.C or Position.PF ? 1.3 : 0.8;
                 else if (lastShotType == ShotType.ThreePointer)

@@ -194,7 +194,6 @@ public static class EspnTeamFactory
         cfg.Tend_Iso      = t.TryGetValue("Iso",     out int ti)  ? ti  : 50;
         cfg.Tend_PullUp   = t.TryGetValue("PullUp",  out int tpu) ? tpu : 50;
         cfg.Tend_Cut      = t.TryGetValue("Cut",     out int tc)  ? tc  : 50;
-        cfg.Tend_OffReb   = t.TryGetValue("OffReb",  out int tor) ? tor : 50;
         cfg.Tend_Steal    = t.TryGetValue("Steal",   out int ts)  ? ts  : 50;
         cfg.Tend_Block    = t.TryGetValue("Block",   out int tb)  ? tb  : 50;
 
@@ -350,7 +349,6 @@ public static class EspnTeamFactory
             Tend_Iso      = A(r.Tends, "Iso"),
             Tend_PullUp   = A(r.Tends, "PullUp"),
             Tend_Cut      = A(r.Tends, "Cut"),
-            Tend_OffReb   = A(r.Tends, "OffReb"),
             Tend_Steal    = A(r.Tends, "Steal"),
             Tend_Block    = A(r.Tends, "Block"),
         };

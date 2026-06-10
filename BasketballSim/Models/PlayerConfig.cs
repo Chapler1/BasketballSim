@@ -44,7 +44,6 @@ public class PlayerConfig
     public int Tend_PullUp   { get; set; } = 50;
     public int Tend_MidRange { get; set; } = 50;
     public int Tend_ThreePt  { get; set; } = 50;
-    public int Tend_OffReb   { get; set; } = 50;
 
     // Tendencies — Defense
     public int Tend_Steal    { get; set; } = 50;
@@ -76,7 +75,6 @@ public class PlayerConfig
             Touches = Tend_Touches, Drive = Tend_Drive, PostUp = Tend_PostUp,
             Iso = Tend_Iso, Cut = Tend_Cut, PullUp = Tend_PullUp,
             MidRange = Tend_MidRange, ThreePt = Tend_ThreePt,
-            OffRebound = Tend_OffReb,
             Steal = Tend_Steal, Block = Tend_Block
         }
     };

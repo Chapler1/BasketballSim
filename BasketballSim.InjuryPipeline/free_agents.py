@@ -191,7 +191,7 @@ def run(verbose: bool = True) -> None:
             "Tends": {
                 "Touches": 50, "Drive": 50, "ThreePt": 50, "MidRange": 50,
                 "PostUp": 50, "Iso": 50, "PullUp": 50, "Cut": 50,
-                "OffReb": 50, "Steal": 50, "Block": 50,
+                "Steal": 50, "Block": 50,
             },
         }
 

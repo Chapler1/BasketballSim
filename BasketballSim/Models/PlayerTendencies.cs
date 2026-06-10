@@ -18,9 +18,6 @@ public class PlayerTendencies
     public int PullUp    { get; set; } = 50;  // shoots off the dribble vs. catch-and-shoot
     public int Cut       { get; set; } = 50;  // cuts to the basket off-ball
 
-    // Rebounding
-    public int OffRebound { get; set; } = 50; // crashes the offensive glass
-
     // ── Defensive ─────────────────────────────────────────────────────────
     // High steal tendency = more attempts (more steals) but also gambles more.
     public int Steal     { get; set; } = 50;

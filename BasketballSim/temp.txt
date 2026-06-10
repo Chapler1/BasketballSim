@@ -1,0 +1,339 @@
+cat << 'EOF' > hoops_dashboard.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Season Sim Dashboard - Scheduler View</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Sleek, unobtrusive scrollbars */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0a0a0a; }
+    ::-webkit-scrollbar-thumb { background: #262626; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #404040; }
+    
+    /* Freeze columns and headers */
+    .sticky-header { position: sticky; top: 0; background: #121212; z-index: 20; }
+    .sticky-col { position: sticky; left: 0; background: #121212; z-index: 10; }
+    .sticky-corner { position: sticky; top: 0; left: 0; background: #121212; z-index: 30; }
+    
+    /* Subtle shadow for the frozen column to separate it from scrolling data */
+    .sticky-col::after, .sticky-corner::after {
+      content: '';
+      position: absolute;
+      top: 0; right: 0; bottom: 0; width: 4px;
+      background: linear-gradient(to right, rgba(0,0,0,0.8), transparent);
+      transform: translateX(100%);
+    }
+    
+    /* Force monospace alignment for numbers */
+    .stat-row td { font-variant-numeric: tabular-nums; }
+  </style>
+</head>
+<body class="bg-[#0a0a0a] text-[#a3a3a3] h-screen w-screen flex flex-col overflow-hidden font-sans text-[11px] selection:bg-amber-500/30">
+
+  <!-- TOP NAV & CONTROLS -->
+  <header class="flex-none bg-[#121212] border-b border-[#262626] px-4 py-2 flex justify-between items-center z-40 relative shadow-md">
+    <div class="flex items-baseline gap-4">
+      <h1 class="text-sm font-bold text-[#e5e5e5] tracking-widest uppercase">Season Sim</h1>
+      <span class="text-[#52525b]">82 GAMES • 30 TEAMS</span>
+    </div>
+    <div class="flex gap-2 items-center">
+      <button class="bg-[#1a1a1a] hover:bg-[#262626] border border-[#262626] text-white px-3 py-1 rounded transition-colors">Sim Day</button>
+      <button class="bg-indigo-900/40 hover:bg-indigo-900/60 border border-indigo-500/50 text-indigo-300 px-3 py-1 rounded transition-colors">Sim Rest of Season</button>
+      <div class="ml-4 flex items-center gap-2 text-amber-500 font-bold uppercase tracking-widest">
+        <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+        Nov 1, 2025
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN TWO-COLUMN LAYOUT -->
+  <main class="flex-1 flex overflow-hidden">
+    
+    <!-- LEFT SIDEBAR: VERTICAL STANDINGS (Fixed Width) -->
+    <aside class="w-72 flex-none flex flex-col border-r border-[#262626] bg-[#0f0f0f] overflow-hidden">
+      
+      <!-- Eastern Conference -->
+      <div class="flex-1 flex flex-col border-b border-[#262626] overflow-hidden">
+        <div class="px-4 py-2 border-b border-[#262626] bg-[#121212] flex justify-between items-center sticky top-0 z-10">
+          <span class="uppercase tracking-widest text-[#52525b] font-bold text-[10px]">Eastern Conf</span>
+        </div>
+        <div class="flex-1 overflow-auto">
+          <table class="w-full text-right text-[11px] whitespace-nowrap">
+            <thead class="sticky top-0 bg-[#0a0a0a] text-[#52525b] z-10 border-b border-[#262626]">
+              <tr>
+                <th class="text-left font-normal py-1 px-3">Team</th>
+                <th class="font-normal py-1 px-2">W-L</th>
+                <th class="font-normal py-1 px-2">GB</th>
+                <th class="font-normal py-1 px-3">Strk</th>
+              </tr>
+            </thead>
+            <tbody class="stat-row">
+              <tr class="border-b border-[#1a1a1a] hover:bg-[#121212]">
+                <td class="text-left py-1.5 px-3"><span class="text-[#52525b] w-3 inline-block">1</span> <span class="text-white font-bold">PHI</span></td>
+                <td class="px-2 text-green-500">4-1</td><td class="px-2 text-[#52525b]">-</td><td class="px-3 text-green-500">W3</td>
+              </tr>
+              <tr class="bg-indigo-900/20 border-l-2 border-amber-500 border-b border-[#1a1a1a]">
+                <td class="text-left py-1.5 px-3 pl-2.5"><span class="text-amber-500 w-3 inline-block">2</span> <span class="text-white font-bold">NYK</span></td>
+                <td class="px-2 font-bold text-white">3-1</td><td class="px-2 text-[#a3a3a3]">0.5</td><td class="px-3 text-red-500">L1</td>
+              </tr>
+              <tr class="border-b border-[#1a1a1a] hover:bg-[#121212]">
+                <td class="text-left py-1.5 px-3"><span class="text-[#52525b] w-3 inline-block">3</span> <span class="text-white font-bold">TOR</span></td>
+                <td class="px-2">3-2</td><td class="px-2 text-[#a3a3a3]">1.0</td><td class="px-3 text-green-500">W1</td>
+              </tr>
+              <tr class="border-b border-[#1a1a1a] hover:bg-[#121212]">
+                <td class="text-left py-1.5 px-3"><span class="text-[#52525b] w-3 inline-block">4</span> <span class="text-white font-bold">CLE</span></td>
+                <td class="px-2">2-2</td><td class="px-2 text-[#a3a3a3]">1.5</td><td class="px-3 text-red-500">L2</td>
+              </tr>
+               <tr class="border-b border-[#1a1a1a] hover:bg-[#121212]">
+                <td class="text-left py-1.5 px-3"><span class="text-[#52525b] w-3 inline-block">5</span> <span class="text-white font-bold">MIL</span></td>
+                <td class="px-2">2-3</td><td class="px-2 text-[#a3a3a3]">2.0</td><td class="px-3 text-red-500">L1</td>
+              </tr>
+               <tr class="border-b border-[#1a1a1a] hover:bg-[#121212]">
+                <td class="text-left py-1.5 px-3"><span class="text-[#52525b] w-3 inline-block">6</span> <span class="text-white font-bold">BOS</span></td>
+                <td class="px-2">1-3</td><td class="px-2 text-[#a3a3a3]">2.5</td><td class="px-3 text-red-500">L3</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Western Conference -->
+      <div class="flex-1 flex flex-col overflow-hidden">
+        <div class="px-4 py-2 border-b border-[#262626] bg-[#121212] flex justify-between items-center sticky top-0 z-10">
+          <span class="uppercase tracking-widest text-[#52525b] font-bold text-[10px]">Western Conf</span>
+        </div>
+        <div class="flex-1 overflow-auto">
+          <table class="w-full text-right text-[11px] whitespace-nowrap">
+             <thead class="sticky top-0 bg-[#0a0a0a] text-[#52525b] z-10 border-b border-[#262626]">
+              <tr>
+                <th class="text-left font-normal py-1 px-3">Team</th>
+                <th class="font-normal py-1 px-2">W-L</th>
+                <th class="font-normal py-1 px-2">GB</th>
+                <th class="font-normal py-1 px-3">Strk</th>
+              </tr>
+            </thead>
+            <tbody class="stat-row">
+              <tr class="border-b border-[#1a1a1a] hover:bg-[#121212]">
+                <td class="text-left py-1.5 px-3"><span class="text-[#52525b] w-3 inline-block">1</span> <span class="text-white font-bold">LAC</span></td>
+                <td class="px-2 text-green-500">5-1</td><td class="px-2 text-[#52525b]">-</td><td class="px-3 text-green-500">W4</td>
+              </tr>
+              <tr class="border-b border-[#1a1a1a] hover:bg-[#121212]">
+                <td class="text-left py-1.5 px-3"><span class="text-[#52525b] w-3 inline-block">2</span> <span class="text-white font-bold">LAL</span></td>
+                <td class="px-2">4-1</td><td class="px-2 text-[#a3a3a3]">0.5</td><td class="px-3 text-green-500">W2</td>
+              </tr>
+              <tr class="border-b border-[#1a1a1a] hover:bg-[#121212]">
+                <td class="text-left py-1.5 px-3"><span class="text-[#52525b] w-3 inline-block">3</span> <span class="text-white font-bold">OKC</span></td>
+                <td class="px-2">4-1</td><td class="px-2 text-[#a3a3a3]">0.5</td><td class="px-3 text-green-500">W1</td>
+              </tr>
+              <tr class="border-b border-[#1a1a1a] hover:bg-[#121212]">
+                <td class="text-left py-1.5 px-3"><span class="text-[#52525b] w-3 inline-block">4</span> <span class="text-white font-bold">DEN</span></td>
+                <td class="px-2">3-2</td><td class="px-2 text-[#a3a3a3]">1.5</td><td class="px-3 text-red-500">L1</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </aside>
+
+    <!-- RIGHT MAIN AREA: CALENDAR & STATS -->
+    <section class="flex-1 flex flex-col min-w-0 bg-[#0a0a0a]">
+      
+      <!-- TOP HALF: THE FOCAL POINT CALENDAR -->
+      <div class="flex-none bg-[#0f0f0f] border-b border-[#262626] flex flex-col shadow-xl z-20">
+        
+        <!-- Calendar Header -->
+        <div class="px-6 py-3 flex justify-between items-center bg-[#121212] border-b border-[#1a1a1a]">
+          <div class="flex items-center gap-4">
+            <h2 class="text-lg font-bold text-white uppercase tracking-widest">November 2025</h2>
+            <div class="flex gap-1 bg-[#1a1a1a] rounded p-0.5 border border-[#262626]">
+              <button class="px-3 py-1 hover:bg-[#262626] text-[#a3a3a3] hover:text-white rounded transition-colors"><i class="fas fa-chevron-left">&lt;</i></button>
+              <button class="px-3 py-1 bg-[#262626] text-white rounded shadow-sm font-bold uppercase text-[10px]">Today</button>
+              <button class="px-3 py-1 hover:bg-[#262626] text-[#a3a3a3] hover:text-white rounded transition-colors"><i class="fas fa-chevron-right">&gt;</i></button>
+            </div>
+          </div>
+          <div class="flex gap-3 text-[10px] font-bold uppercase tracking-wider">
+            <span class="flex items-center gap-1.5"><div class="w-2 h-2 bg-green-500 rounded-sm"></div> Win</span>
+            <span class="flex items-center gap-1.5"><div class="w-2 h-2 bg-red-500 rounded-sm"></div> Loss</span>
+            <span class="flex items-center gap-1.5"><div class="w-2 h-2 bg-[#262626] rounded-sm"></div> Upcoming</span>
+          </div>
+        </div>
+
+        <!-- Calendar Grid (Full Width, Prominent) -->
+        <div class="p-4 bg-[#0a0a0a]">
+          <div class="grid grid-cols-7 gap-2">
+            <!-- Days of Week -->
+            <div class="text-center text-[10px] uppercase font-bold text-[#52525b] pb-2">Sun</div>
+            <div class="text-center text-[10px] uppercase font-bold text-[#52525b] pb-2">Mon</div>
+            <div class="text-center text-[10px] uppercase font-bold text-[#52525b] pb-2">Tue</div>
+            <div class="text-center text-[10px] uppercase font-bold text-[#52525b] pb-2">Wed</div>
+            <div class="text-center text-[10px] uppercase font-bold text-[#52525b] pb-2">Thu</div>
+            <div class="text-center text-[10px] uppercase font-bold text-[#52525b] pb-2">Fri</div>
+            <div class="text-center text-[10px] uppercase font-bold text-[#52525b] pb-2">Sat</div>
+
+            <!-- Calendar Cells -->
+            <div class="h-16 border border-[#1a1a1a] bg-[#121212] rounded p-1.5 opacity-50 flex flex-col"><span class="text-[#52525b] font-bold">26</span></div>
+            <div class="h-16 border border-[#1a1a1a] bg-[#121212] rounded p-1.5 opacity-50 flex flex-col"><span class="text-[#52525b] font-bold">27</span></div>
+            <div class="h-16 border border-[#1a1a1a] bg-[#121212] rounded p-1.5 opacity-50 flex flex-col"><span class="text-[#52525b] font-bold">28</span></div>
+            <div class="h-16 border border-red-900/50 bg-red-900/10 rounded p-1.5 flex flex-col opacity-50">
+              <span class="text-[#a3a3a3] font-bold">29</span>
+              <div class="mt-auto text-[10px] font-bold text-red-500">L 102-110</div>
+              <div class="text-[9px] text-[#52525b] truncate">@ PHI</div>
+            </div>
+            <div class="h-16 border border-[#1a1a1a] bg-[#121212] rounded p-1.5 opacity-50 flex flex-col"><span class="text-[#52525b] font-bold">30</span></div>
+            <div class="h-16 border border-[#1a1a1a] bg-[#121212] rounded p-1.5 opacity-50 flex flex-col"><span class="text-[#52525b] font-bold">31</span></div>
+            
+            <!-- Today (Active) -->
+            <div class="h-16 border-2 border-amber-500 bg-indigo-900/20 rounded p-1.5 flex flex-col shadow-[0_0_15px_rgba(245,158,11,0.15)] relative">
+              <div class="absolute top-0 right-0 bg-amber-500 text-[#0a0a0a] text-[8px] font-black px-1.5 py-0.5 rounded-bl">TODAY</div>
+              <span class="text-white font-bold">1</span>
+              <div class="mt-auto flex justify-between items-end">
+                 <div class="text-[10px] font-bold text-white">vs MIL</div>
+                 <div class="text-[9px] text-amber-500 font-bold bg-amber-500/10 px-1 rounded">7:30P</div>
+              </div>
+            </div>
+
+            <!-- Future Dates -->
+            <div class="h-16 border border-[#262626] bg-[#121212] hover:bg-[#1a1a1a] transition-colors rounded p-1.5 flex flex-col cursor-pointer"><span class="text-[#a3a3a3] font-bold">2</span></div>
+            <div class="h-16 border border-[#262626] bg-[#1a1a1a] hover:bg-[#262626] transition-colors rounded p-1.5 flex flex-col cursor-pointer">
+              <span class="text-white font-bold">3</span>
+              <div class="mt-auto text-[10px] font-bold text-[#a3a3a3]">@ BOS</div>
+            </div>
+            <div class="h-16 border border-[#262626] bg-[#121212] hover:bg-[#1a1a1a] transition-colors rounded p-1.5 flex flex-col cursor-pointer"><span class="text-[#a3a3a3] font-bold">4</span></div>
+            <div class="h-16 border border-[#262626] bg-[#1a1a1a] hover:bg-[#262626] transition-colors rounded p-1.5 flex flex-col cursor-pointer">
+              <span class="text-white font-bold">5</span>
+              <div class="mt-auto text-[10px] font-bold text-[#a3a3a3]">vs TOR</div>
+            </div>
+            <div class="h-16 border border-[#262626] bg-[#121212] hover:bg-[#1a1a1a] transition-colors rounded p-1.5 flex flex-col cursor-pointer"><span class="text-[#a3a3a3] font-bold">6</span></div>
+            <div class="h-16 border border-[#262626] bg-[#121212] hover:bg-[#1a1a1a] transition-colors rounded p-1.5 flex flex-col cursor-pointer"><span class="text-[#a3a3a3] font-bold">7</span></div>
+            <div class="h-16 border border-[#262626] bg-[#1a1a1a] hover:bg-[#262626] transition-colors rounded p-1.5 flex flex-col cursor-pointer">
+              <span class="text-white font-bold">8</span>
+              <div class="mt-auto text-[10px] font-bold text-[#a3a3a3]">@ CLE</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOTTOM HALF: STATS TABLE (Takes Remaining Height) -->
+      <div class="flex-1 flex flex-col overflow-hidden bg-[#0a0a0a]">
+        
+        <!-- Stats Toolbar -->
+        <div class="flex-none px-6 py-2 border-b border-[#262626] flex items-center justify-between bg-[#121212]">
+          <!-- Tab Sub-Navigation -->
+          <div class="flex items-center gap-6">
+            <div class="flex gap-4 border-r border-[#262626] pr-6">
+              <button class="text-white font-bold text-[11px] uppercase tracking-wider border-b border-amber-500 pb-0.5">Per Game</button>
+              <button class="text-[#52525b] hover:text-[#a3a3a3] font-bold text-[11px] uppercase tracking-wider transition-colors">Totals</button>
+              <button class="text-[#52525b] hover:text-[#a3a3a3] font-bold text-[11px] uppercase tracking-wider transition-colors">Per 36</button>
+              <button class="text-[#52525b] hover:text-[#a3a3a3] font-bold text-[11px] uppercase tracking-wider transition-colors">Advanced</button>
+            </div>
+            <!-- Team Selection Toggles -->
+            <div class="flex bg-[#1a1a1a] rounded p-0.5 border border-[#262626]">
+              <button class="px-4 py-1 bg-[#262626] text-white rounded shadow-sm font-bold text-[10px]">NYK</button>
+              <button class="px-4 py-1 text-[#52525b] hover:text-white rounded font-bold text-[10px]">ALL</button>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <input type="text" placeholder="Search player..." class="bg-[#1a1a1a] border border-[#262626] text-white px-3 py-1 rounded outline-none focus:border-amber-500 w-48 placeholder-[#52525b]">
+          </div>
+        </div>
+
+        <!-- Massive Stats Table Container (20+ Columns) -->
+        <div class="flex-1 overflow-auto relative">
+          <table class="w-full text-right whitespace-nowrap">
+            <thead>
+              <tr class="text-[#52525b] uppercase border-b border-[#262626] text-[10px] tracking-widest bg-[#121212]">
+                <th class="sticky-corner text-left font-normal py-2 px-4 w-48 bg-[#121212]">Player</th>
+                <th class="sticky-header font-normal py-2 px-3 text-center border-l border-[#262626]">Team</th>
+                <th class="sticky-header font-normal py-2 px-3 text-center">Pos</th>
+                <th class="sticky-header font-normal py-2 px-3 text-center">Inj</th>
+                <th class="sticky-header font-normal py-2 px-3 hover:text-white cursor-pointer border-l border-[#262626]">GP</th>
+                <th class="sticky-header font-normal py-2 px-3 hover:text-white cursor-pointer">MIN</th>
+                <th class="sticky-header font-bold py-2 px-3 text-amber-500 cursor-pointer bg-[#1a1a1a]">PTS ▼</th>
+                <th class="sticky-header font-normal py-2 px-3 hover:text-white cursor-pointer">REB</th>
+                <th class="sticky-header font-normal py-2 px-3 hover:text-white cursor-pointer">AST</th>
+                <th class="sticky-header font-normal py-2 px-3 hover:text-white cursor-pointer">STL</th>
+                <th class="sticky-header font-normal py-2 px-3 hover:text-white cursor-pointer">BLK</th>
+                <th class="sticky-header font-normal py-2 px-3 hover:text-white cursor-pointer">TOV</th>
+                <th class="sticky-header font-normal py-2 px-3 hover:text-white cursor-pointer border-l border-[#262626]">FG%</th>
+                <th class="sticky-header font-normal py-2 px-3 hover:text-white cursor-pointer">3P%</th>
+                <th class="sticky-header font-normal py-2 px-3 hover:text-white cursor-pointer">FT%</th>
+                <th class="sticky-header font-normal py-2 px-3 hover:text-white cursor-pointer border-l border-[#262626]">FGM</th>
+                <th class="sticky-header font-normal py-2 px-3 hover:text-white cursor-pointer">FGA</th>
+                <th class="sticky-header font-normal py-2 px-3 hover:text-white cursor-pointer border-l border-[#262626]">3PM</th>
+                <th class="sticky-header font-normal py-2 px-3 hover:text-white cursor-pointer">3PA</th>
+                <th class="sticky-header font-normal py-2 px-3 hover:text-white cursor-pointer border-l border-[#262626]">FTM</th>
+                <th class="sticky-header font-normal py-2 px-3 hover:text-white cursor-pointer">FTA</th>
+                <th class="sticky-header font-normal py-2 px-3 hover:text-white cursor-pointer border-l border-[#262626]">+/-</th>
+              </tr>
+            </thead>
+            <tbody class="stat-row text-[#a3a3a3]">
+              
+              <tr class="border-b border-[#1a1a1a] hover:bg-[#121212] transition-colors">
+                <td class="sticky-col text-left py-1.5 px-4 font-bold text-[#e5e5e5] bg-[#0a0a0a]">Jalen Brunson</td>
+                <td class="text-center px-3 text-[#52525b] border-l border-[#1a1a1a]">NYK</td>
+                <td class="text-center px-3 text-[#52525b]">PG</td>
+                <td class="text-center px-3"></td>
+                <td class="px-3 border-l border-[#1a1a1a]">4</td>
+                <td class="px-3">34.5</td>
+                <td class="px-3 text-amber-500 font-bold bg-[#121212]">29.1</td>
+                <td class="px-3">3.8</td>
+                <td class="px-3 text-cyan-500 font-bold">7.2</td>
+                <td class="px-3">1.1</td>
+                <td class="px-3">0.1</td>
+                <td class="px-3 text-red-500">2.1</td>
+                <td class="px-3 text-green-500 border-l border-[#1a1a1a]">48.2</td>
+                <td class="px-3 text-green-500">39.5</td>
+                <td class="px-3 text-green-500 font-bold">88.3</td>
+                <td class="px-3 border-l border-[#1a1a1a]">10.4</td>
+                <td class="px-3">21.5</td>
+                <td class="px-3 border-l border-[#1a1a1a]">2.8</td>
+                <td class="px-3">7.2</td>
+                <td class="px-3 border-l border-[#1a1a1a]">5.5</td>
+                <td class="px-3">6.2</td>
+                <td class="px-4 text-green-500 font-bold">+8.4</td>
+              </tr>
+
+              <tr class="border-b border-[#1a1a1a] hover:bg-[#121212] transition-colors">
+                <td class="sticky-col text-left py-1.5 px-4 font-bold text-[#e5e5e5] bg-[#0a0a0a]">Karl-Anthony Towns</td>
+                <td class="text-center px-3 text-[#52525b] border-l border-[#1a1a1a]">NYK</td>
+                <td class="text-center px-3 text-[#52525b]">C</td>
+                <td class="text-center px-3"></td>
+                <td class="px-3 border-l border-[#1a1a1a]">4</td>
+                <td class="px-3">32.1</td>
+                <td class="px-3 text-amber-500 font-bold bg-[#121212]">22.5</td>
+                <td class="px-3 font-bold text-white">11.2</td>
+                <td class="px-3">3.0</td>
+                <td class="px-3">0.8</td>
+                <td class="px-3 text-cyan-500 font-bold">1.5</td>
+                <td class="px-3 text-red-500">2.5</td>
+                <td class="px-3 text-green-500 border-l border-[#1a1a1a]">52.1</td>
+                <td class="px-3 text-green-500">41.0</td>
+                <td class="px-3 text-green-500 font-bold">85.4</td>
+                <td class="px-3 border-l border-[#1a1a1a]">8.0</td>
+                <td class="px-3">15.3</td>
+                <td class="px-3 border-l border-[#1a1a1a]">2.2</td>
+                <td class="px-3">5.4</td>
+                <td class="px-3 border-l border-[#1a1a1a]">4.3</td>
+                <td class="px-3">5.0</td>
+                <td class="px-4 text-green-500 font-bold">+5.2</td>
+              </tr>
+
+              <!-- Dummy Rows for layout visualization -->
+              <tr class="border-b border-[#1a1a1a] hover:bg-[#121212] transition-colors"><td class="sticky-col text-left py-1.5 px-4 font-bold text-[#e5e5e5] bg-[#0a0a0a]">Josh Hart</td><td class="text-center px-3 text-[#52525b] border-l border-[#1a1a1a]">NYK</td><td class="text-center px-3 text-[#52525b]">SG</td><td></td><td class="px-3 border-l border-[#1a1a1a]">4</td><td class="px-3">33.2</td><td class="px-3 text-amber-500 font-bold bg-[#121212]">11.8</td><td class="px-3 font-bold text-white">8.3</td><td class="px-3">4.1</td><td class="px-3">1.1</td><td class="px-3">0.4</td><td class="px-3">1.8</td><td class="px-3 border-l border-[#1a1a1a]">46.2</td><td class="px-3">32.4</td><td class="px-3">79.0</td><td class="px-3 border-l border-[#1a1a1a]">4.5</td><td class="px-3">9.7</td><td class="px-3 border-l border-[#1a1a1a]">1.1</td><td class="px-3">3.4</td><td class="px-3 border-l border-[#1a1a1a]">1.7</td><td class="px-3">2.2</td><td class="px-4 text-green-500">+3.7</td></tr>
+              <tr class="border-b border-[#1a1a1a] hover:bg-[#121212] transition-colors"><td class="sticky-col text-left py-1.5 px-4 font-bold text-[#e5e5e5] bg-[#0a0a0a]">Donte DiVincenzo</td><td class="text-center px-3 text-[#52525b] border-l border-[#1a1a1a]">NYK</td><td class="text-center px-3 text-[#52525b]">SG</td><td></td><td class="px-3 border-l border-[#1a1a1a]">4</td><td class="px-3">28.5</td><td class="px-3 text-amber-500 font-bold bg-[#121212]">15.2</td><td class="px-3">3.6</td><td class="px-3">2.8</td><td class="px-3">1.3</td><td class="px-3">0.4</td><td class="px-3">1.2</td><td class="px-3 border-l border-[#1a1a1a]">44.5</td><td class="px-3 font-bold text-white">40.3</td><td class="px-3">76.2</td><td class="px-3 border-l border-[#1a1a1a]">5.4</td><td class="px-3">12.1</td><td class="px-3 border-l border-[#1a1a1a]">3.5</td><td class="px-3">8.7</td><td class="px-3 border-l border-[#1a1a1a]">0.9</td><td class="px-3">1.2</td><td class="px-4 text-green-500">+5.0</td></tr>
+              <tr class="border-b border-[#1a1a1a] hover:bg-[#121212] transition-colors"><td class="sticky-col text-left py-1.5 px-4 font-bold text-[#e5e5e5] bg-[#0a0a0a]">Mitchell Robinson</td><td class="text-center px-3 text-[#52525b] border-l border-[#1a1a1a]">NYK</td><td class="text-center px-3 text-[#52525b]">C</td><td class="text-center px-3"><span class="text-[9px] bg-red-900/40 text-red-500 px-1 rounded border border-red-900">OUT</span></td><td class="px-3 border-l border-[#1a1a1a] text-[#52525b]">1</td><td class="px-3 text-[#52525b]">22.1</td><td class="px-3 text-[#52525b] bg-[#121212]">6.0</td><td class="px-3 text-[#52525b]">9.0</td><td class="px-3 text-[#52525b]">0.0</td><td class="px-3 text-[#52525b]">1.0</td><td class="px-3 text-cyan-500 font-bold">2.0</td><td class="px-3 text-[#52525b]">1.0</td><td class="px-3 border-l border-[#1a1a1a] text-[#52525b]">60.0</td><td class="px-3 text-[#52525b]">0.0</td><td class="px-3 text-[#52525b]">50.0</td><td class="px-3 border-l border-[#1a1a1a] text-[#52525b]">3.0</td><td class="px-3 text-[#52525b]">5.0</td><td class="px-3 border-l border-[#1a1a1a] text-[#52525b]">0.0</td><td class="px-3 text-[#52525b]">0.0</td><td class="px-3 border-l border-[#1a1a1a] text-[#52525b]">0.0</td><td class="px-3 text-[#52525b]">0.0</td><td class="px-4 text-[#52525b]">+1.0</td></tr>
+
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+</body>
+</html>
+EOF
